@@ -1,5 +1,9 @@
+from config import (
+    AMES_HOUSING_NUMERICAL_FEATURES,
+    DataPath,
+    TargetColumn
+)
 from model import LogisticRegressionModel
-from pathlib import Path
 from sklearn.compose import make_column_selector as selector
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import (
@@ -9,16 +13,6 @@ from sklearn.preprocessing import (
 
 import data_handler as dh
 import pandas as pd
-
-AMES_HOUSING_PATH = Path("./data/ames_housing_no_missing.csv")
-
-NUMERICAL_FEATURES = [
-  "LotFrontage", "LotArea", "MasVnrArea", "BsmtFinSF1", "BsmtFinSF2",
-  "BsmtUnfSF", "TotalBsmtSF", "1stFlrSF", "2ndFlrSF", "LowQualFinSF",
-  "GrLivArea", "BedroomAbvGr", "KitchenAbvGr", "TotRmsAbvGrd", "Fireplaces",
-  "GarageCars", "GarageArea", "WoodDeckSF", "OpenPorchSF", "EnclosedPorch",
-  "3SsnPorch", "ScreenPorch", "PoolArea", "MiscVal",
-]
 
 
 """
@@ -61,14 +55,15 @@ def predictive_model(data: pd.DataFrame, targets: pd.Series) -> None:
 
 if __name__ == "__main__":
     # 1. Load data
-    data, targets = dh.load_data_from_csv(AMES_HOUSING_PATH)
-    
+    data, targets = dh.load_data_from_csv(DataPath.AMES_HOUSING.value,
+                                          TargetColumn.AMES_HOUSING)
+
     # 2. Convert continuous target into a classification target
     categorical_targets = convert_targets(targets)
-    
-    # 3. Predictive model 
+
+    # 3. Predictive model
     # Using only numerical features
     # predictive_model_with_numerical_features(data[NUMERICAL_FEATURES], categorical_targets)
 
     # With numerical and categorical features
-    predictive_model(data[NUMERICAL_FEATURES], categorical_targets)
+    predictive_model(data[AMES_HOUSING_NUMERICAL_FEATURES], categorical_targets)

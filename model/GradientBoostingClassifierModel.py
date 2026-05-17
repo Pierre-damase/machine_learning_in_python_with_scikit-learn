@@ -4,7 +4,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder
 
 
-class GradientBoostingClassifierModel(Model):
+class GradientBoostingClassifierModel(Model[Pipeline]):
     """
     Build a gradient-boosting model.
 
@@ -14,7 +14,6 @@ class GradientBoostingClassifierModel(Model):
                  pipeline_steps: list[
                      HistGradientBoostingClassifier|
                      OrdinalEncoder]):
-        super().__init__()
+        super().__init__(pipeline_steps=pipeline_steps)
 
-        self.pipeline_steps = pipeline_steps
-        self.model:Pipeline = self._factory_pipeline_initializer(*pipeline_steps)
+        self.model = self._factory_pipeline_initializer(*self.pipeline_steps)

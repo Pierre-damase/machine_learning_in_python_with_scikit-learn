@@ -1,15 +1,18 @@
+from config import (
+    DataPath,
+    TargetColumn
+)
 from model import (
-    GradientBoostingClassifierModel, 
+    GradientBoostingClassifierModel,
     LogisticRegressionModel
 )
-from pathlib import Path
 from sklearn.compose import make_column_selector as selector
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import (
-    OneHotEncoder, 
-    OrdinalEncoder, 
-    StandardScaler, 
+    OneHotEncoder,
+    OrdinalEncoder,
+    StandardScaler,
     TargetEncoder
 )
 from typing import TypeVar
@@ -17,34 +20,22 @@ from typing import TypeVar
 import data_handler as dh
 import pandas as pd
 
-ADULT_PATH = Path("./data/adult.arff")
 
-Tmodel = TypeVar('T', GradientBoostingClassifierModel, LogisticRegressionModel)
+Tmodel = TypeVar('Tmodel',
+                 GradientBoostingClassifierModel,
+                 LogisticRegressionModel)
 
 
-###################
-# DATA MANAGEMENT #
-###################
-"""Load categorical data from adult census."""
-def _load_categorical_data() -> tuple[pd.DataFrame, pd.Series]:
-    # Load adult census data as DataFrame and extract the target
-    adult_census, targets = dh.load_data_from_arff(ADULT_PATH)
-
-    # Filtered out any non-numeric values
-    data = dh.get_subset_from_dtypes(adult_census, [str])
-
-    return data, targets
-
-############
-# ENNCODER #
-############
+###########
+# ENCODER #
+###########
 """Try out ordinal encoder."""
 def _ordinal_encoder(data: pd.DataFrame, targets: pd.Series) -> None:
     print("\nOrdinal encoding")
 
     # 1. Machine learning pipeline with a one-hot encoding of the data
     logistic_regression = LogisticRegressionModel(pipeline_steps=[
-        OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1), 
+        OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
         LogisticRegression(max_iter=500)]
         )
 
@@ -58,7 +49,7 @@ def _onehot_encoder_handle_unknown(data: pd.DataFrame, targets: pd.Series) -> No
 
     # 1. Machine learning pipeline with a one-hot encoding of the data
     logistic_regression = LogisticRegressionModel(pipeline_steps=[
-        OneHotEncoder(handle_unknown="ignore"), 
+        OneHotEncoder(handle_unknown="ignore"),
         LogisticRegression(max_iter=500)]
         )
 
@@ -72,7 +63,7 @@ def _onehot_encoder_categories(data: pd.DataFrame, targets: pd.Series) -> None:
 
     # 1. Machine learning pipeline with a one-hot encoding of the data
     logistic_regression = LogisticRegressionModel(pipeline_steps=[
-        OneHotEncoder(categories=dh.get_all_categories(data)), 
+        OneHotEncoder(categories=dh.get_all_categories(data)),
         LogisticRegression(max_iter=500)]
         )
 
@@ -83,7 +74,7 @@ def _onehot_encoder_categories(data: pd.DataFrame, targets: pd.Series) -> None:
 """Try out one hot encoder by adjusting the min frequency parameter."""
 def _onehot_encoder_min_frequencies(data: pd.DataFrame, targets: pd.Series) -> None:
     min_frequencies:float = [None, 0.01, 0.05, 0.5, 1]
-    
+
     # Try out multiple min_frequency values to find a optimum one
     print("\nOne-hot encoding with various min_frequency value.")
     for min_frequency in min_frequencies:
@@ -91,7 +82,7 @@ def _onehot_encoder_min_frequencies(data: pd.DataFrame, targets: pd.Series) -> N
 
         # 1. Machine learning pipeline with a one-hot encoding of the data
         logistic_regression = LogisticRegressionModel(pipeline_steps=[
-            OneHotEncoder(handle_unknown='infrequent_if_exist', min_frequency=min_frequency), 
+            OneHotEncoder(handle_unknown='infrequent_if_exist', min_frequency=min_frequency),
             LogisticRegression(max_iter=500)]
             )
 
@@ -100,37 +91,26 @@ def _onehot_encoder_min_frequencies(data: pd.DataFrame, targets: pd.Series) -> N
         logistic_regression.print_kfold_cross_validation_accuracy(scores)
 
 
-###############
-# TRANSFORMER #
-###############
-"""
-Set up a column transformers to deal with numerical and categorical values.
-
-Parameter
----------
-kwargs['transformers']: tuples of the form (transformer, columns)
-
-kwargs['classifier']: classifier model to apply 
-"""
-def _column_transformer(model: type[Tmodel], data: pd.DataFrame, targets: pd.Series, **kwargs):
-    # 1. Machine learning pipeline with column transformer to
-    #    - Performe a one-hot encoding of categorical variables
-    #    - Performe a scaling of numerical variables
-    initialized_model = \
-        model(pipeline_steps=[*kwargs['transformers'], kwargs['classifier']])
-
-    # 2. KFold cross-validation to evaluate generalization performance of the model
-    scores = initialized_model.kfold_cross_validate(data, targets, 5)
-    initialized_model.print_kfold_cross_validation_accuracy(scores)
+####################
+# CROSS-VALIDATION #
+####################
+"""Kfold cross validation."""
+def kfold_cross_validation(model: Tmodel,
+                           data: pd.DataFrame,
+                           targets: pd.Series,
+                           nb_fold: int = 5):
+    scores = model.kfold_cross_validate(data, targets, nb_fold)
+    model.print_kfold_cross_validation_accuracy(scores)
 
 
 ###########
 # SECTION #
 ###########
 """Encoding of categorical variables."""
-def encoding_of_categorical_variables():
-    # Load adult census DataFrame 
-    data, targets = _load_categorical_data()
+def encoding_of_categorical_variables(data: pd.DataFrame,
+                                      targets: pd.Series) -> None:
+    # Filtered out any non-numeric values
+    data = dh.get_subset_from_dtypes(data, [str])
 
     one_hot_encoding_test = False
     if one_hot_encoding_test:
@@ -143,8 +123,8 @@ def encoding_of_categorical_variables():
 
     # Try out ordinal encoder
     _ordinal_encoder(data, targets) # kinda bad
-    
-    # Try out one hot encoder 
+
+    # Try out one hot encoder
     #   - With handle_unknown set to 'ignore'
     _onehot_encoder_handle_unknown(data, targets) # pretty good
     #   - By passing all the possible categories
@@ -160,112 +140,116 @@ For linear model it's required to:
 - Encode catogerical variables (with one-hot encoding for example)
 - Scale numerical variables
 """
-def linear_model_with_heterogeneously_data_type():
-    # Load adult census data as DataFrame and extract the target
-    adult_census, targets = dh.load_data_from_arff(ADULT_PATH)
-
+def linear_model_with_heterogeneously_data_type(data: pd.DataFrame,
+                                                targets: pd.Series) -> None:
     # Build a pipeline with a column transformer in order to deal with
     # numerical and categorical variables
-    _column_transformer(
-        LogisticRegressionModel, 
-        adult_census, 
-        targets, 
-        transformers = [(OneHotEncoder(handle_unknown="ignore"), selector(dtype_include=str)),
-                        (StandardScaler(), selector(dtype_exclude=str))],
+    model = LogisticRegressionModel.build_pipeline_with_transformer(
+        transformers = [
+            (OneHotEncoder(handle_unknown="ignore"), selector(dtype_include=str)),
+            (StandardScaler(), selector(dtype_exclude=str))
+        ],
         classifier = LogisticRegression(max_iter=500)
     )
+
+    # KFold cross-validation to evaluate generalization performance of the model
+    kfold_cross_validation(model, data, targets)
 
 """
 Using numerical and categorical variables together to train a tree-based model.
 
-For tree-based model, it's only required to encode categorical variables. 
-Therefore, use special string 'passthrough' to indicate to pass the numerical columns 
+For tree-based model, it's only required to encode categorical variables.
+Therefore, use special string 'passthrough' to indicate to pass the numerical columns
 through untransformed.
 
 Be aware that the current implementation of HistGradientBoostingClassifier is still
 incomplete. For example, does not yet support sparse input data.
 """
-def treebased_model_with_heterogeneously_data_type():
-    # Load adult census data as DataFrame and extract the target
-    adult_census, targets = dh.load_data_from_arff(ADULT_PATH)
-
+def treebased_model_with_heterogeneously_data_type(data: pd.DataFrame,
+                                                   targets: pd.Series) -> None:
     # Build a pipeline with a column transformer in order to deal with
     # numerical and categorical variables
     print("\nReference pipeline with no numerical scaling and integer-coded categories")
-    _column_transformer(
-        GradientBoostingClassifierModel, 
-        adult_census, 
-        targets,
+    model = GradientBoostingClassifierModel.build_pipeline_with_transformer(
         transformers = [
-            (OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1), selector(dtype_include=str)),
+            (
+                OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
+             selector(dtype_include=str)
+            ),
             ("passthrough", selector(dtype_exclude=str))
         ],
         classifier = HistGradientBoostingClassifier()
     )
+    kfold_cross_validation(model, data, targets)
 
     # Just to prove that perform numerical scaling with based-tree model is not required
     # Do not improve the accuracy and time difference is not significant
     print("\nPipeline with numerical scaling and integer-coded categories")
-    _column_transformer(
-        GradientBoostingClassifierModel, 
-        adult_census, 
-        targets,
+    model = GradientBoostingClassifierModel.build_pipeline_with_transformer(
         transformers = [
-            (OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1), selector(dtype_include=str)),
+            (
+                OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
+                selector(dtype_include=str)
+            ),
             (StandardScaler(), selector(dtype_exclude=str))
         ],
         classifier = HistGradientBoostingClassifier()
     )
+    kfold_cross_validation(model, data, targets)
 
     # Just to prove that using a one-hot encoding with based-tree model is NOT REQUIRED AND KINDA BAD
     # Does not affect the accuracy and improve the fit duration probably due to sparce_output=False
     # as a workaround because HistGradientBoostingClassifier does not yet support sparse input data
     print("\nPipeline with no numerical scaling and one-hot encoded categories")
-    _column_transformer(
-        GradientBoostingClassifierModel, 
-        adult_census, 
-        targets,
+    model = GradientBoostingClassifierModel.build_pipeline_with_transformer(
         transformers = [
-            (OneHotEncoder(handle_unknown="ignore", sparse_output=False), selector(dtype_include=str)),
+            (
+                OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+                selector(dtype_include=str)
+            ),
             ("passthrough", selector(dtype_exclude=str))
         ],
         classifier = HistGradientBoostingClassifier()
     )
+    kfold_cross_validation(model, data, targets)
 
 
 """
 Using numerical and categorical variables together to train a tree-based model with
 a target encoder which is well suited for nominal, categorical features with high cardinality.
-This encoding scheme is useful with categorical features with high cardinality, where one-hot 
-encoding would inflate the feature space making it more expensive for a downstream model to process. 
+This encoding scheme is useful with categorical features with high cardinality, where one-hot
+encoding would inflate the feature space making it more expensive for a downstream model to process.
 A classical example of high cardinality categories are location based such as zip code or region.
 """
-def treebased_model_with_mix_encoder():
-    # Load adult census data as DataFrame and extract the target
-    adult_census, targets = dh.load_data_from_arff(ADULT_PATH)
-
+def treebased_model_with_mix_encoder(data: pd.DataFrame,
+                                     targets: pd.Series) -> None:
     # Get categorical features with high cardinality
     high_cardinality, low_cardinality = \
-        dh.get_cardinality_features(dh.get_subset_from_dtypes(adult_census, [str]))
+        dh.get_cardinality_features(dh.get_subset_from_dtypes(data, [str]))
 
     # Build a pipeline with a column transformer in order to deal with
-    # numerical and categorical variables (use different encoder depending 
+    # numerical and categorical variables (use different encoder depending
     # of data cardinality)
-    _column_transformer(
-        GradientBoostingClassifierModel, 
-        adult_census, 
-        targets,
+    model = GradientBoostingClassifierModel.build_pipeline_with_transformer(
         transformers = [
             (TargetEncoder(target_type="auto"), high_cardinality.columns.to_list()),
-            (OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1), low_cardinality.columns.to_list()),
+            (
+                OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
+                low_cardinality.columns.to_list()
+            ),
             ("passthrough", selector(dtype_exclude=str))
         ],
         classifier = HistGradientBoostingClassifier()
     )
-    
+    kfold_cross_validation(model, data, targets)
+
 
 if __name__ == "__main__":
-    # encoding_of_categorical_variables()
-    # linear_model_with_heterogeneously_data_type()
-    treebased_model_with_heterogeneously_data_type()
-    # treebased_model_with_mix_encoder()
+    # Load data
+    adult_census = dh.load_data_from_arff(DataPath.ADULT_CENSUS.value,
+                                          TargetColumn.ADULT_CENSUS)
+
+    encoding_of_categorical_variables(*adult_census)
+    linear_model_with_heterogeneously_data_type(*adult_census)
+    treebased_model_with_heterogeneously_data_type(*adult_census)
+    treebased_model_with_mix_encoder(*adult_census)

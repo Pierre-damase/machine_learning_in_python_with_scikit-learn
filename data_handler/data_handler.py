@@ -1,5 +1,6 @@
 from pathlib import Path
 from scipy.io import arff
+from sklearn.datasets import fetch_california_housing
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import (
     OneHotEncoder,
@@ -10,22 +11,26 @@ from sklearn.preprocessing import (
 import pandas as pd
 import numpy as np
 
-ADULT_TARGET = "class"
-AMES_HOUSING_TARGET = "SalePrice"
 
 #############
 # LOAD DATA #
 #############
-"""Load .arff file as DataFrame."""
-def load_data_from_arff(path: Path) -> pd.DataFrame:
+"""Load data as a DataFrame."""
+def load_data(path: Path, target: str):
+    if str(path).endswith(".csv"):
+        return load_data_from_csv(path, target)
+    return load_data_from_arff(path, target)
+
+"""Load .arff file as a DataFrame."""
+def load_data_from_arff(path: Path, target: str) -> tuple[pd.DataFrame, pd.Series]:
     # Load as DataFrame
     data, _ = arff.loadarff(path)
     df = pd.DataFrame(data)
-    
-    # Drop education-num because education-num and education give the same information
+
+    # Drop education-num because educati/extratcon-num and education give the same information
     # It's possible to add it a this point because the data are known
     df = df.drop(columns="education-num")
-    
+
     # Str load as bytes, a conversion is needed
     str_df = get_subset_from_dtypes(df, [object])
     str_df = str_df.stack().str.decode('utf-8').unstack()
@@ -34,12 +39,26 @@ def load_data_from_arff(path: Path) -> pd.DataFrame:
     # and the df with byte converted as str
     return _extract_target(
         pd.concat([get_subset_filtered_out(df, str_df.columns), str_df], sort=False, axis=1),
-        ADULT_TARGET
+        target
         )
 
 """Load .csv file as DataFrame."""
-def load_data_from_csv(path: Path) -> pd.DataFrame:
-    return _extract_target(pd.read_csv(path), AMES_HOUSING_TARGET)
+def load_data_from_csv(path: Path, target: str) -> tuple[pd.DataFrame, pd.Series]:
+    return _extract_target(pd.read_csv(path), target)
+
+"""
+Load california housing dataset.
+
+Returns
+-------
+data: general real-estate and geographical information
+
+target: median value of houses in California. Transform the prices from
+        the 100 range to the thousand dollars range for visualization
+"""
+def load_california_dataset() -> tuple[pd.DataFrame, pd.Series]:
+    housing = fetch_california_housing(as_frame=True)
+    return housing.data, housing.target * 100
 
 
 ########################
@@ -68,11 +87,11 @@ Returns
 -------
 List containing the train-test split of the data.
     x_train: training data
-    
+
     x_test: testing data
-    
+
     y_train: training target
-    
+
     y_test: testing target
 """
 def manual_train_test_split(data: pd.DataFrame, targets: pd.Series, test_size: int = 0.25) \
@@ -96,9 +115,9 @@ def manual_train_test_split(data: pd.DataFrame, targets: pd.Series, test_size: i
 """
 Split data to build train and test set using scikit learn.
 
-In scikit-learn setting the randome-state allows 
+In scikit-learn setting the randome-state allows
 to get deterministic results when we use a random number generator.
-The randomness comes from shuffling the data, 
+The randomness comes from shuffling the data,
 which decides how the dataset is split into a train and test set.
 
 The data scaling is applied to each feature individually, i.e. each column of the matrix.
@@ -108,15 +127,16 @@ Returns
 -------
 List containing the train-test split of the data.
     x_train: training data
-    
+
     x_test: testing data
-    
+
     y_train: training target
-    
+
     y_test: testing target
 """
-def sklearn_train_test_split(data: pd.DataFrame, targets: pd.Series, test_size: int = 0.25) \
-    -> list[pd.DataFrame|pd.Series]:
+def sklearn_train_test_split(data: pd.DataFrame,
+                             targets: pd.Series,
+                             test_size: float = 0.25) -> list[pd.DataFrame|pd.Series]:
     return train_test_split(data, targets, random_state=42, test_size=test_size, shuffle=True)
 
 """Get all categories available for each categorical feature."""
