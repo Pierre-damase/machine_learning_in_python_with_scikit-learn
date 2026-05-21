@@ -37,16 +37,13 @@ def predictive_model(data: pd.DataFrame, targets: pd.Series) -> None:
     # 1. Machine learning pipeline with column transformer to
     #    - Performe a one-hot encoding of categorical variables
     #    - Performe a scaling of numerical variables
-    initialized_model = \
-        LogisticRegressionModel(pipeline_steps=[
-            # Transformers
-            *[
-                (StandardScaler(), selector(dtype_exclude=object)),
-                (OneHotEncoder(handle_unknown="ignore"), selector(dtype_include=object))
-            ],
-            # Classifier 
-            LogisticRegression(max_iter=500)
-        ])
+    initialized_model = LogisticRegressionModel.build_pipeline_with_transformer(
+        transformers = [
+            (StandardScaler(), selector(dtype_exclude=object)),
+            (OneHotEncoder(handle_unknown="ignore"), selector(dtype_include=object))
+        ],
+        model = LogisticRegression(max_iter=500)
+    )
 
     # 2. KFold cross-validation to evaluate generalization performance of the model
     scores = initialized_model.kfold_cross_validate(data, targets, 5)

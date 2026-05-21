@@ -1,0 +1,128 @@
+from sklearn.model_selection import GridSearchCV
+from config import (
+    DataPath,
+    PENGUIN_NUMERICAL_FEATURES,
+    TargetColumn
+)
+from model import KNeighborsClassifierModel
+
+import data_handler as dh
+
+
+from pathlib import Path
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import MinMaxScaler, PowerTransformer, QuantileTransformer, StandardScaler
+
+import pandas as pd
+
+
+########
+# DATA #
+########
+"""Load penguin dataset,extract numerical features of interest and drop na."""
+def load_penguins() -> tuple[pd.DataFrame, pd.Series]:
+    data, targets = dh.load_data_from_csv(DataPath.PENGUIN.value, TargetColumn.PENGUIN)
+    tmp = pd.concat([data[PENGUIN_NUMERICAL_FEATURES], targets], axis=1).dropna()
+    return tmp.drop(columns=[TargetColumn.PENGUIN]), pd.Series(tmp[TargetColumn.PENGUIN.value])
+
+
+#########
+# MODEL #
+#########
+"""Build a KNeighbors classifier pipeline."""
+def build_kneighbors_classifier(scaler,
+                                columns: list[str],
+                                **kwargs) -> KNeighborsClassifierModel:
+    return KNeighborsClassifierModel.build_pipeline_with_transformer(
+        transformers = [
+            (scaler(**kwargs), columns)
+        ],
+        model = KNeighborsClassifier(n_neighbors=5)
+    )
+
+"""Build a KNeighbors classifier model without data scaling."""
+def build_kneighbors_classifier_without_scaler() -> KNeighborsClassifierModel:
+    return KNeighborsClassifierModel(n_neighbors=5)
+
+
+####################
+# CROSS-VALIDATION #
+####################
+"""Cross-validation to evaluate the model performance without any tuning."""
+def cross_validation(model: KNeighborsClassifierModel, x_data: pd.DataFrame, y_data: pd.Series):
+    scores = model.kfold_cross_validate(
+        x_data, y_data, nb_fold=10, scoring="balanced_accuracy", return_train_score=True
+    )
+    model.print_cross_validate(scores)
+
+"""Run cross-validation for model without data scaling."""
+def run_cv_without_scaler(x_data: pd.DataFrame,
+                          y_data: pd.Series,
+                          x_train: pd.DataFrame,
+                          y_train: pd.Series):
+    model = build_kneighbors_classifier_without_scaler()
+    model.start(x_train=x_train, y_train=y_train)
+    cross_validation(model, x_data, y_data)
+
+
+#################
+# MANUALLY TUNE #
+#################
+"""Manually try out some hyperparameters value to tune the model."""
+def manually_tune_model(model: KNeighborsClassifierModel,
+                        x_data: pd.DataFrame,
+                        y_data: pd.Series,
+                        n_neighbors: int):
+    # Set new parameter value
+    print(f"Try out model with n_neighbors = {n_neighbors}")
+    model.set_hyperparameters(kneighborsclassifier__n_neighbors=n_neighbors)
+
+    # Perform cross-validation
+    cross_validation(model, x_data, y_data)
+
+
+##################
+# AUTOMATED TUNE #
+##################
+"""Build various KNeighbors classifier then tune hyperparameter n_neighbors."""
+def tune_model(model: KNeighborsClassifierModel,
+               x_data: pd.DataFrame,
+               y_data: pd.Series,
+               x_train: pd.DataFrame,
+               y_train: pd.Series):
+    # 1. Set up the paramater grid used but the grid-search algorithm
+    param_grid = {
+        "kneighborsclassifier__n_neighbors": [5, 51, 101],
+        "columntransformer__standardscaler": [
+            None, StandardScaler(), MinMaxScaler(), QuantileTransformer(n_quantiles=100),
+            PowerTransformer(method="box-cox")
+        ]
+    }
+
+    # 2. Tune hyperparameters
+    path = Path(*DataPath.HYPERPARAMETER_TUNING.value.parts + ("penguins.csv",))
+    model.automated_search_cross_validation(
+        GridSearchCV, param_grid, x_data, y_data, x_train, y_train, path, cv=10
+    )
+
+
+if __name__ == "__main__":
+    # 1. Load data
+    penguins = load_penguins()
+
+    # 2. Split data into random train and test subsets
+    x_train, _, y_train, _ = dh.sklearn_train_test_split(*penguins, test_size=0.8)
+
+    # 3. Build the classifier model
+    model = build_kneighbors_classifier(StandardScaler, penguins[0].columns.to_list())
+
+    # 4. Evaluate the model
+    # cross_validation(model, *penguins)
+
+    # 5. Try out various value for n_neighbors hyperparameter
+    # manually_tune_model(model, *penguins, n_neighbors=51)
+    # manually_tune_model(model, *penguins, n_neighbors=101)
+    # run_cv_without_scaler(*penguins, x_train, y_train)
+
+    # 6. Tune KNeighbors classifier
+    tune_model(model, *penguins, x_train, y_train)

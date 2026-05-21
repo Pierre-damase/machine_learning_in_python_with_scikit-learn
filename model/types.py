@@ -1,48 +1,77 @@
 from sklearn.compose import make_column_selector as selector
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.preprocessing import (
+    MinMaxScaler,
     OneHotEncoder,
     OrdinalEncoder,
+    PowerTransformer,
+    QuantileTransformer,
     StandardScaler
 )
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.dummy import DummyClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import ShuffleSplit
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 from typing import TypeVar
 
 
-# Model type
-type AcceptModelWithPipelineType = (HistGradientBoostingClassifier
+##############
+# CLASSIFIER #
+##############
+type AcceptClassifierWithPipelineType = (HistGradientBoostingClassifier
                                      | KNeighborsClassifier
                                      | LogisticRegression
                                      | SVC)
-Tmodelwithpipeline = TypeVar(
-    'Tmodelwithpipeline', bound=AcceptModelWithPipelineType
-)
+Tclassifierwithpipeline = TypeVar('Tclassifierwithpipeline', bound=AcceptClassifierWithPipelineType)
 
-type AcceptModelType = (DecisionTreeRegressor
+type AcceptClassifierType = (DecisionTreeRegressor
                         | DummyClassifier
                         | Pipeline
-                        | AcceptModelWithPipelineType)
+                        | AcceptClassifierWithPipelineType)
+Tclassifier = TypeVar('Tclassifier', bound=AcceptClassifierType)
+
+#############
+# REGRESSOR #
+#############
+type AcceptRegressorWithPipelineType = (KNeighborsRegressor)
+Tregressorwithpipeline = TypeVar('Tregressorwithpipeline', bound=AcceptRegressorWithPipelineType)
+
+type AcceptRegressorType = (DecisionTreeRegressor
+                            | Pipeline
+                            | AcceptRegressorWithPipelineType)
+Tregressor = TypeVar('Tregressor', bound=AcceptRegressorType)
+
+
+#########
+# MODEL #
+#########
+type AcceptModelType = (AcceptClassifierType | AcceptRegressorType)
 Tmodel = TypeVar('Tmodel', bound=AcceptModelType)
 
-# Pre-processor type
+#################
+# PRE-PROCESSOR #
+#################
 # str type for passthrough, columns specified with it are added at the right
-type AcceptPreprocessorType = (
-    tuple[OneHotEncoder|OrdinalEncoder|StandardScaler|str, selector]
-)
-Tpreprocessor = TypeVar('Tpreprocessor', bound=AcceptPreprocessorType
-)
+type AcceptPreprocessorType = (tuple[QuantileTransformer
+                                     | MinMaxScaler
+                                     | OneHotEncoder
+                                     | OrdinalEncoder
+                                     | PowerTransformer
+                                     | StandardScaler
+                                     | str, selector])
+Tpreprocessor = TypeVar('Tpreprocessor', bound=AcceptPreprocessorType)
 
-# Pipeline steps type
+##################
+# PIPELINE STEPS #
+##################
 type AcceptPipelineType = (OneHotEncoder
                             | OrdinalEncoder
                             | StandardScaler
-                            | AcceptModelWithPipelineType
+                            | AcceptClassifierWithPipelineType
+                            | AcceptRegressorWithPipelineType
                             | AcceptPreprocessorType)
 Tpipelinesteps = TypeVar('Tpipelinesteps', bound=AcceptPipelineType)
 

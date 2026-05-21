@@ -149,7 +149,7 @@ def linear_model_with_heterogeneously_data_type(data: pd.DataFrame,
             (OneHotEncoder(handle_unknown="ignore"), selector(dtype_include=str)),
             (StandardScaler(), selector(dtype_exclude=str))
         ],
-        classifier = LogisticRegression(max_iter=500)
+        model = LogisticRegression(max_iter=500)
     )
 
     # KFold cross-validation to evaluate generalization performance of the model
@@ -174,11 +174,11 @@ def treebased_model_with_heterogeneously_data_type(data: pd.DataFrame,
         transformers = [
             (
                 OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
-             selector(dtype_include=str)
+                selector(dtype_include=str)
             ),
             ("passthrough", selector(dtype_exclude=str))
         ],
-        classifier = HistGradientBoostingClassifier()
+        model = HistGradientBoostingClassifier()
     )
     kfold_cross_validation(model, data, targets)
 
@@ -193,7 +193,7 @@ def treebased_model_with_heterogeneously_data_type(data: pd.DataFrame,
             ),
             (StandardScaler(), selector(dtype_exclude=str))
         ],
-        classifier = HistGradientBoostingClassifier()
+        model = HistGradientBoostingClassifier()
     )
     kfold_cross_validation(model, data, targets)
 
@@ -209,7 +209,7 @@ def treebased_model_with_heterogeneously_data_type(data: pd.DataFrame,
             ),
             ("passthrough", selector(dtype_exclude=str))
         ],
-        classifier = HistGradientBoostingClassifier()
+        model = HistGradientBoostingClassifier()
     )
     kfold_cross_validation(model, data, targets)
 
@@ -239,7 +239,7 @@ def treebased_model_with_mix_encoder(data: pd.DataFrame,
             ),
             ("passthrough", selector(dtype_exclude=str))
         ],
-        classifier = HistGradientBoostingClassifier()
+        model = HistGradientBoostingClassifier()
     )
     kfold_cross_validation(model, data, targets)
 

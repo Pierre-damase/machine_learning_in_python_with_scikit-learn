@@ -1,13 +1,14 @@
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-import numpy.typing as npt
-import seaborn as sns
-
 from sklearn.model_selection import (
     LearningCurveDisplay,
     ValidationCurveDisplay
 )
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import plotly.express as px
+import numpy as np
+import numpy.typing as npt
+import seaborn as sns
 
 
 ####################
@@ -22,7 +23,8 @@ def check_data(data: pd.DataFrame, targets: pd.Series) -> None:
     # Display data shape
     if display_shape:
         print(f"The dataset contains {data.shape[0]} samples and {data.shape[1]} features with\n"
-              f"- numerical features: {', '.join([col for col in data.columns if col not in str_columns])}\n"
+              "- numerical features: "
+              f"{', '.join([col for col in data.columns if col not in str_columns])}\n"
               f"- categorical features: {', '.join(str_columns)}")
 
     # Histogram visualisation of numerical values
@@ -86,12 +88,20 @@ scatterplot of any pair of numerical features. In order to observe
 than scaler does not change the structure of the data. 
 Only the axes get shifted and scaled.
 """
-def scaler_jointplot(x_train: pd.DataFrame, x_train_scaled: pd.DataFrame, x_axis: str, y_axis: str) -> None:
+def scaler_jointplot(x_train: pd.DataFrame,
+                     x_train_scaled: pd.DataFrame,
+                     x_axis: str,
+                     y_axis: str) -> None:
     # Limit points to plot for clearer result
     limit = 300
 
-    _jointplot(x_train[:limit], x_axis, y_axis, f"Jointplot of {x_axis} and {y_axis} before data scaling")
-    _jointplot(x_train_scaled[:limit], x_axis, y_axis, f"Jointplot of {x_axis} and {y_axis} after data scaling")
+    _jointplot(x_train[:limit],
+               x_axis,
+               y_axis, f"Jointplot of {x_axis} and {y_axis} before data scaling")
+    _jointplot(x_train_scaled[:limit],
+               x_axis,
+               y_axis,
+               f"Jointplot of {x_axis} and {y_axis} after data scaling")
     plt.show()
 
 """Jointplot."""
@@ -111,7 +121,9 @@ def _jointplot(data: pd.DataFrame, x_axis: str, y_axis: str, title: str) -> None
 """Display the training and testing error distribution."""
 def error_distribution(scores: dict[str, npt.NDArray[np.float64]]):
     try:
-        errors = pd.DataFrame({"Train score": scores["train_score"], "Test score": scores["test_score"]})
+        errors = pd.DataFrame(
+            {"Train score": scores["train_score"], "Test score": scores["test_score"]}
+        )
         errors.plot.hist(bins=50, edgecolor="black")
         plt.xlabel("Mean absolute error")
         plt.title("Training and testing error distribution via cross-validation")
@@ -175,3 +187,29 @@ def show_errorbars_for_hyperparameter_tuning(train_scores: dict[str, list[float]
     plt.ylabel("Scores")
     plt.legend()
     plt.show()
+
+
+########################
+# PARALLEL COORDINATES #
+########################
+"""Build a parallel coordinates graphic."""
+def show_parallel_coordinates_for_hyperparameter_tuning(data: pd.DataFrame):
+    # Ignore some columns
+    columns_to_ignore = ["std_test_score", "rank_test_score", "mean_train_score",
+                         "std_train_score"]
+    data.drop(columns=columns_to_ignore, inplace=True)
+
+    # The parallel coordinate plot only take numerical data as entry
+    # therefore convert bool column into int
+    bool_data = data.select_dtypes(bool)
+    if not bool_data.empty:
+        bool_data = bool_data.astype(int)
+        data = data.drop(columns=bool_data.columns)
+        data = pd.concat([data, bool_data], axis=1)
+
+    # Plot
+    fig = px.parallel_coordinates(data,
+                                  color="mean_test_score",
+                                  dimensions=data.columns,
+                                  color_continuous_scale=px.colors.sequential.Viridis)
+    fig.show()

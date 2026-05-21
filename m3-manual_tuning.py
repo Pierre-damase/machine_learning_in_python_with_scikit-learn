@@ -14,14 +14,9 @@ from sklearn.preprocessing import (
 )
 from sklearn.linear_model import LogisticRegression
 from visualisation import show_errorbars_for_hyperparameter_tuning
-from typing import TypeVar
 
 import data_handler as dh
 import pandas as pd
-
-Tmodel = TypeVar('Tmodel',
-                 GradientBoostingClassifierModel,
-                 LogisticRegressionModel)
 
 
 #######################
@@ -71,7 +66,7 @@ def _build_gradient_boosting(learning_rate:float = 0.1,
             ),
             ("passthrough", selector(dtype_exclude=str))
         ],
-        classifier = HistGradientBoostingClassifier(random_state=42,
+        model = HistGradientBoostingClassifier(random_state=42,
                                                     learning_rate=learning_rate,
                                                     max_leaf_nodes=max_leaf_nodes)
     )

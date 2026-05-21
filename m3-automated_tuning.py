@@ -3,6 +3,11 @@ from config import (
     TargetColumn
 )
 from model import GradientBoostingClassifierModel
+from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
+import data_handler as dh
+
+
+from pathlib import Path
 from sklearn.compose import make_column_selector as selector
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.model_selection import (
@@ -12,7 +17,6 @@ from sklearn.model_selection import (
 from sklearn.preprocessing import OrdinalEncoder
 from scipy.stats import loguniform
 
-import data_handler as dh
 import pandas as pd
 
 
@@ -40,7 +44,7 @@ def build_gradient_boosting_classifier() -> GradientBoostingClassifierModel:
             ),
             ("passthrough", selector(dtype_exclude=str))
         ],
-        classifier = HistGradientBoostingClassifier(random_state=42, max_leaf_nodes=4)
+        model = HistGradientBoostingClassifier(random_state=42, max_leaf_nodes=4)
     )
 
 
@@ -52,13 +56,23 @@ Hyperparameter tuning by grid-search.
 
 For tree-based models, ordinal encoder avoids having high-dimensional representations.
 
-  - learning_rate: control the ability of a new tree to correct the error of the
-                   previous sequence of trees
+  - learning_rate: control the ability of a new tree to correct the error of the previous sequence
+    of trees.
+      . A gradient boosting model with large learning rate will tend to overfit. It is due to the
+        fact that the sequence of added trees will rapidly correct the residuals and thus will
+        fit noisy samples. A learning rate larger than 1 can even make the optimization problem
+        diverge.
+      . On an other hand, setting a low learning rate will pervent the model to miminimize the loss
+        even on the training set and therefore will cause underfitting.
+
   - max_leaf_nodes: control the depth of each tree
 """
 def grid_search_tuning(model: GradientBoostingClassifierModel,
-                       data: list[pd.DataFrame|pd.Series]) -> None:
-
+                       x_data: pd.DataFrame,
+                       y_data: pd.Series,
+                       x_train: pd.DataFrame,
+                       y_train: pd.Series,
+                       path: Path) -> None:
     # 1. Set up the parameter grid used by the grid-search algorithm
     #    Explicitly specified hyperparameter values to try out
     param_grid = {
@@ -67,7 +81,9 @@ def grid_search_tuning(model: GradientBoostingClassifierModel,
     }
 
     # 2. Tune hyperparameters
-    model.automated_search_cross_validation(GridSearchCV, param_grid, *data, verbose=True, cv=2)
+    model.automated_search_cross_validation(
+        GridSearchCV, param_grid, x_data, y_data, x_train, y_train, path=path, cv=2
+    )
 
 """
 Hyperparameter tuning by randomized-search.
@@ -80,10 +96,14 @@ Hyperparameter tuning by randomized-search.
   - max_bins: control the maximum number of bins to construct the histograms
 """
 def randomized_search_tuning(model: GradientBoostingClassifierModel,
-                             data: list[pd.DataFrame|pd.Series]) -> None:
+                             x_data: pd.DataFrame,
+                             y_data: pd.Series,
+                             x_train: pd.DataFrame,
+                             y_train: pd.Series,
+                             path: Path) -> None:
     # 1. Set up the parameter distribution used by the randomized-search algorithm
     #    Specified a range of hyperparameter values to try out
-    param_distribution = {
+    param_dist = {
         "histgradientboostingclassifier__l2_regularization": loguniform(1e-6, 1e3),
         "histgradientboostingclassifier__learning_rate": loguniform(0.001, 10),
         "histgradientboostingclassifier__max_leaf_nodes": loguniform_int(2, 256),
@@ -94,9 +114,12 @@ def randomized_search_tuning(model: GradientBoostingClassifierModel,
     # 2. Tune hyperparameters. For performance issue only run 10 iterations.
     #    In order to make a decent analysis, at least 500 iterations would be best.
     model.automated_search_cross_validation(
-        RandomizedSearchCV, param_distribution, *data, verbose=True, cv=5, n_iter=10
+        RandomizedSearchCV, param_dist, x_data, y_data, x_train, y_train, path=path, cv=5, n_iter=20
     )
 
+
+FILE_RANDOMIZED_SEARCH = "randomized_search.csv"
+FILE_GRID_SEARCH = "grid_search.csv"
 
 if __name__ == "__main__":
     # 1. Load data
@@ -104,11 +127,16 @@ if __name__ == "__main__":
                                           TargetColumn.ADULT_CENSUS)
 
     # 2. Split data into random train and test subsets
-    adult_census_split = dh.sklearn_train_test_split(*adult_census, test_size=0.8)
+    x_train, _, y_train, _ = dh.sklearn_train_test_split(*adult_census, test_size=0.8)
 
-    # 3. Build the model
+    # 3. Build the classifier model
     model = build_gradient_boosting_classifier()
 
     # 4. Tuning using various method
-    # grid_search_tuning(model, adult_census_split)
-    randomized_search_tuning(model, adult_census_split)
+    path = Path(*DataPath.HYPERPARAMETER_TUNING.value.parts + ("grid_search.csv",))
+    # grid_search_tuning(model, *adult_census, x_train, y_train, path)
+    # show_parallel_coordinates_for_hyperparameter_tuning(pd.read_csv(path))
+
+    path = Path(*DataPath.HYPERPARAMETER_TUNING.value.parts + ("randomized_search.csv",))
+    randomized_search_tuning(model, *adult_census, x_train, y_train, path)
+    show_parallel_coordinates_for_hyperparameter_tuning(pd.read_csv(path))
