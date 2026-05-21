@@ -6,7 +6,7 @@ from sklearn.preprocessing import StandardScaler
 
 class KNeighborsClassifierModel(Model[KNeighborsClassifier | Pipeline]):
     """
-    K-nearest neighbors model.
+    K-nearest neighbors classifier.
 
     [To predict discrete target]
 
@@ -16,9 +16,8 @@ class KNeighborsClassifierModel(Model[KNeighborsClassifier | Pipeline]):
     """
     def __init__(self,
                  n_neighbors: int = 5,
-                 pipeline_steps: list[
-                     KNeighborsClassifier|
-                     StandardScaler] = []):
+                 pipeline_steps: list[KNeighborsClassifier
+                                      | StandardScaler] = []):
         super().__init__(pipeline_steps=pipeline_steps)
 
         self.model = self._model_initializer(n_neighbors)

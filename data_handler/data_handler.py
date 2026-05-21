@@ -35,7 +35,7 @@ def load_data_from_arff(path: Path, target: str) -> tuple[pd.DataFrame, pd.Serie
     str_df = get_subset_from_dtypes(df, [object])
     str_df = str_df.stack().str.decode('utf-8').unstack()
 
-    # Return the complete df; i.e. the concatenation between the numerical df 
+    # Return the complete df; i.e. the concatenation between the numerical df
     # and the df with byte converted as str
     return _extract_target(
         pd.concat([get_subset_filtered_out(df, str_df.columns), str_df], sort=False, axis=1),
@@ -66,7 +66,7 @@ def load_california_dataset() -> tuple[pd.DataFrame, pd.Series]:
 ########################
 """Extract target from DataFrame"""
 def _extract_target(data: pd.DataFrame, targets: str) -> tuple[pd.DataFrame, pd.Series]:
-    return data.drop(columns=[targets]), data[targets]
+    return data.drop(columns=[targets]), pd.Series(data[targets])
 
 """Get a subset from column names."""
 def get_subset(data: pd.DataFrame, target_subset: list[str]) -> pd.DataFrame:

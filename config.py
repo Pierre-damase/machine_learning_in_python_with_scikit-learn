@@ -1,6 +1,7 @@
 from enum import Enum
 from pathlib import Path
 
+# Numerical features of ames housing dataset
 AMES_HOUSING_NUMERICAL_FEATURES = [
   "LotFrontage", "LotArea", "MasVnrArea", "BsmtFinSF1", "BsmtFinSF2",
   "BsmtUnfSF", "TotalBsmtSF", "1stFlrSF", "2ndFlrSF", "LowQualFinSF",
@@ -9,11 +10,19 @@ AMES_HOUSING_NUMERICAL_FEATURES = [
   "3SsnPorch", "ScreenPorch", "PoolArea", "MiscVal",
 ]
 
+# Numerical features of interest of penguins dataset
+PENGUIN_NUMERICAL_FEATURES = [
+    "Body Mass (g)", "Flipper Length (mm)", "Culmen Length (mm)"
+]
+
 
 class DataPath(Enum):
-    ADULT_CENSUS = Path("./data/adult.arff")
-    AMES_HOUSING = Path("./data/ames_housing_no_missing.csv")
-    BLOOD_TRANSFUSION = Path("./data/blood_transfusion.csv")
+    """Path to dataset or tuned hyperparameter saved as csv."""
+    ADULT_CENSUS = Path("./data/data_set/adult.arff")
+    AMES_HOUSING = Path("./data/data_set/ames_housing_no_missing.csv")
+    BLOOD_TRANSFUSION = Path("./data/data_set/blood_transfusion.csv")
+    PENGUIN = Path("./data/data_set/penguins.csv")
+    HYPERPARAMETER_TUNING = Path("./data/hyperparameter_tuning/")
 
 
 class TargetColumn(str, Enum):
@@ -21,3 +30,4 @@ class TargetColumn(str, Enum):
     ADULT_CENSUS = "class"
     AMES_HOUSING = "SalePrice"
     BLOOD_TRANSFUSION = "Class"
+    PENGUIN = "Species"

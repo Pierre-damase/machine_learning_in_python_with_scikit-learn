@@ -1,3 +1,4 @@
+from pathlib import Path
 from sklearn.compose import make_column_transformer
 from sklearn.model_selection import (
     cross_validate,
@@ -13,10 +14,13 @@ from sklearn.pipeline import (
 )
 from .types import (
     Tcv,
+    Tclassifier,
+    Tclassifierwithpipeline,
     Tmodel,
-    Tmodelwithpipeline,
     Tpipelinesteps,
-    Tpreprocessor
+    Tpreprocessor,
+    Tregressor,
+    Tregressorwithpipeline
 )
 from typing import Generic
 
@@ -25,9 +29,15 @@ import numpy as np
 import numpy.typing as npt
 import time
 
+# Expected parameter for a given search class use to tune hyperparameters
+SEARCH_EXPECTED_PARAM = {
+    GridSearchCV.__name__: ["cv"],
+    RandomizedSearchCV.__name__: ["cv", "n_iter"]
+}
+
 
 class Model(Generic[Tmodel]):
-    model: Tmodel
+    model: Tmodel # either a classifier or a regressor or a pipeline
 
     """Base class to build machine learning model."""
     def __init__(self,
@@ -44,13 +54,13 @@ class Model(Generic[Tmodel]):
     ---------
     kwargs['transformers']: tuples of the form (transformer, columns)
 
-    kwargs['classifier']: classifier model to apply
+    kwargs['model']: the model to apply, either a classifier or a regressor
     """
     @classmethod
     def build_pipeline_with_transformer(cls,
                                         transformers: list[Tpreprocessor],
-                                        classifier: Tmodelwithpipeline):
-        return cls(pipeline_steps=[*transformers, classifier])
+                                        model: Tclassifierwithpipeline|Tregressorwithpipeline):
+        return cls(pipeline_steps=[*transformers, model])
 
 
     ############
@@ -191,6 +201,16 @@ class Model(Generic[Tmodel]):
             print("The mean cross-validated training error is "
                   f"{mean_score:.3f} ± {std_score:.3f}")
 
+    """Revert the negation apply to the error metric to get the actual error."""
+    def revert_negation(self,
+                        results: dict[str, float],
+                        scoring: str | None,
+                        return_train_score: bool) -> dict[str, float]:
+        if scoring and scoring.startswith("neg_"):
+            results["test_score"] = -results["test_score"]
+            if return_train_score:
+                results["train_score"] = -results["train_score"]
+        return results
 
     ##########################
     # KFLOD CROSS VALIDATION #
@@ -206,24 +226,29 @@ class Model(Generic[Tmodel]):
 
     nb_fold: the cross-validation splitting strategy
 
-    scoring: strategy to evaluate the performance of the estimator across cross-
-             validation splits. Default None.
+    scoring: strategy to evaluate the performance of the estimator across cross-validation
+    splits.
+
+    **kwargs: by default use the current model to perform the cross-validation. For hyperparameter
+    tuning, an outer cross-validation is performed on the whole dataset using the tuned model.
     """
     def kfold_cross_validate(self,
                              x_data: pd.DataFrame,
                              y_data: pd.Series,
                              nb_fold: int = 5,
-                             scoring: str = "",
-                             return_train_score: bool = False) \
-                             -> dict[str, npt.NDArray[np.float64]]:
-        return cross_validate(self.model,
+                             scoring: str | None = None,
+                             return_train_score: bool = False,
+                             **kwargs) -> dict[str, npt.NDArray[np.float64]]:
+        results = cross_validate(self.model if "model" not in kwargs.keys() else kwargs["model"],
                               x_data,
                               y_data,
                               cv=nb_fold,
-                              scoring=scoring if scoring else None,
+                              scoring=scoring,
                               return_train_score=return_train_score,
                               error_score="raise",
                               n_jobs=2)
+
+        return self.revert_negation(results, scoring, return_train_score)
 
     """
     Print the result (accuracy and fitting time) of a kfold cross-validation
@@ -285,13 +310,7 @@ class Model(Generic[Tmodel]):
                                  error_score="raise",
                                  n_jobs=2)
 
-        # Revert the negation apply to the error metric to get the actual error
-        if scoring and scoring.startswith("neg_"):
-            results["test_score"] = -results["test_score"]
-            if return_train_score:
-                results["train_score"] = -results["train_score"]
-
-        return results
+        return self.revert_negation(results, scoring, return_train_score)
 
     """
     Print the result (accuracy and fitting time) of a shuffle split
@@ -308,11 +327,12 @@ class Model(Generic[Tmodel]):
     # INITIALIZER #
     ###############
     """Print model parameter at initialization."""
-    def _print_model_initialization(self, model: Tmodel):
+    def _print_model_initialization(self, model: Tclassifier|Tregressor):
         print(f"Build a {model.__class__.__name__} model.")
 
     """Initialize a T model."""
-    def _factory_model_initializer(self, model_class: type[Tmodel], **kwargs) -> Tmodel:
+    def _factory_model_initializer(self, model_class: type[Tclassifier|Tregressor], **kwargs) \
+            -> Tclassifier|Tregressor:
         model = model_class(**kwargs)
         self._print_model_initialization(model)
         return model
@@ -487,9 +507,9 @@ class Model(Generic[Tmodel]):
         return scores
 
 
-    #########################
-    # HYPERPARAMETER TUNING #
-    #########################
+    ###################################
+    # AUTOMATED HYPERPARAMETER TUNING #
+    ###################################
     """
     Hyperparameter tuning by grid-search on the training set.
 
@@ -516,16 +536,19 @@ class Model(Generic[Tmodel]):
     def _randomized_search_cv(self,
                              param_distribution: dict[str, list[float|int]],
                              n_iter: int,
-                             cv: int) -> RandomizedSearchCV:
+                             cv: int,
+                             scoring: str | None = None) -> RandomizedSearchCV:
         return RandomizedSearchCV(self.model,
                                   param_distributions=param_distribution,
                                   n_iter=n_iter,
                                   cv=cv,
                                   verbose=1,
-                                  return_train_score=True)
+                                  return_train_score=True,
+                                  scoring=scoring)
 
     """Print scores as a DataFrame."""
-    def _print_results_as_dataframe(self, results: dict[str, list[float]]) -> None:
+    def _save_results_as_dataframe(self, results: dict[str, list[float]], path: Path) -> None:
+        # Build the DataFrame
         columns = [
             "param_", "mean_test_score", "std_test_score", "rank_test_score",
             "mean_train_score", "std_train_score"
@@ -536,45 +559,94 @@ class Model(Generic[Tmodel]):
             if [col for col in columns if col in k] # Any hyperparameter starts with param_
         }
         cv_results = pd.DataFrame(scores).sort_values("mean_test_score", ascending=False)
-        print(cv_results)
+
+        # Save the DataFrame as a csv
+        cv_results.to_csv(path, index=False)
 
     """
+    In order to perform an automated search to tune hyperparameter some additional paramaters are
+    required and are specific to the search class.
+    """
+    def _no_missing_parameters(self,
+                               search_class: str,
+                               expected_param: list[str],
+                               **kwargs) -> None:
+        if not set(expected_param).issubset(kwargs.keys()):
+            raise Exception(f"In order to perform a {search_class} parameters "
+                            f"{', '.join(expected_param)} are expected")
+
+    """
+    Perform an automated search to tune hyperparameter.
+
     Parameter
     ---------
-    automated_search_cv: which method to apply for hyperparameter tuning
+    search_class: which method to apply for hyperparameter tuning. For now, either a grid-search or
+    a randomized-search
 
-    hyperparameters: hyperparameter values to try out for model tuning
+    hyperparameters: hyperparameter values to try out for model tuning. Either fix values for the
+    grid-search or a range of values for the randomized-search.
 
-    data: list containing the training and testing set (data and targets)
+    x_data: the whole dataset use for the outer cross-validation, i.e. the cv used to evaluate the
+    generalization performance of the tuned model
+
+    y_data: the whole targets use for the outer cross-validation
+
+    x_train: training data set use for the inner cross-validation, i.e. the cv used to tune the
+    hyperparameters
+
+    y_train: training targets use for the inner cross-validation
+
+    path: automated tuning especially for a randomized-search with a large number of iterations is
+    costly. Therefore, at the end result are saved as a csv file.
+
+    kwargs: list of parameters specific to the search class
     """
     def automated_search_cross_validation(self,
                                           search_class: type[GridSearchCV|RandomizedSearchCV],
                                           hyperparameters: dict[str, list[float|int]],
+                                          x_data: pd.DataFrame,
+                                          y_data: pd.Series,
                                           x_train: pd.DataFrame,
-                                          x_test: pd.DataFrame,
                                           y_train: pd.Series,
-                                          y_test: pd.Series,
-                                          verbose: bool = False,
+                                          path: Path | None = None,
                                           **kwargs):
+        scoring: str | None = kwargs["scoring"] if "scoring" in kwargs.keys() else None
+
         # 1. Build an automated-search cross-validation
+        self._no_missing_parameters(
+            search_class.__name__, SEARCH_EXPECTED_PARAM[search_class.__name__], **kwargs
+        )
         if search_class is GridSearchCV:
             search_model = self._grid_search_cv(hyperparameters, cv=kwargs["cv"])
         elif search_class is RandomizedSearchCV:
-            search_model = self._randomized_search_cv(
-                hyperparameters, cv=kwargs["cv"], n_iter=kwargs["n_iter"]
-            )
+            search_model = self._randomized_search_cv(hyperparameters,
+                                                      cv=kwargs["cv"],
+                                                      n_iter=kwargs["n_iter"],
+                                                      scoring=scoring)
         else:
             raise Exception(f"Unsupported search methods to tune hyperparameters.")
 
         # 2. Train the model with the best set of hyperparameters
         search_model.fit(x_train, y_train)
 
+        # Revert the negation apply by the error metric to get the actual error
+        if scoring and scoring.startswith("neg_"):
+            search_model.cv_results_["mean_test_score"] *= -1
+            search_model.cv_results_["mean_train_score"] *= -1
+
         # 3. Display the optimum hyperparameters
         print(f"The optimum set of hyperparameters is {search_model.best_params_}")
 
-        if verbose:
-            self._print_results_as_dataframe(search_model.cv_results_)
+        # 4. Save the tuning result into a dataframe
+        if path:
+            self._save_results_as_dataframe(search_model.cv_results_, path)
 
-        # 4. Compute the generalization performance of the model
-        accuracy = search_model.score(x_test, y_test)
-        print(f"The test accuracy score of the grid-search pipeline is {accuracy:.3f}")
+        # 5. Compute the generalization performance of the model with the score method preovide a
+        #    single estimation of the generalization performance. Therefore, it's always preferable
+        #    to perform a cross-validation. This pattern is called a nested cross-validation.
+        print("Perform an outer cross-validation on the whole dataset to compute the "
+              "generalization performance of the model with tuned hyperparameters.")
+        scores = self.kfold_cross_validate(
+            x_data, y_data, nb_fold=5, scoring=scoring, return_train_score=True, model=search_model
+        )
+        self.print_kfold_cross_validation_accuracy(scores)

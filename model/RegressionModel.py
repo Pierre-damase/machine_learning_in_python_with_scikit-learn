@@ -1,23 +1,24 @@
 from .Model import Model
 from sklearn.metrics import mean_absolute_error
 from sklearn.tree import DecisionTreeRegressor
-from typing import TypeVar
+from .types import (
+    Tpipelinesteps,
+    Tregressor
+)
 
 import pandas as pd
 import numpy as np
 import numpy.typing as npt
 
-type AllowedRegressionModelType = (DecisionTreeRegressor)
-Tregression = TypeVar('Tregression', bound=AllowedRegressionModelType)
-
-class RegressionModel(Model[Tregression]):
+class RegressionModel(Model[Tregressor]):
     """
     Decision tree regressor model.
 
     [To predict continuous target]
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self,
+                 pipeline_steps: list[Tpipelinesteps] = []):
+        super().__init__(pipeline_steps)
 
 
     #########
