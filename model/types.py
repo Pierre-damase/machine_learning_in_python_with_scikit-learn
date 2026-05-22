@@ -10,7 +10,7 @@ from sklearn.preprocessing import (
 )
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.dummy import DummyClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.model_selection import ShuffleSplit
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.pipeline import Pipeline
@@ -36,7 +36,8 @@ Tclassifier = TypeVar('Tclassifier', bound=AcceptClassifierType)
 #############
 # REGRESSOR #
 #############
-type AcceptRegressorWithPipelineType = (KNeighborsRegressor)
+type AcceptRegressorWithPipelineType = (KNeighborsRegressor
+                                        | LinearRegression)
 Tregressorwithpipeline = TypeVar('Tregressorwithpipeline', bound=AcceptRegressorWithPipelineType)
 
 type AcceptRegressorType = (DecisionTreeRegressor

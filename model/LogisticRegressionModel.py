@@ -46,3 +46,26 @@ class LogisticRegressionModel(Model[LogisticRegression | Pipeline]):
     def _print_model_initialization(self, model) -> None:
         print(f"Build a {model.__class__.__name__} model with "
               f"{model.max_iter} iterations.")
+
+
+    ###############
+    # COEFFICIENT #
+    ###############
+    """
+    Print the coefficient of the linear regression model, i.e. the associated weight of each
+    feature.
+    """
+    def print_weights(self, features: list[str]) -> None:
+        coefficients = self.get_weights()
+        for i in range(len(features)):
+            print(f"The weight associated to {features[i]} is {coefficients[i]:.3f}")
+
+    """
+    Get the coefficient of the linear regression model, i.e. the associated weight of each
+    feature.
+
+    self.model[-1] allow to access to the last step of the pipeline. Then it's possible to get
+    attribute of that step such as coef_.
+    """
+    def get_weights(self) -> list[float]:
+        return self.model[-1].coef_[0]

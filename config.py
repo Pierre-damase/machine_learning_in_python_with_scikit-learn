@@ -10,11 +10,6 @@ AMES_HOUSING_NUMERICAL_FEATURES = [
   "3SsnPorch", "ScreenPorch", "PoolArea", "MiscVal",
 ]
 
-# Numerical features of interest of penguins dataset
-PENGUIN_NUMERICAL_FEATURES = [
-    "Body Mass (g)", "Flipper Length (mm)", "Culmen Length (mm)"
-]
-
 
 class DataPath(Enum):
     """Path to dataset or tuned hyperparameter saved as csv."""

@@ -1,5 +1,9 @@
 from pathlib import Path
 from sklearn.compose import make_column_transformer
+from sklearn.metrics import (
+    mean_absolute_error,
+    mean_squared_error
+)
 from sklearn.model_selection import (
     cross_validate,
     GridSearchCV,
@@ -52,7 +56,9 @@ class Model(Generic[Tmodel]):
 
     Parameter
     ---------
-    kwargs['transformers']: tuples of the form (transformer, columns)
+    kwargs['transformers']: tuples of the form (transformer, columns) with columns get either with
+    the make_column_selector class of scikit-learn or by using the columns property of a pandas
+    DataFrame (in this cas it's required to convert the pandas.Index into a list of string)
 
     kwargs['model']: the model to apply, either a classifier or a regressor
     """
@@ -63,45 +69,61 @@ class Model(Generic[Tmodel]):
         return cls(pipeline_steps=[*transformers, model])
 
 
-    ############
-    # ACCURACY #
-    ############
-    """Print model performance with training data."""
-    def print_training_accuracy(self,
-                                y_train: pd.Series,
-                                y_predicted: npt.NDArray[np.generic]) -> None:
-        print(f"The train accuracy is {self.get_training_accuracy(y_train, y_predicted):.3f}.")
+    ###############
+    # INITIALIZER #
+    ###############
+    """Print model parameter at initialization."""
+    def _print_model_initialization(self, model: Tclassifier|Tregressor):
+        print(f"Build a {model.__class__.__name__} model.")
 
-    """Get model performance with training data."""
-    def get_training_accuracy(self,
-                              y_train: pd.Series,
-                              y_predicted: npt.NDArray[np.generic]) -> float:
-        return (y_train == y_predicted).mean()
+    """Initialize a T model."""
+    def _factory_model_initializer(self, model_class: type[Tclassifier|Tregressor], **kwargs) \
+            -> Tclassifier|Tregressor:
+        model = model_class(**kwargs)
+        self._print_model_initialization(model)
+        return model
 
-    """Print model performance with testing data."""
-    def print_testing_accuracy(self,
-                               x_test: pd.DataFrame,
-                               y_test: pd.Series) -> None:
-        print("The test accuracy is "
-              f"{self.get_testing_accuracy(x_test, y_test):.3f}")
+    """
+    Initialize a pipeline.
 
-    """Get model performance with testing data."""
-    def get_testing_accuracy(self,
-                             x_test: pd.DataFrame,
-                             y_test: pd.Series) -> float:
-        return self.model.score(x_test, y_test)
+    Parameter
+    ---------
+    *steps: list of estimator objects
+    """
+    def _factory_pipeline_initializer(self, *steps) -> Pipeline:
+        # Column transformer parameters past ?
+        # Parameter past as tuples of the form (transformer, columns)
+        column_transformer_steps, left_over_steps = [], []
+        for ele in steps:
+            if isinstance(ele, tuple):
+                column_transformer_steps.append(ele)
+            else:
+                left_over_steps.append(ele)
 
+        # Initialize a column transformer if needed
+        if column_transformer_steps:
+            preprocessor = \
+                self._factory_transformer_initialize(*column_transformer_steps)
+            left_over_steps.insert(0, preprocessor)
 
-    #############
-    # PARAMETER #
-    #############
-    """Get model hyperparameters."""
-    def get_hyperparameters(self) -> dict[str, any]:
-        return self.model.get_params()
+        # Construct a pipeline from the given estimators
+        print(f"Set up a pipeline to build a machine learning model.")
+        return make_pipeline(*left_over_steps)
 
-    """Set model hyperparameters."""
-    def set_hyperparameters(self, **parameters):
-        self.model.set_params(**parameters)
+    """Some models can either be used with or without a pipeline."""
+    def _use_pipeline(self, pipeline_steps = []):
+        return True if pipeline_steps else False
+
+    """
+    Initialize a column transformer
+    in order to handle categorical and numerical values.
+
+    Parameter
+    ---------
+    *transformers: tuples of the form (transformer, columns)
+    """
+    def _factory_transformer_initialize(self, *transformers):
+        return make_column_transformer(*transformers)
 
 
     ###########
@@ -181,6 +203,61 @@ class Model(Generic[Tmodel]):
         self.print_testing_accuracy(x_test, y_test)
 
 
+    #############
+    # PARAMETER #
+    #############
+    """Get model hyperparameters."""
+    def get_hyperparameters(self) -> dict[str, any]:
+        return self.model.get_params()
+
+    """Set model hyperparameters."""
+    def set_hyperparameters(self, **parameters):
+        self.model.set_params(**parameters)
+
+
+    ############
+    # ACCURACY #
+    ############
+    """Print model performance with training data."""
+    def print_training_accuracy(self,
+                                y_train: pd.Series,
+                                y_predicted: npt.NDArray[np.generic]) -> None:
+        print(f"The train accuracy is {self.get_training_accuracy(y_train, y_predicted):.3f}.")
+
+    """Get model performance with training data."""
+    def get_training_accuracy(self,
+                              y_train: pd.Series,
+                              y_predicted: npt.NDArray[np.generic]) -> float:
+        return (y_train == y_predicted).mean()
+
+    """Print model performance with testing data."""
+    def print_testing_accuracy(self, x_test: pd.DataFrame, y_test: pd.Series) -> None:
+        print("The test accuracy is "
+              f"{self.get_testing_accuracy(x_test, y_test):.3f}")
+
+    """Get model performance with testing data."""
+    def get_testing_accuracy(self, x_test: pd.DataFrame, y_test: pd.Series) -> float:
+        return self.model.score(x_test, y_test)
+
+    """Print model mean absolute error."""
+    def print_mean_absolute_error(self, x_data: pd.DataFrame, targets: pd.Series) -> None:
+        print("The mean absolute error of the optimal model is "
+              f"{self.get_mean_absolute_error(x_data, targets):.3f}")
+
+    """Get model mean absolute error."""
+    def get_mean_absolute_error(self, x_data: pd.DataFrame, targets: pd.Series) -> float:
+        return mean_absolute_error(targets, self.model.predict(x_data))
+
+    """Print model mean absolute error."""
+    def print_mean_squared_error(self, x_data: pd.DataFrame, targets: pd.Series) -> None:
+        print("The mean squared error of the optimal model is "
+              f"{self.get_mean_squared_error(x_data, targets):.3f}")
+
+    """Get model mean squared error."""
+    def get_mean_squared_error(self, x_data: pd.DataFrame, targets: pd.Series) -> float:
+        return mean_squared_error(targets, self.model.predict(x_data))
+
+
     ####################
     # CROSS VALIDATION #
     ####################
@@ -211,6 +288,7 @@ class Model(Generic[Tmodel]):
             if return_train_score:
                 results["train_score"] = -results["train_score"]
         return results
+
 
     ##########################
     # KFLOD CROSS VALIDATION #
@@ -321,127 +399,6 @@ class Model(Generic[Tmodel]):
             scores: dict[str, npt.NDArray[np.float64]]) -> None:
         print(f"Shuffle split cross-validation with n={len(scores['test_score'])}.")
         self.print_cross_validate(scores)
-
-
-    ###############
-    # INITIALIZER #
-    ###############
-    """Print model parameter at initialization."""
-    def _print_model_initialization(self, model: Tclassifier|Tregressor):
-        print(f"Build a {model.__class__.__name__} model.")
-
-    """Initialize a T model."""
-    def _factory_model_initializer(self, model_class: type[Tclassifier|Tregressor], **kwargs) \
-            -> Tclassifier|Tregressor:
-        model = model_class(**kwargs)
-        self._print_model_initialization(model)
-        return model
-
-    """
-    Initialize a pipeline.
-
-    Parameter
-    ---------
-    *steps: list of estimator objects
-    """
-    def _factory_pipeline_initializer(self, *steps) -> Pipeline:
-        # Column transformer parameters past ?
-        # Parameter past as tuples of the form (transformer, columns)
-        column_transformer_steps, left_over_steps = [], []
-        for ele in steps:
-            if isinstance(ele, tuple):
-                column_transformer_steps.append(ele)
-            else:
-                left_over_steps.append(ele)
-
-        # Initialize a column transformer if needed
-        if column_transformer_steps:
-            preprocessor = \
-                self._factory_transformer_initialize(*column_transformer_steps)
-            left_over_steps.insert(0, preprocessor)
-
-        # Construct a pipeline from the given estimators
-        print(f"Set up a pipeline to build a machine learning model.")
-        return make_pipeline(*left_over_steps)
-
-    """Some models can either be used with or without a pipeline."""
-    def _use_pipeline(self, pipeline_steps = []):
-        return True if pipeline_steps else False
-
-    """
-    Initialize a column transformer
-    in order to handle categorical and numerical values.
-
-    Parameter
-    ---------
-    *transformers: tuples of the form (transformer, columns)
-    """
-    def _factory_transformer_initialize(self, *transformers):
-        return make_column_transformer(*transformers)
-
-
-    ####################
-    # VALIDATION CURVE #
-    ####################
-    """
-    Use validation curve to try out hyperparameters.
-
-    Pass either a classifier or a pipeline (parameter self.model)
-    to ValidationCurveDisplay.from_estimator
-    """
-    def compute_validation_curve(self,
-                                 x_data: pd.DataFrame,
-                                 y_data: pd.Series,
-                                 scoring: str,
-                                 score_name: str,
-                                 cv: Tcv = None,
-                                 negate_score: bool = False,
-                                 **kwargs) -> ValidationCurveDisplay:
-        return ValidationCurveDisplay.from_estimator(
-            self.model,
-            x_data,
-            y_data,
-            cv=cv,
-            scoring=scoring,
-            score_name=score_name,
-            param_name=kwargs["param_name"],
-            param_range=kwargs["param_range"],
-            negate_score=negate_score,
-            std_display_style="fill_between",
-            n_jobs=2
-        )
-
-
-    ##################
-    # LEARNING CURVE #
-    ##################
-    """
-    Use learning curve to try out various training set size.
-
-    Pass either a classifier or a pipeline (parameter self.model)
-    to ValidationCurveDisplay.from_estimator
-    """
-    def compute_learning_curve(self,
-                               x_data: pd.DataFrame,
-                               y_data: pd.Series,
-                               cv: Tcv,
-                               scoring: str,
-                               score_name: str,
-                               negate_score: bool = False,
-                               **kwargs) -> LearningCurveDisplay:
-        return LearningCurveDisplay.from_estimator(
-            self.model,
-            x_data,
-            y_data,
-            train_sizes=kwargs["train_sizes"],
-            cv=cv,
-            score_type="both", # both train and test errors
-            scoring=scoring,
-            score_name=score_name,
-            negate_score=negate_score,
-            std_display_style="fill_between",
-            n_jobs=2
-        )
 
 
     ################################
@@ -650,3 +607,68 @@ class Model(Generic[Tmodel]):
             x_data, y_data, nb_fold=5, scoring=scoring, return_train_score=True, model=search_model
         )
         self.print_kfold_cross_validation_accuracy(scores)
+
+
+    ####################
+    # VALIDATION CURVE #
+    ####################
+    """
+    Use validation curve to try out hyperparameters.
+
+    Pass either a classifier or a pipeline (parameter self.model)
+    to ValidationCurveDisplay.from_estimator
+    """
+    def compute_validation_curve(self,
+                                 x_data: pd.DataFrame,
+                                 y_data: pd.Series,
+                                 scoring: str,
+                                 score_name: str,
+                                 cv: Tcv = None,
+                                 negate_score: bool = False,
+                                 **kwargs) -> ValidationCurveDisplay:
+        return ValidationCurveDisplay.from_estimator(
+            self.model,
+            x_data,
+            y_data,
+            cv=cv,
+            scoring=scoring,
+            score_name=score_name,
+            param_name=kwargs["param_name"],
+            param_range=kwargs["param_range"],
+            negate_score=negate_score,
+            std_display_style="fill_between",
+            n_jobs=2
+        )
+
+
+    ##################
+    # LEARNING CURVE #
+    ##################
+    """
+    Use learning curve to try out various training set size.
+
+    Pass either a classifier or a pipeline (parameter self.model)
+    to ValidationCurveDisplay.from_estimator
+    """
+    def compute_learning_curve(self,
+                               x_data: pd.DataFrame,
+                               y_data: pd.Series,
+                               cv: Tcv,
+                               scoring: str,
+                               score_name: str,
+                               negate_score: bool = False,
+                               **kwargs) -> LearningCurveDisplay:
+        return LearningCurveDisplay.from_estimator(
+            self.model,
+            x_data,
+            y_data,
+            train_sizes=kwargs["train_sizes"],
+            cv=cv,
+            score_type="both", # both train and test errors
+            scoring=scoring,
+            score_name=score_name,
+            negate_score=negate_score,
+            std_display_style="fill_between",
+            n_jobs=2
+        )
+

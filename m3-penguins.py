@@ -19,6 +19,10 @@ import pandas as pd
 ########
 # DATA #
 ########
+PENGUIN_NUMERICAL_FEATURES = [
+    "Body Mass (g)", "Flipper Length (mm)", "Culmen Length (mm)"
+]
+
 """Load penguin dataset,extract numerical features of interest and drop na."""
 def load_penguins() -> tuple[pd.DataFrame, pd.Series]:
     data, targets = dh.load_data_from_csv(DataPath.PENGUIN.value, TargetColumn.PENGUIN)
