@@ -17,7 +17,7 @@ import pandas as pd
 
 """Load numerical data from adult census."""
 def _load_numerical_data(data: pd.DataFrame) -> pd.DataFrame:
-    return dh.get_subset_from_dtypes(data, [int, float])
+    return dh.get_subset(data, dtypes=[int, float])
 
 
 """
@@ -31,7 +31,7 @@ def first_model_with_scikit_learn(data: pd.DataFrame,
     # check_data(data, targets)
 
     # 2. Select some feature (just for an example of a simple model)
-    data = dh.get_subset(data, ["age", "capital-gain", "capital-loss", "hours-per-week"])
+    data = dh.get_subset(data, columns=["age", "capital-gain", "capital-loss", "hours-per-week"])
 
     # 3. Randomnly split data between train and test set
     train_test_split = dh.manual_train_test_split(data, targets)
@@ -88,14 +88,19 @@ def preprocessing_for_numerical_features(data: pd.DataFrame,
 
         # 3bis. Check scaler effect on data
         print(x_train_scaled.describe())
-        scaler_jointplot(train_test_split[0], x_train_scaled, x_axis="age", y_axis="hours-per-week")
+        scaler_jointplot(train_test_split[0],
+                         x_train_scaled,
+                         x_axis="age",
+                         y_axis="hours-per-week")
 
         # 4. Build logistic regression model
         logistic_regression = LogisticRegressionModel()
         logistic_regression.start(*train_test_split)
     else:
         # 3&4. Start a simple pipeline to scale the data + build a logistic regression model
-        logistic_regression = LogisticRegressionModel(pipeline_steps=[StandardScaler(), LogisticRegression()])
+        logistic_regression = LogisticRegressionModel(
+            pipeline_steps=[StandardScaler(), LogisticRegression()]
+        )
         logistic_regression.start(*train_test_split)
 
 
@@ -106,7 +111,9 @@ def model_evaluation_using_cross_validation(data: pd.DataFrame,
     # check_data(data, targets)
 
     # 2. Build logistic regression model
-    logistic_regression = LogisticRegressionModel(pipeline_steps=[StandardScaler(), LogisticRegression()])
+    logistic_regression = LogisticRegressionModel(
+        pipeline_steps=[StandardScaler(), LogisticRegression()]
+    )
 
     # 3. KFold cross-validation to evaluate generalization performance of the model
     scores = logistic_regression.kfold_cross_validate(data, targets, 5)

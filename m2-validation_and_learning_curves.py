@@ -67,10 +67,10 @@ def validation_curve(data: pd.DataFrame, targets: pd.Series):
     # 2. Compute validation curve
     curve = regressor.compute_validation_curve(data,
                                                targets,
-                                               cv=regressor.shuffle_split_cv_generator(30),
                                                scoring="neg_mean_absolute_error",
                                                score_name="Mean absolute error",
                                                negate_score=True,
+                                               cv=regressor.shuffle_split_cv_generator(30),
                                                param_range=[1, 5, 10, 15, 20, 25])
     show_validation_curve(curve, xlabel="Maximum depth of decision tree")
 

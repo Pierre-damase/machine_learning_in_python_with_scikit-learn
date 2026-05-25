@@ -110,7 +110,7 @@ def kfold_cross_validation(model: Tmodel,
 def encoding_of_categorical_variables(data: pd.DataFrame,
                                       targets: pd.Series) -> None:
     # Filtered out any non-numeric values
-    data = dh.get_subset_from_dtypes(data, [str])
+    data = dh.get_subset(data, dtypes=[str])
 
     one_hot_encoding_test = False
     if one_hot_encoding_test:
@@ -225,7 +225,7 @@ def treebased_model_with_mix_encoder(data: pd.DataFrame,
                                      targets: pd.Series) -> None:
     # Get categorical features with high cardinality
     high_cardinality, low_cardinality = \
-        dh.get_cardinality_features(dh.get_subset_from_dtypes(data, [str]))
+        dh.get_cardinality_features(dh.get_subset(data, dtypes=[str]))
 
     # Build a pipeline with a column transformer in order to deal with
     # numerical and categorical variables (use different encoder depending

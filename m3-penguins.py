@@ -1,7 +1,6 @@
 from sklearn.model_selection import GridSearchCV
 from config import (
     DataPath,
-    PENGUIN_NUMERICAL_FEATURES,
     TargetColumn
 )
 from model import KNeighborsClassifierModel
@@ -15,19 +14,21 @@ from sklearn.preprocessing import MinMaxScaler, PowerTransformer, QuantileTransf
 
 import pandas as pd
 
-
-########
-# DATA #
-########
 PENGUIN_NUMERICAL_FEATURES = [
     "Body Mass (g)", "Flipper Length (mm)", "Culmen Length (mm)"
 ]
 
+
+########
+# DATA #
+########
 """Load penguin dataset,extract numerical features of interest and drop na."""
 def load_penguins() -> tuple[pd.DataFrame, pd.Series]:
-    data, targets = dh.load_data_from_csv(DataPath.PENGUIN.value, TargetColumn.PENGUIN)
-    tmp = pd.concat([data[PENGUIN_NUMERICAL_FEATURES], targets], axis=1).dropna()
-    return tmp.drop(columns=[TargetColumn.PENGUIN]), pd.Series(tmp[TargetColumn.PENGUIN.value])
+    data = dh.load_data_from_csv(
+        DataPath.PENGUIN.value
+    )[PENGUIN_NUMERICAL_FEATURES + [TargetColumn.PENGUIN]].dropna()
+    return pd.DataFrame(data.drop(TargetColumn.PENGUIN, axis=1)), \
+        pd.Series(data[TargetColumn.PENGUIN])
 
 
 #########

@@ -7,6 +7,7 @@ from sklearn.preprocessing import (
     OrdinalEncoder,
     StandardScaler
 )
+from typing import overload
 
 import pandas as pd
 import numpy as np
@@ -32,19 +33,33 @@ def load_data_from_arff(path: Path, target: str) -> tuple[pd.DataFrame, pd.Serie
     df = df.drop(columns="education-num")
 
     # Str load as bytes, a conversion is needed
-    str_df = get_subset_from_dtypes(df, [object])
+    str_df = get_subset(df, dtypes=[object])
     str_df = str_df.stack().str.decode('utf-8').unstack()
 
     # Return the complete df; i.e. the concatenation between the numerical df
     # and the df with byte converted as str
     return _extract_target(
-        pd.concat([get_subset_filtered_out(df, str_df.columns), str_df], sort=False, axis=1),
+        pd.concat([get_subset(df, to_filter_out=str_df.columns), str_df], sort=False, axis=1),
         target
         )
 
-"""Load .csv file as DataFrame."""
+@overload
+def load_data_from_csv(path: Path, target: None = None) -> pd.DataFrame:
+    """Load .csv file as DataFrame without extracting a target."""
+    return load_data_from_csv(path)
+
+@overload
 def load_data_from_csv(path: Path, target: str) -> tuple[pd.DataFrame, pd.Series]:
-    return _extract_target(pd.read_csv(path), target)
+    """Load .csv file as DataFrame with extracting a target."""
+    return load_data_from_csv(path, target)
+
+def load_data_from_csv(path: Path,
+                       target: str | None = None) -> pd.DataFrame | tuple[pd.DataFrame, pd.Series]:
+    """Load .csv file as DataFrame."""
+    data = pd.read_csv(path)
+    if target is not None:
+        return _extract_target(data, target)
+    return data
 
 """
 Load california housing dataset.
@@ -68,17 +83,49 @@ def load_california_dataset() -> tuple[pd.DataFrame, pd.Series]:
 def _extract_target(data: pd.DataFrame, targets: str) -> tuple[pd.DataFrame, pd.Series]:
     return data.drop(columns=[targets]), pd.Series(data[targets])
 
-"""Get a subset from column names."""
-def get_subset(data: pd.DataFrame, target_subset: list[str]) -> pd.DataFrame:
-    return data[target_subset]
+@overload
+def get_subset(data: pd.DataFrame,
+               columns: list[str],
+               dtypes: list[type] | None = None,
+               to_filter_out: pd.Index | None = None) -> pd.DataFrame:
+    """Get a subset from column names."""
+    get_subset(data, columns=columns)
 
-"""Get a subset with the given types."""
-def get_subset_from_dtypes(data: pd.DataFrame, types: list[type]):
-    return data.select_dtypes(types)
+@overload
+def get_subset(data: pd.DataFrame,
+               columns: list[str] | None = None,
+               dtypes: list[type] = [],
+               to_filter_out: pd.Index | None = None) -> pd.DataFrame:
+    """Get a subset from dtypes."""
+    if not dtypes:
+        raise Exception("To get a subset from dtypes, the list of dtypes must be filled in.")
+    get_subset(data, dtypes=dtypes)
 
-"""Get all rows in a DataFrame that do not have a match with a peculiar subset."""
-def get_subset_filtered_out(data: pd.DataFrame, to_filter_out: pd.Index) -> pd.DataFrame:
-    return data.loc[:, ~data.columns.isin(to_filter_out)]
+@overload
+def get_subset(data: pd.DataFrame,
+               columns: list[str] | None = None,
+               dtypes: list[type] | None = None,
+               to_filter_out: pd.Index = pd.Index([])) -> pd.DataFrame:
+    """Get a subset from filtering out a peculiar subset."""
+    if to_filter_out.empty:
+        raise Exception("A peculiar subset is required to filter it out from the DataFrame.")
+    get_subset(data, to_filter_out=to_filter_out)
+
+def get_subset(data: pd.DataFrame,
+               columns: list[str] | None = None,
+               dtypes: list[type] | None = None,
+               to_filter_out: pd.Index | None = None) -> pd.DataFrame:
+    """
+    Get a subset either from column names or dtypes and as well from rows that do not have a match
+    with a peculiar subset.
+    """
+    if columns is not None:
+        return pd.DataFrame(data[columns])
+    elif dtypes is not None:
+        return data.select_dtypes(dtypes)
+    elif to_filter_out is not None:
+        return data.loc[:, ~data.columns.isin(to_filter_out)]
+    return data
 
 """
 Randomnly split data to build train and test set.
@@ -94,7 +141,7 @@ List containing the train-test split of the data.
 
     y_test: testing target
 """
-def manual_train_test_split(data: pd.DataFrame, targets: pd.Series, test_size: int = 0.25) \
+def manual_train_test_split(data: pd.DataFrame, targets: pd.Series, test_size: float = 0.25) \
     -> list[pd.DataFrame|pd.Series]:
     # Build training set by using DataFrame.sample() select randomly some rows
     training_data = data.sample(frac=1-test_size)

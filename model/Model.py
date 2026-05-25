@@ -49,23 +49,26 @@ class Model(Generic[Tmodel]):
         self.pipeline_steps = pipeline_steps
         self.use_pipeline: bool = self._use_pipeline(self.pipeline_steps)
 
-    """
-    Set up a column transformers to deal with numerical and categorical values:
-    - Encoding of categorical variables
-    - Scaling of numerical variables
-
-    Parameter
-    ---------
-    kwargs['transformers']: tuples of the form (transformer, columns) with columns get either with
-    the make_column_selector class of scikit-learn or by using the columns property of a pandas
-    DataFrame (in this cas it's required to convert the pandas.Index into a list of string)
-
-    kwargs['model']: the model to apply, either a classifier or a regressor
-    """
     @classmethod
     def build_pipeline_with_transformer(cls,
                                         transformers: list[Tpreprocessor],
                                         model: Tclassifierwithpipeline|Tregressorwithpipeline):
+        """
+        Set up a column transformers to deal with numerical and categorical values:
+        - Encoding of categorical variables
+        - Scaling of numerical variables
+
+        Parameter
+        ---------
+        kwargs['transformers']: tuples of the form (transformer, columns) with columns get either
+        with the make_column_selector class of scikit-learn or by using the columns property of a
+        pandas DataFrame (in this cas it's required to convert the pandas.Index into a list of
+        string)
+
+        kwargs['model']: the model to apply, either a classifier or a regressor
+
+        output: to transform the transformer output into a DataFrame. By default None.
+        """
         return cls(pipeline_steps=[*transformers, model])
 
 
@@ -129,25 +132,25 @@ class Model(Generic[Tmodel]):
     ###########
     # STARTER #
     ###########
-    """
-    Either perform a machine learning model or start a pipeline to sequentially
-    apply a list of transformers to pre-process the data.
-
-    Parameters
-    ----------
-    x_train: training data
-
-    x_test: testing data
-
-    y_train: training target
-
-    y_test: testing target
-    """
     def start(self,
               x_train: pd.DataFrame = pd.DataFrame(),
               x_test: pd.DataFrame = pd.DataFrame(),
               y_train: pd.Series = pd.Series(),
               y_test: pd.Series = pd.Series()):
+        """
+        Either perform a machine learning model or start a pipeline to sequentially
+        apply a list of transformers to pre-process the data.
+
+        Parameters
+        ----------
+        x_train: training data
+
+        x_test: testing data
+
+        y_train: training target
+
+        y_test: testing target
+        """
         if x_train.empty and y_train.empty:
             raise Exception("A training data set and target are required.")
 
@@ -206,14 +209,17 @@ class Model(Generic[Tmodel]):
     #############
     # PARAMETER #
     #############
-    """Get model hyperparameters."""
     def get_hyperparameters(self) -> dict[str, any]:
+        """Get model hyperparameters."""
         return self.model.get_params()
 
-    """Set model hyperparameters."""
-    def set_hyperparameters(self, **parameters):
+    def set_hyperparameters(self, **parameters) -> None:
+        """Set model hyperparameters."""
         self.model.set_params(**parameters)
 
+    def set_output(self, transform: str = "pandas") -> None:
+        """To configure  all steps of the pipeline to output DataFrame."""
+        self.model.set_output(transform="pandas")
 
     ############
     # ACCURACY #
@@ -332,9 +338,8 @@ class Model(Generic[Tmodel]):
     Print the result (accuracy and fitting time) of a kfold cross-validation
     strategy.
     """
-    def print_kfold_cross_validation_accuracy(
-            self,
-            scores: dict[str, npt.NDArray[np.float64]]) -> None:
+    def print_kfold_cross_validation_accuracy(self,
+                                              scores: dict[str, npt.NDArray[np.float64]]) -> None:
         print(f"Kfold cross-validation with K={len(scores['test_score'])}.")
         self.print_cross_validate(scores)
 
@@ -623,8 +628,8 @@ class Model(Generic[Tmodel]):
                                  y_data: pd.Series,
                                  scoring: str,
                                  score_name: str,
-                                 cv: Tcv = None,
                                  negate_score: bool = False,
+                                 cv: Tcv | None = None,
                                  **kwargs) -> ValidationCurveDisplay:
         return ValidationCurveDisplay.from_estimator(
             self.model,

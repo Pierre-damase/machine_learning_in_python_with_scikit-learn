@@ -1,11 +1,15 @@
 from sklearn.compose import make_column_selector as selector
 from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.kernel_approximation import Nystroem
 from sklearn.preprocessing import (
+    KBinsDiscretizer,
     MinMaxScaler,
     OneHotEncoder,
     OrdinalEncoder,
+    PolynomialFeatures,
     PowerTransformer,
     QuantileTransformer,
+    SplineTransformer,
     StandardScaler
 )
 from sklearn.tree import DecisionTreeRegressor
@@ -14,7 +18,10 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.model_selection import ShuffleSplit
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.pipeline import Pipeline
-from sklearn.svm import SVC
+from sklearn.svm import (
+    SVC,
+    SVR
+)
 from typing import TypeVar
 
 
@@ -42,6 +49,7 @@ Tregressorwithpipeline = TypeVar('Tregressorwithpipeline', bound=AcceptRegressor
 
 type AcceptRegressorType = (DecisionTreeRegressor
                             | Pipeline
+                            | SVR
                             | AcceptRegressorWithPipelineType)
 Tregressor = TypeVar('Tregressor', bound=AcceptRegressorType)
 
@@ -56,11 +64,15 @@ Tmodel = TypeVar('Tmodel', bound=AcceptModelType)
 # PRE-PROCESSOR #
 #################
 # str type for passthrough, columns specified with it are added at the right
-type AcceptPreprocessorType = (tuple[QuantileTransformer
+type AcceptPreprocessorType = (tuple[KBinsDiscretizer
+                                     | QuantileTransformer
                                      | MinMaxScaler
+                                     | Nystroem
                                      | OneHotEncoder
                                      | OrdinalEncoder
+                                     | PolynomialFeatures
                                      | PowerTransformer
+                                     | SplineTransformer
                                      | StandardScaler
                                      | str, selector])
 Tpreprocessor = TypeVar('Tpreprocessor', bound=AcceptPreprocessorType)
@@ -76,5 +88,6 @@ type AcceptPipelineType = (OneHotEncoder
                             | AcceptPreprocessorType)
 Tpipelinesteps = TypeVar('Tpipelinesteps', bound=AcceptPipelineType)
 
-# Cross-validation type
-Tcv = TypeVar('Tcv', bound=ShuffleSplit)
+# Cross-validation type, either an int to specify the number of folds in a KFold or a CV splitter
+type AcceptCvType = (int | ShuffleSplit)
+Tcv = TypeVar('Tcv', bound=AcceptCvType)

@@ -26,7 +26,7 @@ import pandas as pd
 def manual_logistic_regression_tuning(data: pd.DataFrame,
                                       targets: pd.Series) -> None:
     # 1. Remove categorical features
-    data = dh.get_subset_from_dtypes(data, [int, float])
+    data = dh.get_subset(data, dtypes=[int, float])
 
     # 2. Build the model
     model = LogisticRegressionModel(pipeline_steps=[
