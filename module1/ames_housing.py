@@ -1,11 +1,10 @@
+import data_handler as dh
 import pandas as pd
+from config import AMES_HOUSING_NUMERICAL_FEATURES, DataPath, TargetColumn
+from model import LogisticRegressionModel
 from sklearn.compose import make_column_selector as selector
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-
-import data_handler as dh
-from config import AMES_HOUSING_NUMERICAL_FEATURES, DataPath, TargetColumn
-from model import LogisticRegressionModel
 
 
 def convert_targets(targets: pd.Series) -> pd.Series:
@@ -48,7 +47,10 @@ def predictive_model(data: pd.DataFrame, targets: pd.Series) -> None:
     initialized_model.print_kfold_cross_validation_accuracy(scores)
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # 1. Load data
     data, targets = dh.load_data_from_csv(DataPath.AMES_HOUSING.value,
                                           TargetColumn.AMES_HOUSING)
@@ -62,3 +64,6 @@ if __name__ == "__main__":
 
     # With numerical and categorical features
     predictive_model(data[AMES_HOUSING_NUMERICAL_FEATURES], categorical_targets)
+
+if __name__ == "__main__":
+    run_analysis()

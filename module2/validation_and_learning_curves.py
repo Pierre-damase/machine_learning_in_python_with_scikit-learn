@@ -1,7 +1,6 @@
+import data_handler as dh
 import numpy as np
 import pandas as pd
-
-import data_handler as dh
 from model import DecisionTreeRegressorModel
 from visualisation import (error_distribution, show_learning_curve,
                            show_validation_curve)
@@ -94,7 +93,10 @@ def learning_curve(data: pd.DataFrame, targets: pd.Series):
     show_learning_curve(curve)
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # Load data
     housing = dh.load_california_dataset()
 
@@ -105,3 +107,6 @@ if __name__ == "__main__":
 
     # Training set size tuning
     learning_curve(*housing)
+
+if __name__ == "__main__":
+    run_analysis()

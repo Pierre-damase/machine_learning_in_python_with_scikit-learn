@@ -1,14 +1,14 @@
 from pathlib import Path
 
+import data_handler as dh
 import pandas as pd
+from config import DataPath, TargetColumn
+from model import KNeighborsClassifierModel
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import (MinMaxScaler, PowerTransformer,
                                    QuantileTransformer, StandardScaler)
-
-import data_handler as dh
-from config import DataPath, TargetColumn
-from model import KNeighborsClassifierModel
+from types_config import DataSetType
 
 PENGUIN_NUMERICAL_FEATURES = [
     "Body Mass (g)", "Flipper Length (mm)", "Culmen Length (mm)"
@@ -18,7 +18,7 @@ PENGUIN_NUMERICAL_FEATURES = [
 ########
 # DATA #
 ########
-def load_penguins() -> tuple[pd.DataFrame, pd.Series]:
+def load_penguins() -> DataSetType:
     """Load penguin dataset,extract numerical features of interest and drop na."""
     data = dh.load_data_from_csv(
         DataPath.PENGUIN.value
@@ -107,7 +107,10 @@ def tune_model(model: KNeighborsClassifierModel,
     )
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # 1. Load data
     penguins = load_penguins()
 
@@ -127,3 +130,6 @@ if __name__ == "__main__":
 
     # 6. Tune KNeighbors classifier
     tune_model(model, *penguins, x_train, y_train)
+
+if __name__ == "__main__":
+    run_analysis()

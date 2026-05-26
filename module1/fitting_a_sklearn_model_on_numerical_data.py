@@ -1,11 +1,10 @@
-import pandas as pd
-from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
-
 import data_handler as dh
+import pandas as pd
 from config import DataPath, TargetColumn
 from model import (DummyClassifierModel, KNeighborsClassifierModel,
                    LogisticRegressionModel)
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
 from visualisation import check_data, scaler_jointplot
 
 
@@ -117,7 +116,10 @@ def model_evaluation_using_cross_validation(data: pd.DataFrame,
     logistic_regression.print_kfold_cross_validation_accuracy(scores)
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # Load adult census data as DataFrame and extract the target
     adult_census = dh.load_data_from_arff(DataPath.ADULT_CENSUS.value,
                                           TargetColumn.ADULT_CENSUS)
@@ -131,3 +133,6 @@ if __name__ == "__main__":
     working_with_numerical_data(data, targets)
     preprocessing_for_numerical_features(data, targets)
     model_evaluation_using_cross_validation(data, targets)
+
+if __name__ == "__main__":
+    run_analysis()

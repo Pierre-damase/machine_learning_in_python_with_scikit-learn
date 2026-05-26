@@ -1,8 +1,8 @@
+import data_handler as dh
+import pandas as pd
 from model import DecisionTreeRegressorModel
 from sklearn.metrics import mean_absolute_error
 
-import data_handler as dh
-import pandas as pd
 
 ###########
 # SECTION #
@@ -65,9 +65,15 @@ def test_continuous_target_prediction(data: pd.DataFrame, targets: pd.Series):
     regressor.print_shuffle_split_cross_validation_accuracy(scores)
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # Load data
     housing = dh.load_california_dataset()
 
     # simple_test_continuous_target_prediction(*housing)
     test_continuous_target_prediction(*housing)
+
+if __name__ == "__main__":
+    run_analysis()

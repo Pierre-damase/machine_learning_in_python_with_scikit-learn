@@ -1,8 +1,11 @@
+import data_handler as dh
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import seaborn as sns
+from config import DataPath
+from model import LinearRegressionModel
 from sklearn.kernel_approximation import Nystroem
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
@@ -11,10 +14,7 @@ from sklearn.preprocessing import (KBinsDiscretizer, PolynomialFeatures,
                                    SplineTransformer)
 from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
-
-import data_handler as dh
-from config import DataPath
-from model import LinearRegressionModel
+from types_config import DataSetType
 from visualisation import show_validation_curve
 
 PENGUIN_FEATURES = ["Flipper Length (mm)", "Culmen Length (mm)", "Culmen Depth (mm)"]
@@ -39,7 +39,7 @@ def generate_data(n_sample: int = 100, min: float = -1.4, max: float = 1.4) -> p
         "target": data**3 - 0.5 * data**2 + random.randn(n_sample) * 0.3
     })
 
-def load_penguins() -> tuple[pd.DataFrame, pd.Series]:
+def load_penguins() -> DataSetType:
     """Load penguin dataset, extract numerical features of interest and drop na."""
     data = dh.load_data_from_csv(
         DataPath.PENGUIN.value
@@ -389,12 +389,12 @@ def data_engineering_on_penguins():
     cross_validation(model, *penguins)
 
 
-#############################################
-# NON-LINEAR DATA ENGINEERING ON MAKE MOONS #
-#############################################
-def non_linear_data_engineering_on_make_moons():
-    pass
-
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # data_engineering_on_generated_data()
     data_engineering_on_penguins()
+
+if __name__ == "__main__":
+    run_analysis()

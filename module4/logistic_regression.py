@@ -1,13 +1,12 @@
+import data_handler as dh
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from config import DataPath, TargetColumn
+from model import LogisticRegressionModel
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
-
-import data_handler as dh
-from config import DataPath, TargetColumn
-from model import LogisticRegressionModel
 
 # Data
 FEATURES = ["Culmen Length (mm)", "Culmen Depth (mm)"]
@@ -98,7 +97,10 @@ def build_logistic_regression(columns: list[str]) -> LogisticRegressionModel:
     )
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # Load data
     penguins = load_penguins()
 
@@ -122,3 +124,6 @@ if __name__ == "__main__":
 
     # Decision function boundary with predict_proba as response method
     decision_boundary_display(model, penguins_test, x_test, response_method="predict_proba")
+
+if __name__ == "__main__":
+    run_analysis()

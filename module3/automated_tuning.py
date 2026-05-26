@@ -1,15 +1,14 @@
 from pathlib import Path
 
+import data_handler as dh
 import pandas as pd
+from config import DataPath, TargetColumn
+from model import GradientBoostingClassifierModel
 from scipy.stats import loguniform
 from sklearn.compose import make_column_selector as selector
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.preprocessing import OrdinalEncoder
-
-import data_handler as dh
-from config import DataPath, TargetColumn
-from model import GradientBoostingClassifierModel
 from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
 
 
@@ -111,10 +110,10 @@ def randomized_search_tuning(model: GradientBoostingClassifierModel,
     )
 
 
-FILE_RANDOMIZED_SEARCH = "randomized_search.csv"
-FILE_GRID_SEARCH = "grid_search.csv"
-
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # 1. Load data
     adult_census = dh.load_data_from_arff(DataPath.ADULT_CENSUS.value,
                                           TargetColumn.ADULT_CENSUS)
@@ -133,3 +132,6 @@ if __name__ == "__main__":
     path = Path(*DataPath.HYPERPARAMETER_TUNING.value.parts + ("randomized_search.csv",))
     randomized_search_tuning(model, *adult_census, x_train, y_train, path)
     show_parallel_coordinates_for_hyperparameter_tuning(pd.read_csv(path))
+
+if __name__ == "__main__":
+    run_analysis()

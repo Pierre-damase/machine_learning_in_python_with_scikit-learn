@@ -1,14 +1,13 @@
 from pathlib import Path
 
+import data_handler as dh
 import numpy as np
 import pandas as pd
+from config import DataPath
+from model import KNeighborsRegressorModel
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import StandardScaler
-
-import data_handler as dh
-from config import DataPath
-from model import KNeighborsRegressorModel
 from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
 
 
@@ -60,7 +59,10 @@ def randomized_search_tuning(model: KNeighborsRegressorModel,
                                             scoring="neg_mean_absolute_error")
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # 1. Load data
     housing = dh.load_california_dataset()
 
@@ -75,3 +77,6 @@ if __name__ == "__main__":
     path = Path(*DataPath.HYPERPARAMETER_TUNING.value.parts + (file_name,))
     # randomized_search_tuning(model, *housing, x_train, y_train, path)
     show_parallel_coordinates_for_hyperparameter_tuning(pd.read_csv(path))
+
+if __name__ == "__main__":
+    run_analysis()

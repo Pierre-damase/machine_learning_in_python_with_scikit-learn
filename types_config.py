@@ -1,5 +1,6 @@
 from typing import TypeVar
 
+import pandas as pd
 from sklearn.compose import make_column_selector as selector
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import HistGradientBoostingClassifier
@@ -15,6 +16,11 @@ from sklearn.preprocessing import (KBinsDiscretizer, MinMaxScaler,
                                    StandardScaler)
 from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeRegressor
+
+########
+# DATA #
+########
+type DataSetType = tuple[pd.DataFrame, pd.Series]
 
 ##############
 # CLASSIFIER #

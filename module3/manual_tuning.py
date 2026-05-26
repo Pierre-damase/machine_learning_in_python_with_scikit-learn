@@ -1,12 +1,11 @@
+import data_handler as dh
 import pandas as pd
+from config import DataPath, TargetColumn
+from model import GradientBoostingClassifierModel, LogisticRegressionModel
 from sklearn.compose import make_column_selector as selector
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
-
-import data_handler as dh
-from config import DataPath, TargetColumn
-from model import GradientBoostingClassifierModel, LogisticRegressionModel
 from visualisation import show_errorbars_for_hyperparameter_tuning
 
 
@@ -111,7 +110,10 @@ def optimum_gradient_boosting(data: pd.DataFrame,
     model.print_kfold_cross_validation_accuracy(scores)
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     adult_census = dh.load_data_from_arff(DataPath.ADULT_CENSUS.value,
                                           TargetColumn.ADULT_CENSUS)
 
@@ -124,3 +126,6 @@ if __name__ == "__main__":
 
     # print("\nGradient boosting with optimum hyperparameters.")
     optimum_gradient_boosting(*adult_census, learning_rate=0.1, max_leaf_nodes=30)
+
+if __name__ == "__main__":
+    run_analysis()

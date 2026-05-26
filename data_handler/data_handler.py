@@ -8,6 +8,7 @@ from sklearn.datasets import (fetch_california_housing,
                               make_gaussian_quantiles, make_moons)
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, StandardScaler
+from types_config import DataSetType
 
 
 #############
@@ -19,7 +20,7 @@ def load_data(path: Path, target: str):
         return load_data_from_csv(path, target)
     return load_data_from_arff(path, target)
 
-def load_data_from_arff(path: Path, target: str) -> tuple[pd.DataFrame, pd.Series]:
+def load_data_from_arff(path: Path, target: str) -> DataSetType:
     """Load .arff file as a DataFrame."""
     # Load as DataFrame
     data, _ = arff.loadarff(path)
@@ -46,19 +47,19 @@ def load_data_from_csv(path: Path, target: None = None) -> pd.DataFrame:
     return load_data_from_csv(path)
 
 @overload
-def load_data_from_csv(path: Path, target: str) -> tuple[pd.DataFrame, pd.Series]:
+def load_data_from_csv(path: Path, target: str) -> DataSetType:
     """Load .csv file as DataFrame with extracting a target."""
     return load_data_from_csv(path, target)
 
 def load_data_from_csv(path: Path,
-                       target: str | None = None) -> pd.DataFrame | tuple[pd.DataFrame, pd.Series]:
+                       target: str | None = None) -> pd.DataFrame | DataSetType:
     """Load .csv file as DataFrame."""
     data = pd.read_csv(path)
     if target is not None:
         return _extract_target(data, target)
     return data
 
-def load_california_dataset() -> tuple[pd.DataFrame, pd.Series]:
+def load_california_dataset() -> DataSetType:
     """
     Load california housing dataset.
 
@@ -72,14 +73,14 @@ def load_california_dataset() -> tuple[pd.DataFrame, pd.Series]:
     housing = fetch_california_housing(as_frame=True)
     return housing.data, housing.target * 100
 
-def make_gaussian_quantiles_dataset() -> tuple[pd.DataFrame, pd.Series]:
+def make_gaussian_quantiles_dataset() -> DataSetType:
     """Make gaussian quantiles dataset."""
     x_data, y_data = make_gaussian_quantiles(
         n_samples=100, n_features=2, n_classes=2, random_state=42
     )
     return pd.DataFrame(x_data, columns=["One", "Two"]), pd.Series(y_data, name="Class")
 
-def make_moons_dataset() -> tuple[pd.DataFrame, pd.Series]:
+def make_moons_dataset() -> DataSetType:
     """
     Make moons dataset, a simple toy dataset to visualize clustering and classification
     algorithm.
@@ -87,7 +88,7 @@ def make_moons_dataset() -> tuple[pd.DataFrame, pd.Series]:
     x_data, y_data = make_moons(n_samples=100, noise=0.13, random_state=42)
     return pd.DataFrame(x_data, columns=["One", "Two"]), pd.Series(y_data, name="Class")
 
-def make_xor_dataset() -> tuple[pd.DataFrame, pd.Series]:
+def make_xor_dataset() -> DataSetType:
     """
     Dataset where the data points are sampled from a uniform distribution in a 2D sapce and the
     class is defined by the Exclusive OR (XOR) operation on the two features. The target class is 1
@@ -102,7 +103,7 @@ def make_xor_dataset() -> tuple[pd.DataFrame, pd.Series]:
 ########################
 # MANIPULATE DATAFRAME #
 ########################
-def _extract_target(data: pd.DataFrame, targets: str) -> tuple[pd.DataFrame, pd.Series]:
+def _extract_target(data: pd.DataFrame, targets: str) -> DataSetType:
     """Extract target from DataFrame"""
     return data.drop(columns=[targets]), pd.Series(data[targets])
 

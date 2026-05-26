@@ -11,10 +11,9 @@ from sklearn.model_selection import (GridSearchCV, LearningCurveDisplay,
                                      RandomizedSearchCV, ShuffleSplit,
                                      ValidationCurveDisplay, cross_validate)
 from sklearn.pipeline import Pipeline, make_pipeline
-
-from .types import (Tclassifier, Tclassifierwithpipeline, Tcv, Tmodel,
-                    Tpipelinesteps, Tpreprocessor, Tregressor,
-                    Tregressorwithpipeline)
+from types_config import (Tclassifier, Tclassifierwithpipeline, Tcv, Tmodel,
+                          Tpipelinesteps, Tpreprocessor, Tregressor,
+                          Tregressorwithpipeline)
 
 # Expected parameter for a given search class use to tune hyperparameters
 SEARCH_EXPECTED_PARAM = {

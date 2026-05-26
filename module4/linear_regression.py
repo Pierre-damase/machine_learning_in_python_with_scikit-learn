@@ -1,10 +1,9 @@
+import data_handler as dh
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import seaborn as sns
-
-import data_handler as dh
 from config import DataPath
 from model import LinearRegressionModel
 
@@ -120,7 +119,7 @@ def automatic_linear_regression(penguins: pd.DataFrame,
                                 x_data: pd.DataFrame,
                                 y_data: pd.Series) -> None:
     """Perform a linear regression using scikit-learn"""
-    x_range = np.linspace(data.min(), data.max(), num=342)
+    x_range = np.linspace(x_data.min(), x_data.max(), num=342)
 
     # Build Model
     linear_regression = LinearRegressionModel()
@@ -144,10 +143,16 @@ def automatic_linear_regression(penguins: pd.DataFrame,
     linear_regression.print_mean_absolute_error(x_data, y_data)
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # Load data
     penguins = load_penguins()
     data, targets = penguins.drop(columns=TARGET), pd.Series(penguins[TARGET])
 
     # manual_linear_regression(penguins, data, targets)
     automatic_linear_regression(penguins, data, targets)
+
+if __name__ == "__main__":
+    run_analysis()

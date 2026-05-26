@@ -1,14 +1,14 @@
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC
-
 from config import DataPath, TargetColumn
 from data_handler import load_data_from_csv
 from model import (DummyClassifierModel, KNeighborsClassifierModel,
                    SupportVectorClassificationModel)
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from types_config import DataSetType
 from visualisation.visualisation import (
     show_errorbars_for_hyperparameter_tuning, show_learning_curve,
     show_validation_curve)
@@ -17,7 +17,7 @@ from visualisation.visualisation import (
 ###################
 # DATA MANAGEMENT #
 ###################
-def load_blood_transfusion_dataset() -> tuple[pd.DataFrame, pd.Series]:
+def load_blood_transfusion_dataset() -> DataSetType:
     """
     Load blood transfusion dataset.
 
@@ -185,7 +185,7 @@ def manually_tune_knearest_classifier(data: pd.DataFrame, targets: pd.Series) ->
 
     # Perform k-nearest classifier with various k-fold value
     for i in np.array([1, 2, 5, 10, 20, 50, 100, 200, 250]):
-        scores = blood_transfusion_knearest_classifier(*blood_transfusion, n_neighbors=i)
+        scores = blood_transfusion_knearest_classifier(data, targets, n_neighbors=i)
         # Train
         train_scores["mean"].append(scores["train_score"].mean())
         train_scores["std"].append(scores["train_score"].std())
@@ -222,7 +222,10 @@ def tune_knearest_classifier(data: pd.DataFrame, targets: pd.Series):
     show_validation_curve(curve, xlabel="Hyperparameter gamma")
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # Load data and targets
     blood_transfusion = load_blood_transfusion_dataset()
 
@@ -236,3 +239,6 @@ if __name__ == "__main__":
     # Tune neighbors number for k-nearest classifier
     manually_tune_knearest_classifier(*blood_transfusion)
     tune_knearest_classifier(*blood_transfusion)
+
+if __name__ == "__main__":
+    run_analysis()

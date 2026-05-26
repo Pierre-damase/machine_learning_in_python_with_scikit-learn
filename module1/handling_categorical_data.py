@@ -1,15 +1,14 @@
 from typing import TypeVar
 
+import data_handler as dh
 import pandas as pd
+from config import DataPath, TargetColumn
+from model import GradientBoostingClassifierModel, LogisticRegressionModel
 from sklearn.compose import make_column_selector as selector
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import (OneHotEncoder, OrdinalEncoder,
                                    StandardScaler, TargetEncoder)
-
-import data_handler as dh
-from config import DataPath, TargetColumn
-from model import GradientBoostingClassifierModel, LogisticRegressionModel
 
 Tmodel = TypeVar('Tmodel',
                  GradientBoostingClassifierModel,
@@ -236,7 +235,10 @@ def treebased_model_with_mix_encoder(data: pd.DataFrame,
     kfold_cross_validation(model, data, targets)
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # Load data
     adult_census = dh.load_data_from_arff(DataPath.ADULT_CENSUS.value,
                                           TargetColumn.ADULT_CENSUS)
@@ -245,3 +247,6 @@ if __name__ == "__main__":
     linear_model_with_heterogeneously_data_type(*adult_census)
     treebased_model_with_heterogeneously_data_type(*adult_census)
     treebased_model_with_mix_encoder(*adult_census)
+
+if __name__ == "__main__":
+    run_analysis()

@@ -2,9 +2,9 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
+from types_config import Tpipelinesteps, Tregressor
 
 from .Model import Model
-from .types import Tpipelinesteps, Tregressor
 
 
 class RegressionModel(Model[Tregressor]):

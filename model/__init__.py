@@ -15,5 +15,5 @@ __all__ = [
     'KNeighborsRegressorModel',
     'LinearRegressionModel',
     'LogisticRegressionModel',
-    'SupportVectorClassificatioModel'
+    'SupportVectorClassificationModel'
     ]
