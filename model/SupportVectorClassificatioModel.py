@@ -1,13 +1,11 @@
-from .Model import Model
-from sklearn.model_selection import (
-    LearningCurveDisplay,
-    ValidationCurveDisplay
-)
-from sklearn.preprocessing import StandardScaler
+import pandas as pd
+from sklearn.model_selection import (LearningCurveDisplay,
+                                     ValidationCurveDisplay)
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 
-import pandas as pd
+from .Model import Model
 
 
 class SupportVectorClassificationModel(Model[Pipeline]):

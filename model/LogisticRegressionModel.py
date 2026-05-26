@@ -1,8 +1,8 @@
-from .Model import Model
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+from .Model import Model
 
 
 class LogisticRegressionModel(Model[LogisticRegression | Pipeline]):

@@ -1,7 +1,8 @@
-from .Model import Model
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+
+from .Model import Model
 
 
 class KNeighborsClassifierModel(Model[KNeighborsClassifier | Pipeline]):

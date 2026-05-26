@@ -1,13 +1,12 @@
-from config import DataPath
-from model import LinearRegressionModel
-import data_handler as dh
-
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import seaborn as sns
 
+import data_handler as dh
+from config import DataPath
+from model import LinearRegressionModel
 
 # Data
 FEATURE = "Flipper Length (mm)"

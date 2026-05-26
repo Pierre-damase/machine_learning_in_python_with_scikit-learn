@@ -1,29 +1,20 @@
+from typing import TypeVar
+
 from sklearn.compose import make_column_selector as selector
+from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.kernel_approximation import Nystroem
-from sklearn.preprocessing import (
-    KBinsDiscretizer,
-    MinMaxScaler,
-    OneHotEncoder,
-    OrdinalEncoder,
-    PolynomialFeatures,
-    PowerTransformer,
-    QuantileTransformer,
-    SplineTransformer,
-    StandardScaler
-)
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.dummy import DummyClassifier
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.model_selection import ShuffleSplit
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.pipeline import Pipeline
-from sklearn.svm import (
-    SVC,
-    SVR
-)
-from typing import TypeVar
-
+from sklearn.preprocessing import (KBinsDiscretizer, MinMaxScaler,
+                                   OneHotEncoder, OrdinalEncoder,
+                                   PolynomialFeatures, PowerTransformer,
+                                   QuantileTransformer, SplineTransformer,
+                                   StandardScaler)
+from sklearn.svm import SVC, SVR
+from sklearn.tree import DecisionTreeRegressor
 
 ##############
 # CLASSIFIER #

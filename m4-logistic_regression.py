@@ -1,19 +1,13 @@
-from config import (
-    DataPath,
-    TargetColumn
-)
-from model import LogisticRegressionModel
-
-import data_handler as dh
-
-
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
-import matplotlib.pyplot as plt
-import pandas as pd
-import seaborn as sns
+import data_handler as dh
+from config import DataPath, TargetColumn
+from model import LogisticRegressionModel
 
 # Data
 FEATURES = ["Culmen Length (mm)", "Culmen Depth (mm)"]

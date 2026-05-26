@@ -1,14 +1,11 @@
-from sklearn.model_selection import (
-    LearningCurveDisplay,
-    ValidationCurveDisplay
-)
-
 import matplotlib.pyplot as plt
-import pandas as pd
-import plotly.express as px
 import numpy as np
 import numpy.typing as npt
+import pandas as pd
+import plotly.express as px
 import seaborn as sns
+from sklearn.model_selection import (LearningCurveDisplay,
+                                     ValidationCurveDisplay)
 
 
 ####################

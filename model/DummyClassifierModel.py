@@ -1,5 +1,6 @@
-from .Model import Model
 from sklearn.dummy import DummyClassifier
+
+from .Model import Model
 
 DUMMY_STRATEGY = ["constant", "most_frequent"]
 

@@ -1,7 +1,8 @@
-from .Model import Model
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder
+
+from .Model import Model
 
 
 class GradientBoostingClassifierModel(Model[Pipeline]):

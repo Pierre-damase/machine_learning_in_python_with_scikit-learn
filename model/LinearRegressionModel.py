@@ -1,7 +1,7 @@
-from .RegressionModel import RegressionModel
-
-from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import Pipeline
+
+from .RegressionModel import RegressionModel
 
 
 class LinearRegressionModel(RegressionModel[LinearRegression | Pipeline]):

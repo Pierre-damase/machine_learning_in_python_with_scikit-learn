@@ -1,13 +1,9 @@
-from .RegressionModel import RegressionModel
-from sklearn.model_selection import (
-    LearningCurveDisplay,
-    ShuffleSplit,
-    ValidationCurveDisplay
-)
+import pandas as pd
+from sklearn.model_selection import (LearningCurveDisplay, ShuffleSplit,
+                                     ValidationCurveDisplay)
 from sklearn.tree import DecisionTreeRegressor
 
-
-import pandas as pd
+from .RegressionModel import RegressionModel
 
 
 class DecisionTreeRegressorModel(RegressionModel[DecisionTreeRegressor]):

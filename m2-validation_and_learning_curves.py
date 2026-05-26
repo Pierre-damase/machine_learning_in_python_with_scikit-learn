@@ -1,13 +1,10 @@
-from model import DecisionTreeRegressorModel
-from visualisation import (
-    error_distribution,
-    show_learning_curve,
-    show_validation_curve
-)
-
-import data_handler as dh
 import numpy as np
 import pandas as pd
+
+import data_handler as dh
+from model import DecisionTreeRegressorModel
+from visualisation import (error_distribution, show_learning_curve,
+                           show_validation_curve)
 
 
 #####################

@@ -1,25 +1,15 @@
-from config import (
-    DataPath,
-    TargetColumn
-)
-from model import (
-    GradientBoostingClassifierModel,
-    LogisticRegressionModel
-)
+from typing import TypeVar
+
+import pandas as pd
 from sklearn.compose import make_column_selector as selector
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import (
-    OneHotEncoder,
-    OrdinalEncoder,
-    StandardScaler,
-    TargetEncoder
-)
-from typing import TypeVar
+from sklearn.preprocessing import (OneHotEncoder, OrdinalEncoder,
+                                   StandardScaler, TargetEncoder)
 
 import data_handler as dh
-import pandas as pd
-
+from config import DataPath, TargetColumn
+from model import GradientBoostingClassifierModel, LogisticRegressionModel
 
 Tmodel = TypeVar('Tmodel',
                  GradientBoostingClassifierModel,

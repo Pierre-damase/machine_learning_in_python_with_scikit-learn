@@ -1,7 +1,8 @@
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+
 from .RegressionModel import RegressionModel
-from sklearn.neighbors import KNeighborsRegressor
 
 
 class KNeighborsRegressorModel(RegressionModel[Pipeline]):

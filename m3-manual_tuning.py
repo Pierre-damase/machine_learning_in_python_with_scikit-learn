@@ -1,22 +1,13 @@
-from config import (
-    DataPath,
-    TargetColumn
-)
-from model import (
-    GradientBoostingClassifierModel,
-    LogisticRegressionModel
-)
+import pandas as pd
 from sklearn.compose import make_column_selector as selector
 from sklearn.ensemble import HistGradientBoostingClassifier
-from sklearn.preprocessing import (
-    OrdinalEncoder,
-    StandardScaler
-)
 from sklearn.linear_model import LogisticRegression
-from visualisation import show_errorbars_for_hyperparameter_tuning
+from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 
 import data_handler as dh
-import pandas as pd
+from config import DataPath, TargetColumn
+from model import GradientBoostingClassifierModel, LogisticRegressionModel
+from visualisation import show_errorbars_for_hyperparameter_tuning
 
 
 #######################

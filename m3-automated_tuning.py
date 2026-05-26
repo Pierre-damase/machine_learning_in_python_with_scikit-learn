@@ -1,23 +1,16 @@
-from config import (
-    DataPath,
-    TargetColumn
-)
-from model import GradientBoostingClassifierModel
-from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
-import data_handler as dh
-
-
 from pathlib import Path
-from sklearn.compose import make_column_selector as selector
-from sklearn.ensemble import HistGradientBoostingClassifier
-from sklearn.model_selection import (
-    GridSearchCV,
-    RandomizedSearchCV
-)
-from sklearn.preprocessing import OrdinalEncoder
-from scipy.stats import loguniform
 
 import pandas as pd
+from scipy.stats import loguniform
+from sklearn.compose import make_column_selector as selector
+from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from sklearn.preprocessing import OrdinalEncoder
+
+import data_handler as dh
+from config import DataPath, TargetColumn
+from model import GradientBoostingClassifierModel
+from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
 
 
 class loguniform_int:

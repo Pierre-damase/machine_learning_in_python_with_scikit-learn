@@ -1,18 +1,14 @@
-from sklearn.model_selection import GridSearchCV
-from config import (
-    DataPath,
-    TargetColumn
-)
-from model import KNeighborsClassifierModel
-
-import data_handler as dh
-
-
 from pathlib import Path
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import MinMaxScaler, PowerTransformer, QuantileTransformer, StandardScaler
 
 import pandas as pd
+from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import (MinMaxScaler, PowerTransformer,
+                                   QuantileTransformer, StandardScaler)
+
+import data_handler as dh
+from config import DataPath, TargetColumn
+from model import KNeighborsClassifierModel
 
 PENGUIN_NUMERICAL_FEATURES = [
     "Body Mass (g)", "Flipper Length (mm)", "Culmen Length (mm)"

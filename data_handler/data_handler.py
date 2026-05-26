@@ -1,16 +1,13 @@
 from pathlib import Path
-from scipy.io import arff
-from sklearn.datasets import fetch_california_housing
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import (
-    OneHotEncoder,
-    OrdinalEncoder,
-    StandardScaler
-)
 from typing import overload
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+from scipy.io import arff
+from sklearn.datasets import (fetch_california_housing,
+                              make_gaussian_quantiles, make_moons)
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, StandardScaler
 
 
 #############
@@ -74,6 +71,32 @@ def load_california_dataset() -> tuple[pd.DataFrame, pd.Series]:
     """
     housing = fetch_california_housing(as_frame=True)
     return housing.data, housing.target * 100
+
+def make_gaussian_quantiles_dataset() -> tuple[pd.DataFrame, pd.Series]:
+    """Make gaussian quantiles dataset."""
+    x_data, y_data = make_gaussian_quantiles(
+        n_samples=100, n_features=2, n_classes=2, random_state=42
+    )
+    return pd.DataFrame(x_data, columns=["One", "Two"]), pd.Series(y_data, name="Class")
+
+def make_moons_dataset() -> tuple[pd.DataFrame, pd.Series]:
+    """
+    Make moons dataset, a simple toy dataset to visualize clustering and classification
+    algorithm.
+    """
+    x_data, y_data = make_moons(n_samples=100, noise=0.13, random_state=42)
+    return pd.DataFrame(x_data, columns=["One", "Two"]), pd.Series(y_data, name="Class")
+
+def make_xor_dataset() -> tuple[pd.DataFrame, pd.Series]:
+    """
+    Dataset where the data points are sampled from a uniform distribution in a 2D sapce and the
+    class is defined by the Exclusive OR (XOR) operation on the two features. The target class is 1
+    if only one of the two features is greater than 0. The target class is 0 otherwise.
+    """
+    x_data = pd.DataFrame(
+        np.random.RandomState(0).uniform(low=-1, high=1, size=(200, 2)), columns=["One", "Two"]
+    )
+    return x_data, pd.Series(np.logical_xor(x_data["One"] > 0, x_data["Two"] > 0), name="Class")
 
 
 ########################

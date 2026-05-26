@@ -1,18 +1,12 @@
-from config import (
-    DataPath,
-    TargetColumn
-)
-from model import (
-    DummyClassifierModel,
-    KNeighborsClassifierModel,
-    LogisticRegressionModel
-)
+import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
-from visualisation import check_data, scaler_jointplot
 
 import data_handler as dh
-import pandas as pd
+from config import DataPath, TargetColumn
+from model import (DummyClassifierModel, KNeighborsClassifierModel,
+                   LogisticRegressionModel)
+from visualisation import check_data, scaler_jointplot
 
 
 def _load_numerical_data(data: pd.DataFrame) -> pd.DataFrame:

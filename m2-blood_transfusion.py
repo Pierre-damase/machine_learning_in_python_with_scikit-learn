@@ -1,25 +1,17 @@
-from config import (
-    DataPath,
-    TargetColumn
-)
-from data_handler import load_data_from_csv
-from model import (
-    DummyClassifierModel,
-    KNeighborsClassifierModel,
-    SupportVectorClassificationModel
-)
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC
-from visualisation.visualisation import (
-    show_errorbars_for_hyperparameter_tuning,
-    show_learning_curve,
-    show_validation_curve
-)
-
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+
+from config import DataPath, TargetColumn
+from data_handler import load_data_from_csv
+from model import (DummyClassifierModel, KNeighborsClassifierModel,
+                   SupportVectorClassificationModel)
+from visualisation.visualisation import (
+    show_errorbars_for_hyperparameter_tuning, show_learning_curve,
+    show_validation_curve)
 
 
 ###################

@@ -1,16 +1,15 @@
-from model import KNeighborsRegressorModel
-from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
-import data_handler as dh
-
-
-from sklearn.model_selection import RandomizedSearchCV
-from config import DataPath
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import RandomizedSearchCV
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import StandardScaler
 
-import pandas as pd
-import numpy as np
+import data_handler as dh
+from config import DataPath
+from model import KNeighborsRegressorModel
+from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
 
 
 #########

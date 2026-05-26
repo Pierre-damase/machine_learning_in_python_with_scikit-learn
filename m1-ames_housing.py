@@ -1,18 +1,11 @@
-from config import (
-    AMES_HOUSING_NUMERICAL_FEATURES,
-    DataPath,
-    TargetColumn
-)
-from model import LogisticRegressionModel
+import pandas as pd
 from sklearn.compose import make_column_selector as selector
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import (
-    OneHotEncoder,
-    StandardScaler
-)
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 import data_handler as dh
-import pandas as pd
+from config import AMES_HOUSING_NUMERICAL_FEATURES, DataPath, TargetColumn
+from model import LogisticRegressionModel
 
 
 def convert_targets(targets: pd.Series) -> pd.Series:
@@ -26,7 +19,9 @@ def convert_targets(targets: pd.Series) -> pd.Series:
 def predictive_model_with_numerical_features(data: pd.DataFrame, targets: pd.Series) -> None:
     """Predictive model using only numerical features."""
     # Build logistic regression model
-    logistic_regression = LogisticRegressionModel(pipeline_steps=[StandardScaler(), LogisticRegression()])
+    logistic_regression = LogisticRegressionModel(pipeline_steps=[
+        StandardScaler(), LogisticRegression()
+    ])
 
     # KFold cross-validation to evaluate generalization performance of the model
     scores = logistic_regression.kfold_cross_validate(data, targets, 10)

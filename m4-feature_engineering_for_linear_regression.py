@@ -1,27 +1,21 @@
-from config import DataPath
-from model import LinearRegressionModel
-from visualisation import show_validation_curve
-
-import data_handler as dh
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import seaborn as sns
-
 from sklearn.kernel_approximation import Nystroem
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import (
-    KBinsDiscretizer,
-    PolynomialFeatures,
-    SplineTransformer
-)
+from sklearn.preprocessing import (KBinsDiscretizer, PolynomialFeatures,
+                                   SplineTransformer)
 from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
+
+import data_handler as dh
+from config import DataPath
+from model import LinearRegressionModel
+from visualisation import show_validation_curve
 
 PENGUIN_FEATURES = ["Flipper Length (mm)", "Culmen Length (mm)", "Culmen Depth (mm)"]
 PENGUIN_TARGET = "Body Mass (g)"

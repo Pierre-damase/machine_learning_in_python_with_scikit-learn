@@ -1,37 +1,20 @@
+import time
 from pathlib import Path
-from sklearn.compose import make_column_transformer
-from sklearn.metrics import (
-    mean_absolute_error,
-    mean_squared_error
-)
-from sklearn.model_selection import (
-    cross_validate,
-    GridSearchCV,
-    LearningCurveDisplay,
-    RandomizedSearchCV,
-    ShuffleSplit,
-    ValidationCurveDisplay
-)
-from sklearn.pipeline import (
-    Pipeline,
-    make_pipeline
-)
-from .types import (
-    Tcv,
-    Tclassifier,
-    Tclassifierwithpipeline,
-    Tmodel,
-    Tpipelinesteps,
-    Tpreprocessor,
-    Tregressor,
-    Tregressorwithpipeline
-)
 from typing import Generic
 
-import pandas as pd
 import numpy as np
 import numpy.typing as npt
-import time
+import pandas as pd
+from sklearn.compose import make_column_transformer
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.model_selection import (GridSearchCV, LearningCurveDisplay,
+                                     RandomizedSearchCV, ShuffleSplit,
+                                     ValidationCurveDisplay, cross_validate)
+from sklearn.pipeline import Pipeline, make_pipeline
+
+from .types import (Tclassifier, Tclassifierwithpipeline, Tcv, Tmodel,
+                    Tpipelinesteps, Tpreprocessor, Tregressor,
+                    Tregressorwithpipeline)
 
 # Expected parameter for a given search class use to tune hyperparameters
 SEARCH_EXPECTED_PARAM = {
