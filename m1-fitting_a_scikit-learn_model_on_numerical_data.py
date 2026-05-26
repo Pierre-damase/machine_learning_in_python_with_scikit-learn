@@ -15,18 +15,18 @@ import data_handler as dh
 import pandas as pd
 
 
-"""Load numerical data from adult census."""
 def _load_numerical_data(data: pd.DataFrame) -> pd.DataFrame:
+    """Load numerical data from adult census."""
     return dh.get_subset(data, dtypes=[int, float])
 
 
-"""
-Build predictive models on tabular assets with only numerical features.
-
-n.b. the following workflow is simplify for some parts because data are already known
-"""
 def first_model_with_scikit_learn(data: pd.DataFrame,
                                   targets: pd.Series) -> None:
+    """
+    Build predictive models on tabular assets with only numerical features.
+
+    n.b. the following workflow is simplify for some parts because data are already known
+    """
     # 1. Look at the data to get some insight
     # check_data(data, targets)
 
@@ -43,16 +43,16 @@ def first_model_with_scikit_learn(data: pd.DataFrame,
     k_neighbors.start(*train_test_split)
 
 
-"""
-Performe moreadvanced operation:
-
-- identifying numerical data in a heterogeneous dataset;
-- selecting the subset of columns corresponding to numerical data;
-- using a scikit-learn helper to separate data into train-test sets;
-- training and evaluating a more complex scikit-learn model.
-"""
 def working_with_numerical_data(data: pd.DataFrame,
                                 targets: pd.Series) -> None:
+    """
+    Performe moreadvanced operation:
+
+    - identifying numerical data in a heterogeneous dataset;
+    - selecting the subset of columns corresponding to numerical data;
+    - using a scikit-learn helper to separate data into train-test sets;
+    - training and evaluating a more complex scikit-learn model.
+    """
     # 1. Look at the data to get some insight
     # check_data(data, targets)
 
@@ -71,9 +71,9 @@ def working_with_numerical_data(data: pd.DataFrame,
     low_income.start(*train_test_split) # ok
 
 
-"""Preprocessing of numerical features with standard scaler."""
 def preprocessing_for_numerical_features(data: pd.DataFrame,
                                          targets: pd.Series) -> None:
+    """Preprocessing of numerical features with standard scaler."""
     use_pipeline = True
 
     # 1. Look at the data to get some insight
@@ -104,9 +104,9 @@ def preprocessing_for_numerical_features(data: pd.DataFrame,
         logistic_regression.start(*train_test_split)
 
 
-"""Use cross evaluation to evaluate generalization performance of the model."""
 def model_evaluation_using_cross_validation(data: pd.DataFrame,
                                             targets: pd.Series) -> None:
+    """Use cross evaluation to evaluate generalization performance of the model."""
     # 1. Look at the data to get some insight
     # check_data(data, targets)
 

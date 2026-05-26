@@ -7,20 +7,20 @@ import pandas as pd
 ###########
 # SECTION #
 ###########
-"""
-Test continuous target prediction.
-
-We get alsmot a perfect prediction score. It's way to optimistic and there is some
-problems with the current model.
-
-Indeed, we trained and predicted on the same dataset. Since our decision tree was
-fully grown, every sample in the dataset is stored in a leaf node. Therefore, our
-decision tree fully memorized the dataset given during fit and therefore made no
-error when predicting.
-
-=> This error is called the empirical or training error.
-"""
 def simple_test_continuous_target_prediction(data: pd.DataFrame, targets: pd.Series):
+    """
+    Test continuous target prediction.
+
+    We get alsmot a perfect prediction score. It's way to optimistic and there is some
+    problems with the current model.
+
+    Indeed, we trained and predicted on the same dataset. Since our decision tree was
+    fully grown, every sample in the dataset is stored in a leaf node. Therefore, our
+    decision tree fully memorized the dataset given during fit and therefore made no
+    error when predicting.
+
+    => This error is called the empirical or training error.
+    """
     # 1. Build a decision tree regressor model
     regressor = DecisionTreeRegressorModel()
 
@@ -38,12 +38,12 @@ def simple_test_continuous_target_prediction(data: pd.DataFrame, targets: pd.Ser
     regressor.print_training_accuracy(targets, predicted_targets)
 
 
-"""
-Instead of the previous metod, use train-test split on the dataset.
-
-Then performe a cross validation.
-"""
 def test_continuous_target_prediction(data: pd.DataFrame, targets: pd.Series):
+    """
+    Instead of the previous metod, use train-test split on the dataset.
+
+    Then performe a cross validation.
+    """
     # 1. Randomnly split data between train and test set
     train_test_split = dh.sklearn_train_test_split(data, targets)
 

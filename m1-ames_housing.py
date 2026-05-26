@@ -15,16 +15,16 @@ import data_handler as dh
 import pandas as pd
 
 
-"""
-Convert the regression target into a classification target to predict
-whether or not an house is expensive.
-"""
 def convert_targets(targets: pd.Series) -> pd.Series:
+    """
+    Convert the regression target into a classification target to predict
+    whether or not an house is expensive.
+    """
     return pd.cut(targets, [0, 200000, 1000000], labels=['cheap', 'expensive'])
 
 
-"""Predictive model using only numerical features."""
 def predictive_model_with_numerical_features(data: pd.DataFrame, targets: pd.Series) -> None:
+    """Predictive model using only numerical features."""
     # Build logistic regression model
     logistic_regression = LogisticRegressionModel(pipeline_steps=[StandardScaler(), LogisticRegression()])
 
@@ -32,11 +32,14 @@ def predictive_model_with_numerical_features(data: pd.DataFrame, targets: pd.Ser
     scores = logistic_regression.kfold_cross_validate(data, targets, 10)
     logistic_regression.print_kfold_cross_validation_accuracy(scores)
 
-"""Predictive model using both numerical and categorical features."""
 def predictive_model(data: pd.DataFrame, targets: pd.Series) -> None:
+    """
+    Predictive model using both numerical and categorical features. Therefore, it's required to
+    apply a specific transformer for each data type:
+      - Performe a one-hot encoding of categorical variables
+      - Performe a scaling of numerical variables
+    """
     # 1. Machine learning pipeline with column transformer to
-    #    - Performe a one-hot encoding of categorical variables
-    #    - Performe a scaling of numerical variables
     initialized_model = LogisticRegressionModel.build_pipeline_with_transformer(
         transformers = [
             (StandardScaler(), selector(dtype_exclude=object)),

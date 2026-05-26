@@ -31,8 +31,8 @@ class LogisticRegressionModel(Model[LogisticRegression | Pipeline]):
         self.model = self._model_initializer()
 
 
-    """Initialize logistic regression either within a pipeline or not."""
     def _model_initializer(self):
+        """Initialize logistic regression either within a pipeline or not."""
         if self.use_pipeline:
             # Initialize a simple pipeline to
             #   1. Scale the training data
@@ -42,8 +42,8 @@ class LogisticRegressionModel(Model[LogisticRegression | Pipeline]):
         # Set up a logictic regression model
         return self._factory_model_initializer(LogisticRegression, max_iter=1000)
 
-    """Print model parameter at initialization."""
     def _print_model_initialization(self, model) -> None:
+        """Print model parameter at initialization."""
         print(f"Build a {model.__class__.__name__} model with "
               f"{model.max_iter} iterations.")
 
@@ -51,21 +51,21 @@ class LogisticRegressionModel(Model[LogisticRegression | Pipeline]):
     ###############
     # COEFFICIENT #
     ###############
-    """
-    Print the coefficient of the linear regression model, i.e. the associated weight of each
-    feature.
-    """
     def print_weights(self, features: list[str]) -> None:
+        """
+        Print the coefficient of the linear regression model, i.e. the associated weight of each
+        feature.
+        """
         coefficients = self.get_weights()
         for i in range(len(features)):
             print(f"The weight associated to {features[i]} is {coefficients[i]:.3f}")
 
-    """
-    Get the coefficient of the linear regression model, i.e. the associated weight of each
-    feature.
-
-    self.model[-1] allow to access to the last step of the pipeline. Then it's possible to get
-    attribute of that step such as coef_.
-    """
     def get_weights(self) -> list[float]:
+        """
+        Get the coefficient of the linear regression model, i.e. the associated weight of each
+        feature.
+
+        self.model[-1] allow to access to the last step of the pipeline. Then it's possible to get
+        attribute of that step such as coef_.
+        """
         return self.model[-1].coef_[0]

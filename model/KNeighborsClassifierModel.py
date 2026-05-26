@@ -23,14 +23,14 @@ class KNeighborsClassifierModel(Model[KNeighborsClassifier | Pipeline]):
         self.model = self._model_initializer(n_neighbors)
 
 
-    """Print model parameter at initialization."""
     def _print_model_initialization(self, model):
+        """Print model parameter at initialization."""
         print(f"Build a {model.__class__.__name__} model with "
               f"{model.n_neighbors} iterations.")
 
 
-    """Initialize a K-nearest neighbors model either within a pipeline or not."""
     def _model_initializer(self, n_neighbors: int):
+        """Initialize a K-nearest neighbors model either within a pipeline or not."""
         if self.use_pipeline:
             # Initialize a simple pipeline to
             #   1. Scale the training data

@@ -19,8 +19,8 @@ TARGET = "Body Mass (g)"
 ########
 # DATA #
 ########
-"""Load penguin dataset, extract features of interest and drop na."""
 def load_penguins() -> pd.DataFrame:
+    """Load penguin dataset, extract features of interest and drop na."""
     data, targets = dh.load_data_from_csv(DataPath.PENGUIN.value, TARGET)
     return pd.concat([data[FEATURE], targets], axis=1).dropna()
 
@@ -28,11 +28,11 @@ def load_penguins() -> pd.DataFrame:
 #############################
 # MANUAL LINEAR REGRESSION  #
 #############################
-"""Plot a scatterplot to visualize data."""
 def scatterplot(penguins: pd.DataFrame,
                 x_range: npt.NDArray[np.float64],
                 list_y_predicted: list[npt.NDArray[np.float64]],
                 **kwargs) -> None:
+    """Plot a scatterplot to visualize data."""
     # Build graphic
     ax = sns.scatterplot(penguins, x=FEATURE, y=TARGET, color="black", alpha=0.5)
 
@@ -50,44 +50,46 @@ def scatterplot(penguins: pd.DataFrame,
     plt.show()
 
 
-"""Build a simple linear model of the form y = ax + b with
-
-- y the predicted body mass
-- a the flipper length
-- x the weight applied to the flipper length in order to make the inference. Basically, in this
-case the coefficient unit is g/mm which means for each additional millimeter in flipper length
-the body weight predicted increases by x (for positive x) / decreases by x (for negative x)
-- b the intercept coefficient
-"""
 def manual_linear_model_definition(flipper_length: npt.NDArray[np.float64],
                                    weight_flipper_length: int,
                                    intercept_coefficient) -> npt.NDArray[np.float64]:
+    """Build a simple linear model of the form y = ax + b with
+
+    - y the predicted body mass
+    - a the flipper length
+    - x the weight applied to the flipper length in order to make the inference. Basically, in this
+    case the coefficient unit is g/mm which means for each additional millimeter in flipper length
+    the body weight predicted increases by x (for positive x) / decreases by x (for negative x)
+    - b the intercept coefficient
+    """
     return flipper_length * weight_flipper_length + intercept_coefficient
 
-"""Measure the goodness of fit of each linear model to be able to select the best one."""
 def goodness_fit_measure(expected_values: npt.NDArray[np.int64],
-                         predicted_values: list[npt.NDArray[np.float64]]) -> npt.NDArray[np.float64]:
+                         predicted_values: list[npt.NDArray[np.float64]]) \
+                         -> npt.NDArray[np.float64]:
+    """Measure the goodness of fit of each linear model to be able to select the best one."""
     return [np.mean(np.abs(expected_values - ele)) for ele in predicted_values]
 
 
-"""Perform manually a linear regression.
-
-There is almost a linear relationship between the body mass of the penguin and its flipper length.
-Hence, we coulc come up with a single formula, where given a flipper length we could compute the
-body mass using a linear relationship of the form y = ax + b where a and b are the 2 parameters of
-the model.
-
-Parameter
----------
-penguins: the whole dataset with data and target concatenated
-
-data: dataset with the features
-
-targets: dataset witht the targets
-"""
 def manual_linear_regression(penguins: pd.DataFrame,
                              data: pd.DataFrame,
                              targets: pd.Series) -> None:
+    """
+    Perform manually a linear regression.
+
+    There is almost a linear relationship between the body mass of the penguin and its flipper
+    length. Hence, we coulc come up with a single formula, where given a flipper length we could
+    compute the body mass using a linear relationship of the form y = ax + b where a and b are the
+    2 parameters of the model.
+
+    Parameter
+    ---------
+    penguins: the whole dataset with data and target concatenated
+
+    data: dataset with the features
+
+    targets: dataset witht the targets
+    """
     x_range = np.linspace(data.min(), data.max(), num=300)
 
     # Linear relationship
@@ -115,11 +117,10 @@ def manual_linear_regression(penguins: pd.DataFrame,
 ###############################
 # AUTOMATIC LINEAR REGRESSION #
 ###############################
-""" Perform a leaniar regression using scikit-learn
-"""
 def automatic_linear_regression(penguins: pd.DataFrame,
                                 x_data: pd.DataFrame,
                                 y_data: pd.Series) -> None:
+    """Perform a linear regression using scikit-learn"""
     x_range = np.linspace(data.min(), data.max(), num=342)
 
     # Build Model

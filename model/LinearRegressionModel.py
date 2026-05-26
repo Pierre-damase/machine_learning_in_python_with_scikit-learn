@@ -17,8 +17,8 @@ class LinearRegressionModel(RegressionModel[LinearRegression | Pipeline]):
         self.model = self._model_initializer()
 
 
-    """Initialize linear regression either within a pipeline or not."""
     def _model_initializer(self):
+        """Initialize linear regression either within a pipeline or not."""
         if self.use_pipeline:
             # Initialize a pipeline
             return self._factory_pipeline_initializer(*self.pipeline_steps)

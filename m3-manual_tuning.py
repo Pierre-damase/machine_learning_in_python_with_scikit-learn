@@ -22,9 +22,9 @@ import pandas as pd
 #######################
 # LOGISTIC REGRESSION #
 #######################
-"""Manual tuning of hyperparameter C of a logistic regression."""
 def manual_logistic_regression_tuning(data: pd.DataFrame,
                                       targets: pd.Series) -> None:
+    """Manual tuning of hyperparameter C of a logistic regression."""
     # 1. Remove categorical features
     data = dh.get_subset(data, dtypes=[int, float])
 
@@ -51,13 +51,12 @@ def manual_logistic_regression_tuning(data: pd.DataFrame,
 ################################
 # GRADIENT BOOSTING CLASSIFIER #
 ################################
-"""
-Build a gradient boosting classifier with a transformer to deal with numerical and
-categorical features.
-"""
 def _build_gradient_boosting(learning_rate:float = 0.1,
-                             max_leaf_nodes: int = 31) \
-                             -> GradientBoostingClassifierModel:
+                             max_leaf_nodes: int = 31) -> GradientBoostingClassifierModel:
+    """
+    Build a gradient boosting classifier with a transformer to deal with numerical and
+    categorical features.
+    """
     return GradientBoostingClassifierModel.build_pipeline_with_transformer(
         transformers = [
             (
@@ -72,23 +71,23 @@ def _build_gradient_boosting(learning_rate:float = 0.1,
     )
 
 
-"""Display manual tuning results."""
 def _display_errors(scores: dict[str, list[float]]):
+    """Display manual tuning results."""
     data = pd.DataFrame({k.rsplit('__')[-1]: v for k, v in scores.items()})\
              .sort_values("testing_mean", ascending=False)
     print(data)
 
-"""
-Manual tuning of hyperparameters learning_rate and max_leaf_nodes of
-a gradient boosting classifier.
-
-  - learning_rate: control the ability of a new tree to correct the error of the
-                   previous sequence of trees
-  - max_leaf_nodes: control the depth of each tree
-"""
 def manual_gradient_boosting_tuning(data: pd.DataFrame,
                                     targets: pd.Series,
                                     train_size: float) -> None:
+    """
+    Manual tuning of hyperparameters learning_rate and max_leaf_nodes of
+    a gradient boosting classifier.
+
+    - learning_rate: control the ability of a new tree to correct the error of the
+                   previous sequence of trees
+    - max_leaf_nodes: control the depth of each tree
+    """
     # 1. Split data. At first to work on a smaller subset then to tuned the
     #    hyperparameter on the training set
     x_train, _, y_train, _ = \
@@ -107,11 +106,11 @@ def manual_gradient_boosting_tuning(data: pd.DataFrame,
     _display_errors(scores)
 
 
-"""Gradient boosting with best hyperparameters."""
 def optimum_gradient_boosting(data: pd.DataFrame,
                               targets: pd.Series,
                               learning_rate: float,
                               max_leaf_nodes: int) -> None:
+    """Gradient boosting with best hyperparameters."""
     # 1. Build model with default hyperparameters
     model = _build_gradient_boosting(learning_rate=learning_rate,
                                      max_leaf_nodes=max_leaf_nodes)

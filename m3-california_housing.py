@@ -28,19 +28,19 @@ def build_kneighbors_regressor(columns: list[str]) -> KNeighborsRegressorModel:
 #########################
 # HYPERPARAMETER TUNING #
 #########################
-"""
-Hyperparameter tuning by randomized-search.
-
-  - n_neighbors of the KNeighborsRegressor
-  - with_mean fo the StandardScaler
-  - with_std of the StandarSacler
-"""
 def randomized_search_tuning(model: KNeighborsRegressorModel,
                              x_data: pd.DataFrame,
                              y_data: pd.Series,
                              x_train: pd.DataFrame,
                              y_train: pd.Series,
                              path: Path) -> None:
+    """
+    Hyperparameter tuning by randomized-search.
+
+    - n_neighbors of the KNeighborsRegressor
+    - with_mean fo the StandardScaler
+    - with_std of the StandarSacler
+    """
     # Set up the parameter distribution used by the randomized-search algorithm
     param_dist = {
         'kneighborsregressor__n_neighbors': np.logspace(0, 3, num=10).astype(np.int32),

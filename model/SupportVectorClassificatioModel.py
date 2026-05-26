@@ -33,16 +33,6 @@ class SupportVectorClassificationModel(Model[Pipeline]):
     ####################
     # VALIDATION CURVE #
     ####################
-    """
-    Use validation curve to try out hyperparamerter gamma.
-
-    Parameter
-    ---------
-    **kwargs: for SVM, the gamma hyperparameter is used to control the tradeoff
-              between under-fitting and over-fitting.
-              Therefore, always use this parameter to find the right tradeoff. Only
-              pass param_range as parameter in kwargs to try various gamma.
-    """
     def compute_validation_curve(self,
                                  x_data: pd.DataFrame,
                                  y_data: pd.Series,
@@ -50,6 +40,16 @@ class SupportVectorClassificationModel(Model[Pipeline]):
                                  scoring: str,
                                  score_name: str,
                                  **kwargs) -> ValidationCurveDisplay:
+        """
+        Use validation curve to try out hyperparamerter gamma.
+
+        Parameter
+        ---------
+        **kwargs: for SVM, the gamma hyperparameter is used to control the tradeoff
+              between under-fitting and over-fitting.
+              Therefore, always use this parameter to find the right tradeoff. Only
+              pass param_range as parameter in kwargs to try various gamma.
+        """
         return super().compute_validation_curve(
             x_data,
             y_data,
@@ -64,13 +64,6 @@ class SupportVectorClassificationModel(Model[Pipeline]):
     ##################
     # LEARNING CURVE #
     ##################
-    """
-    Use learning curve to try out various training set size.
-
-    Parameter
-    ---------
-    **kwargs: pass train_sizes to try out various training set sizes
-    """
     def compute_learning_curve(self,
                                x_data: pd.DataFrame,
                                y_data: pd.Series,
@@ -78,6 +71,13 @@ class SupportVectorClassificationModel(Model[Pipeline]):
                                scoring: str,
                                score_name: str,
                                **kwargs) -> LearningCurveDisplay:
+        """
+        Use learning curve to try out various training set size.
+
+        Parameter
+        ---------
+        **kwargs: pass train_sizes to try out various training set sizes
+        """
         return super().compute_learning_curve(
             x_data,
             y_data,

@@ -33,14 +33,14 @@ class DummyClassifierModel(Model[DummyClassifier]):
         )
 
 
-    """Print model parameter at initialization."""
     def _print_model_initialization(self, model) -> None:
+        """Print model parameter at initialization."""
         print(f"Build a {model.__class__.__name__} model with "
               f"a constant strategy to predict {model.constant}.")
 
 
-    """Validate dummy classifier parameter."""
     def _validate_parameter(self, **kwargs):
+        """Validate dummy classifier parameter."""
         if not "strategy" in kwargs.keys():
             raise Exception("The strategy to use to generate predictions is "
                             "required for dummy classifier.")

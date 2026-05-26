@@ -208,8 +208,8 @@ def run_decision_tree_regression(data: pd.DataFrame,
 ####################
 # DATA ENGINEERING #
 ####################
-"""Usefull to perform so data exploration."""
 def exploration(x_data: npt.NDArray[np.float64]):
+    """Usefull to perform so data exploration."""
     # Either manually perform the data engineering
     x_data_expanded = np.concatenate([x_data, x_data**2, x_data**3], axis=1)
 

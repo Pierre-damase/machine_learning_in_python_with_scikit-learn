@@ -34,8 +34,8 @@ class loguniform_int:
 #########
 # MODEL #
 #########
-"""Build a gradient boosting classifier."""
 def build_gradient_boosting_classifier() -> GradientBoostingClassifierModel:
+    """Build a gradient boosting classifier."""
     return GradientBoostingClassifierModel.build_pipeline_with_transformer(
         transformers = [
             (
@@ -51,12 +51,18 @@ def build_gradient_boosting_classifier() -> GradientBoostingClassifierModel:
 #########################
 # HYPERPARAMETER TUNING #
 #########################
-"""
-Hyperparameter tuning by grid-search.
+def grid_search_tuning(model: GradientBoostingClassifierModel,
+                       x_data: pd.DataFrame,
+                       y_data: pd.Series,
+                       x_train: pd.DataFrame,
+                       y_train: pd.Series,
+                       path: Path) -> None:
+    """
+    Hyperparameter tuning by grid-search.
 
-For tree-based models, ordinal encoder avoids having high-dimensional representations.
+    For tree-based models, ordinal encoder avoids having high-dimensional representations.
 
-  - learning_rate: control the ability of a new tree to correct the error of the previous sequence
+    - learning_rate: control the ability of a new tree to correct the error of the previous sequence
     of trees.
       . A gradient boosting model with large learning rate will tend to overfit. It is due to the
         fact that the sequence of added trees will rapidly correct the residuals and thus will
@@ -65,14 +71,8 @@ For tree-based models, ordinal encoder avoids having high-dimensional representa
       . On an other hand, setting a low learning rate will pervent the model to miminimize the loss
         even on the training set and therefore will cause underfitting.
 
-  - max_leaf_nodes: control the depth of each tree
-"""
-def grid_search_tuning(model: GradientBoostingClassifierModel,
-                       x_data: pd.DataFrame,
-                       y_data: pd.Series,
-                       x_train: pd.DataFrame,
-                       y_train: pd.Series,
-                       path: Path) -> None:
+    - max_leaf_nodes: control the depth of each tree
+    """
     # 1. Set up the parameter grid used by the grid-search algorithm
     #    Explicitly specified hyperparameter values to try out
     param_grid = {
@@ -85,22 +85,22 @@ def grid_search_tuning(model: GradientBoostingClassifierModel,
         GridSearchCV, param_grid, x_data, y_data, x_train, y_train, path=path, cv=2
     )
 
-"""
-Hyperparameter tuning by randomized-search.
-
-  - learning_rate: control the ability of a new tree to correct the error of the
-                   previous sequence of trees
-  - max_leaf_nodes: control the depth of each tree
-  - l2_regularization: control the strength of the regulation
-  - min_sample_leaf: control the minimum number of samples required in a leaf
-  - max_bins: control the maximum number of bins to construct the histograms
-"""
 def randomized_search_tuning(model: GradientBoostingClassifierModel,
                              x_data: pd.DataFrame,
                              y_data: pd.Series,
                              x_train: pd.DataFrame,
                              y_train: pd.Series,
                              path: Path) -> None:
+    """
+    Hyperparameter tuning by randomized-search.
+
+    - learning_rate: control the ability of a new tree to correct the error of the
+                   previous sequence of trees
+    - max_leaf_nodes: control the depth of each tree
+    - l2_regularization: control the strength of the regulation
+    - min_sample_leaf: control the minimum number of samples required in a leaf
+    - max_bins: control the maximum number of bins to construct the histograms
+    """
     # 1. Set up the parameter distribution used by the randomized-search algorithm
     #    Specified a range of hyperparameter values to try out
     param_dist = {

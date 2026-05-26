@@ -22,8 +22,8 @@ PENGUIN_NUMERICAL_FEATURES = [
 ########
 # DATA #
 ########
-"""Load penguin dataset,extract numerical features of interest and drop na."""
 def load_penguins() -> tuple[pd.DataFrame, pd.Series]:
+    """Load penguin dataset,extract numerical features of interest and drop na."""
     data = dh.load_data_from_csv(
         DataPath.PENGUIN.value
     )[PENGUIN_NUMERICAL_FEATURES + [TargetColumn.PENGUIN]].dropna()
@@ -34,10 +34,10 @@ def load_penguins() -> tuple[pd.DataFrame, pd.Series]:
 #########
 # MODEL #
 #########
-"""Build a KNeighbors classifier pipeline."""
 def build_kneighbors_classifier(scaler,
                                 columns: list[str],
                                 **kwargs) -> KNeighborsClassifierModel:
+    """Build a KNeighbors classifier pipeline."""
     return KNeighborsClassifierModel.build_pipeline_with_transformer(
         transformers = [
             (scaler(**kwargs), columns)
@@ -45,26 +45,26 @@ def build_kneighbors_classifier(scaler,
         model = KNeighborsClassifier(n_neighbors=5)
     )
 
-"""Build a KNeighbors classifier model without data scaling."""
 def build_kneighbors_classifier_without_scaler() -> KNeighborsClassifierModel:
+    """Build a KNeighbors classifier model without data scaling."""
     return KNeighborsClassifierModel(n_neighbors=5)
 
 
 ####################
 # CROSS-VALIDATION #
 ####################
-"""Cross-validation to evaluate the model performance without any tuning."""
 def cross_validation(model: KNeighborsClassifierModel, x_data: pd.DataFrame, y_data: pd.Series):
+    """Cross-validation to evaluate the model performance without any tuning."""
     scores = model.kfold_cross_validate(
         x_data, y_data, nb_fold=10, scoring="balanced_accuracy", return_train_score=True
     )
     model.print_cross_validate(scores)
 
-"""Run cross-validation for model without data scaling."""
 def run_cv_without_scaler(x_data: pd.DataFrame,
                           y_data: pd.Series,
                           x_train: pd.DataFrame,
                           y_train: pd.Series):
+    """Run cross-validation for model without data scaling."""
     model = build_kneighbors_classifier_without_scaler()
     model.start(x_train=x_train, y_train=y_train)
     cross_validation(model, x_data, y_data)
@@ -73,11 +73,11 @@ def run_cv_without_scaler(x_data: pd.DataFrame,
 #################
 # MANUALLY TUNE #
 #################
-"""Manually try out some hyperparameters value to tune the model."""
 def manually_tune_model(model: KNeighborsClassifierModel,
                         x_data: pd.DataFrame,
                         y_data: pd.Series,
                         n_neighbors: int):
+    """Manually try out some hyperparameters value to tune the model."""
     # Set new parameter value
     print(f"Try out model with n_neighbors = {n_neighbors}")
     model.set_hyperparameters(kneighborsclassifier__n_neighbors=n_neighbors)
@@ -89,12 +89,12 @@ def manually_tune_model(model: KNeighborsClassifierModel,
 ##################
 # AUTOMATED TUNE #
 ##################
-"""Build various KNeighbors classifier then tune hyperparameter n_neighbors."""
 def tune_model(model: KNeighborsClassifierModel,
                x_data: pd.DataFrame,
                y_data: pd.Series,
                x_train: pd.DataFrame,
                y_train: pd.Series):
+    """Build various KNeighbors classifier then tune hyperparameter n_neighbors."""
     # 1. Set up the paramater grid used but the grid-search algorithm
     param_grid = {
         "kneighborsclassifier__n_neighbors": [5, 51, 101],

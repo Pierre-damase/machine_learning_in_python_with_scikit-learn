@@ -13,17 +13,17 @@ import pandas as pd
 #####################
 # MODEL PERFORMANCE #
 #####################
-"""
-Compare training and testing error.
-
-One way to detect overfitting is to perform a cross-validation and check
-the training error. i.e. the capacity of the model to predict the data
-use for the training.
-
-Same protocol for underfitting with the testing error, i.e. the capacity
-of the model to predict unseen data (in this use case the testing test)
-"""
 def overfitting_vs_underfitting(data: pd.DataFrame, targets: pd.Series):
+    """
+    Compare training and testing error.
+
+    One way to detect overfitting is to perform a cross-validation and check
+    the training error. i.e. the capacity of the model to predict the data
+    use for the training.
+
+    Same protocol for underfitting with the testing error, i.e. the capacity
+    of the model to predict unseen data (in this use case the testing test)
+    """
     # 1. Build a decesion tree regressor model
     regressor = DecisionTreeRegressorModel()
 
@@ -39,28 +39,28 @@ def overfitting_vs_underfitting(data: pd.DataFrame, targets: pd.Series):
 #########################
 # HYPERPARAMETER TUNING #
 #########################
-"""
-Validation curve help to detect the impact of hyperparameters on the training and testing.
+def validation_curve(data: pd.DataFrame, targets: pd.Series):
+    """
+    Validation curve help to detect the impact of hyperparameters on the training and testing.
 
-Result explanation:
-  - max_depth < 10: the decision under-fits. The training error and therefore the testing
+    Result explanation:
+    - max_depth < 10: the decision under-fits. The training error and therefore the testing
                     error are both high. The model is too constrained and cannot capture
                     much of the variability.
-  - max_depth = 10: the decision tree seems to be optimum with this value of max_depth.
+    - max_depth = 10: the decision tree seems to be optimum with this value of max_depth.
                     The model is flexible enough to capture a fraction of the variability
                     of the target, while not memorizing all the noise.
-  - max_depth > 10: the decision tree over-fits. The training error becomes very small,
+    - max_depth > 10: the decision tree over-fits. The training error becomes very small,
                     even marginal while the testing error start to increase again. Hence,
                     the model create decisions specifically for noisy samples harming its
                     ability to generalize to testing data.
 
-Note that for max_depth = 10, the model over-fits a bit as there is a gap between the
-training and testing error. On the other hand, the training error is still far from 0,
-meaning that the model still be too constrained to take into account interesting parts
-of the data. However, increasing the max_depth does not further decrease the testing
-error. Therefore, the testing error is minimal and this is the best compromise.
-"""
-def validation_curve(data: pd.DataFrame, targets: pd.Series):
+    Note that for max_depth = 10, the model over-fits a bit as there is a gap between the
+    training and testing error. On the other hand, the training error is still far from 0,
+    meaning that the model still be too constrained to take into account interesting parts
+    of the data. However, increasing the max_depth does not further decrease the testing
+    error. Therefore, the testing error is minimal and this is the best compromise.
+    """
     # 1. Build a decesion tree regressor model
     regressor = DecisionTreeRegressorModel()
 
@@ -78,11 +78,11 @@ def validation_curve(data: pd.DataFrame, targets: pd.Series):
 ############################
 # TRAINING SET SIZE TUNING #
 ############################
-"""
-Leaning curve to display impact of various learning set sizes on the
-training set.
-"""
 def learning_curve(data: pd.DataFrame, targets: pd.Series):
+    """
+    Leaning curve to display impact of various learning set sizes on the
+    training set.
+    """
     # 1. Build a decesion tree regressor model
     regressor = DecisionTreeRegressorModel()
 

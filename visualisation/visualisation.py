@@ -14,8 +14,8 @@ import seaborn as sns
 ####################
 # DATA OBSERVATION #
 ####################
-"""Simple workflow to look at the data."""
 def check_data(data: pd.DataFrame, targets: pd.Series) -> None:
+    """Simple workflow to look at the data."""
     display_shape, display_hist, display_count, display_relationship, display_pairplot = \
         True, True, True, True, True
     str_columns = data.select_dtypes([str]).columns
@@ -43,27 +43,27 @@ def check_data(data: pd.DataFrame, targets: pd.Series) -> None:
     if display_pairplot:
         _pairplot(data, targets, ["age", "education-num", "hours-per-week"])
 
-"""Simple visualisation of numerical values as histrogram."""
 def _histogram(data: pd.DataFrame) -> None:
+    """Simple visualisation of numerical values as histrogram."""
     _ = data.hist(figsize=(20, 14))
     plt.title('Histogram for numerical values')
     plt.show()
 
-"""
-Crosstab virusalisation to look at the relationship between two variables.
-
-To detect redundant (or highly correlated) variables.
-"""
 def _crosstab(data: pd.DataFrame, x: str, y: str) -> None:
+    """
+    Crosstab virusalisation to look at the relationship between two variables.
+
+    To detect redundant (or highly correlated) variables.
+    """
     tab = pd.crosstab(index=data[x], columns=data[y])
     print(tab)
 
-"""
-Pairplot virusalisation to show how each variable differs according to the target.
-
-Can reveal interaction between variables.
-"""
 def _pairplot(data: pd.DataFrame, target: pd.Series, columns: list[str]) -> None:
+    """
+    Pairplot virusalisation to show how each variable differs according to the target.
+
+    Can reveal interaction between variables.
+    """
     # Only plot a subset of the data for performance issue and keep the plot readable
     n_samples = 5000
 
@@ -82,16 +82,15 @@ def _pairplot(data: pd.DataFrame, target: pd.Series, columns: list[str]) -> None
 ################
 # DATA SCALING #
 ################
-"""
-Use jointplot to display histograms of the distribution and a
-scatterplot of any pair of numerical features. In order to observe
-than scaler does not change the structure of the data. 
-Only the axes get shifted and scaled.
-"""
 def scaler_jointplot(x_train: pd.DataFrame,
                      x_train_scaled: pd.DataFrame,
                      x_axis: str,
                      y_axis: str) -> None:
+    """
+    Use jointplot to display histograms of the distribution and a scatterplot of any pair of
+    numerical features. In order to observe than scaler does not change the structure of the data.
+    Only the axes get shifted and scaled.
+    """
     # Limit points to plot for clearer result
     limit = 300
 
@@ -104,8 +103,8 @@ def scaler_jointplot(x_train: pd.DataFrame,
                f"Jointplot of {x_axis} and {y_axis} after data scaling")
     plt.show()
 
-"""Jointplot."""
 def _jointplot(data: pd.DataFrame, x_axis: str, y_axis: str, title: str) -> None:
+    """Jointplot."""
     sns.jointplot(
         data=data,
         x=x_axis,
@@ -118,8 +117,8 @@ def _jointplot(data: pd.DataFrame, x_axis: str, y_axis: str, title: str) -> None
 ##########################
 # TRAINING/TESTING ERROR #
 ##########################
-"""Display the training and testing error distribution."""
 def error_distribution(scores: dict[str, npt.NDArray[np.float64]]):
+    """Display the training and testing error distribution."""
     try:
         errors = pd.DataFrame(
             {"Train score": scores["train_score"], "Test score": scores["test_score"]}
@@ -135,8 +134,8 @@ def error_distribution(scores: dict[str, npt.NDArray[np.float64]]):
 ####################
 # VALIDATION CURVE #
 ####################
-"""Show validation curve."""
 def show_validation_curve(curve: ValidationCurveDisplay, xlabel: str) -> None:
+    """Show validation curve."""
     curve.ax_.set(
         xlabel=xlabel,
         title="Validation curve"
@@ -147,8 +146,8 @@ def show_validation_curve(curve: ValidationCurveDisplay, xlabel: str) -> None:
 ##################
 # LEARNING CURVE #
 ##################
-"""Show learning"""
 def show_learning_curve(curve: LearningCurveDisplay) -> None:
+    """Show learning"""
     curve.ax_.set(
         xscale="log",
         xlabel="Number of samples in the training set",
@@ -160,12 +159,12 @@ def show_learning_curve(curve: LearningCurveDisplay) -> None:
 ############
 # ERRORBAR #
 ############
-"""Plot y versus x as line and markers with attached errorbars."""
 def _errorbar(means: list[float],
               stds: list[float],
               x: list[float],
               color: str,
               label: str) -> None:
+    """Plot y versus x as line and markers with attached errorbars."""
     plt.errorbar(x,
                  means,
                  yerr=stds,
@@ -176,11 +175,11 @@ def _errorbar(means: list[float],
                  elinewidth=1.5,
                  label=label)
 
-"""Display errorbar for manual tuning of hyperparameter."""
 def show_errorbars_for_hyperparameter_tuning(train_scores: dict[str, list[float]],
                                              test_scores: dict[str, list[float]],
                                              x: list[float],
-                                             xlabel: str):
+                                             xlabel: str) -> None:
+    """Display errorbar for manual tuning of hyperparameter."""
     _errorbar(train_scores["mean"], train_scores["std"], x, "blue", "Train")
     _errorbar(test_scores["mean"], test_scores["std"], x, "orange", "Test")
     plt.xlabel(xlabel)
@@ -192,8 +191,8 @@ def show_errorbars_for_hyperparameter_tuning(train_scores: dict[str, list[float]
 ########################
 # PARALLEL COORDINATES #
 ########################
-"""Build a parallel coordinates graphic."""
-def show_parallel_coordinates_for_hyperparameter_tuning(data: pd.DataFrame):
+def show_parallel_coordinates_for_hyperparameter_tuning(data: pd.DataFrame) -> None:
+    """Build a parallel coordinates graphic."""
     # Ignore some columns
     columns_to_ignore = ["std_test_score", "rank_test_score", "mean_train_score",
                          "std_train_score"]

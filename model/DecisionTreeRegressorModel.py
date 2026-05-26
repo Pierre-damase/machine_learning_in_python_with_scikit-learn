@@ -59,13 +59,6 @@ class DecisionTreeRegressorModel(RegressionModel[DecisionTreeRegressor]):
     ##################
     # LEARNING CURVE #
     ##################
-    """
-    Use learning curve to try out various training set size.
-
-    Parameter
-    ---------
-    **kwargs: pass train_sizes to try out various training set sizes
-    """
     def compute_learning_curve(self,
                                x_data: pd.DataFrame,
                                y_data: pd.Series,
@@ -74,6 +67,13 @@ class DecisionTreeRegressorModel(RegressionModel[DecisionTreeRegressor]):
                                score_name: str,
                                negate_score: bool,
                                **kwargs) -> LearningCurveDisplay:
+        """
+        Use learning curve to try out various training set size.
+
+        Parameter
+        ---------
+        **kwargs: pass train_sizes to try out various training set sizes
+        """
         return super().compute_learning_curve(
             x_data,
             y_data,

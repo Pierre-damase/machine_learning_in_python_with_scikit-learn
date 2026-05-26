@@ -21,8 +21,8 @@ FEATURES = ["Culmen Length (mm)", "Culmen Depth (mm)"]
 ########
 # DATA #
 ########
-"""Load penguin dataset, extract features of interest and drop na."""
 def load_penguins() -> pd.DataFrame:
+    """Load penguin dataset, extract features of interest and drop na."""
     # Load data
     data, targets = dh.load_data_from_csv(DataPath.PENGUIN.value, TargetColumn.PENGUIN)
 
@@ -35,49 +35,49 @@ def load_penguins() -> pd.DataFrame:
 #################
 # VISUALISATION #
 #################
-"""Plot an histogram for each species.
-
-- Culmen length: the probability of a penguin being a Chinstrap is higher when the culm length is
-high
-
-- Culmen depth: not useful to distinct between an adelie and a chinstrap
-"""
 def histogram(penguins: pd.DataFrame):
+    """Plot an histogram for each species.
+
+    - Culmen length: the probability of a penguin being a Chinstrap is higher when the culm length
+      is high
+
+    - Culmen depth: not useful to distinct between an adelie and a chinstrap
+    """
     plt.figure()
     for feature in penguins[FEATURES].columns:
         penguins.groupby(TargetColumn.PENGUIN)[feature].plot.hist(alpha=0.5, legend=True)
         plt.xlabel(feature)
         plt.show()
 
-"""
-Display the decision function boundary. We expect a straight line which separted the classes of the
-target.
-
-[Only possible for logistic regression problem with 2 features.]
-
-The equation of the decision boundary is: coef0 * x0 + coef1 * x1 + b = 0 with
-  - x0 the culmen length and coef0 the associated weight
-  - x1 the culmen depth and coef1 the associated weight
-  - b the intercept
-
-Parameter
----------
-logistic_regression: the trained model
-
-penguins_test: the whole test dataset, i.e. data and targets together.
-
-x_test: data test
-
-reponse_method: respond method use, either
-  - predict
-  - predict_proba: in order to show the confidence on individual classifications. For example,
-close to the boundary, the confidence is quite low and the probability to be either the first class
-or the second is close to 0.5, therefore this region is white.
-"""
 def decision_boundary_display(logistic_regression: LogisticRegressionModel,
                               penguins_test: pd.DataFrame,
                               x_test: pd.DataFrame,
                               response_method: str):
+    """
+    Display the decision function boundary. We expect a straight line which separted the classes of
+    the target.
+
+    [Only possible for logistic regression problem with 2 features.]
+
+    The equation of the decision boundary is: coef0 * x0 + coef1 * x1 + b = 0 with
+    - x0 the culmen length and coef0 the associated weight
+    - x1 the culmen depth and coef1 the associated weight
+    - b the intercept
+
+    Parameter
+    ---------
+    logistic_regression: the trained model
+
+    penguins_test: the whole test dataset, i.e. data and targets together.
+
+    x_test: data test
+
+    reponse_method: respond method use, either
+    - predict
+    - predict_proba: in order to show the confidence on individual classifications. For example,
+    close to the boundary, the confidence is quite low and the probability to be either the first
+    class or the second is close to 0.5, therefore this region is white.
+    """
     DecisionBoundaryDisplay.from_estimator(logistic_regression.model,
                                            x_test,
                                            response_method=response_method,

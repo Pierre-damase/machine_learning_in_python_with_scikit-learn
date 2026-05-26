@@ -29,8 +29,8 @@ Tmodel = TypeVar('Tmodel',
 ###########
 # ENCODER #
 ###########
-"""Try out ordinal encoder."""
 def _ordinal_encoder(data: pd.DataFrame, targets: pd.Series) -> None:
+    """Try out ordinal encoder."""
     print("\nOrdinal encoding")
 
     # 1. Machine learning pipeline with a one-hot encoding of the data
@@ -43,8 +43,8 @@ def _ordinal_encoder(data: pd.DataFrame, targets: pd.Series) -> None:
     scores = logistic_regression.kfold_cross_validate(data, targets, 5)
     logistic_regression.print_kfold_cross_validation_accuracy(scores)
 
-"""Try out one hot encoder with handle_unknown set to 'ignore'."""
 def _onehot_encoder_handle_unknown(data: pd.DataFrame, targets: pd.Series) -> None:
+    """Try out one hot encoder with handle_unknown set to 'ignore'."""
     print("\nOne-hot encoding with handle_unknown set to 'ignore'")
 
     # 1. Machine learning pipeline with a one-hot encoding of the data
@@ -57,8 +57,8 @@ def _onehot_encoder_handle_unknown(data: pd.DataFrame, targets: pd.Series) -> No
     scores = logistic_regression.kfold_cross_validate(data, targets, 5)
     logistic_regression.print_kfold_cross_validation_accuracy(scores)
 
-"""Try out one hot encoder by passing all the possible categories."""
 def _onehot_encoder_categories(data: pd.DataFrame, targets: pd.Series) -> None:
+    """Try out one hot encoder by passing all the possible categories."""
     print("\nOne-hot encoding with passing all the possible categories.")
 
     # 1. Machine learning pipeline with a one-hot encoding of the data
@@ -71,8 +71,8 @@ def _onehot_encoder_categories(data: pd.DataFrame, targets: pd.Series) -> None:
     scores = logistic_regression.kfold_cross_validate(data, targets, 5)
     logistic_regression.print_kfold_cross_validation_accuracy(scores)
 
-"""Try out one hot encoder by adjusting the min frequency parameter."""
 def _onehot_encoder_min_frequencies(data: pd.DataFrame, targets: pd.Series) -> None:
+    """Try out one hot encoder by adjusting the min frequency parameter."""
     min_frequencies:float = [None, 0.01, 0.05, 0.5, 1]
 
     # Try out multiple min_frequency values to find a optimum one
@@ -94,11 +94,11 @@ def _onehot_encoder_min_frequencies(data: pd.DataFrame, targets: pd.Series) -> N
 ####################
 # CROSS-VALIDATION #
 ####################
-"""Kfold cross validation."""
 def kfold_cross_validation(model: Tmodel,
                            data: pd.DataFrame,
                            targets: pd.Series,
                            nb_fold: int = 5):
+    """Kfold cross validation."""
     scores = model.kfold_cross_validate(data, targets, nb_fold)
     model.print_kfold_cross_validation_accuracy(scores)
 
@@ -106,9 +106,9 @@ def kfold_cross_validation(model: Tmodel,
 ###########
 # SECTION #
 ###########
-"""Encoding of categorical variables."""
 def encoding_of_categorical_variables(data: pd.DataFrame,
                                       targets: pd.Series) -> None:
+    """Encoding of categorical variables."""
     # Filtered out any non-numeric values
     data = dh.get_subset(data, dtypes=[str])
 
@@ -133,15 +133,15 @@ def encoding_of_categorical_variables(data: pd.DataFrame,
     _onehot_encoder_min_frequencies(data, targets) # various performance depending of min_frequency
 
 
-"""
-Using numerical and categorical variables together to train a linear model.
-
-For linear model it's required to:
-- Encode catogerical variables (with one-hot encoding for example)
-- Scale numerical variables
-"""
 def linear_model_with_heterogeneously_data_type(data: pd.DataFrame,
                                                 targets: pd.Series) -> None:
+    """
+    Using numerical and categorical variables together to train a linear model.
+
+    For linear model it's required to:
+    - Encode catogerical variables (with one-hot encoding for example)
+    - Scale numerical variables
+    """
     # Build a pipeline with a column transformer in order to deal with
     # numerical and categorical variables
     model = LogisticRegressionModel.build_pipeline_with_transformer(
@@ -155,18 +155,18 @@ def linear_model_with_heterogeneously_data_type(data: pd.DataFrame,
     # KFold cross-validation to evaluate generalization performance of the model
     kfold_cross_validation(model, data, targets)
 
-"""
-Using numerical and categorical variables together to train a tree-based model.
-
-For tree-based model, it's only required to encode categorical variables.
-Therefore, use special string 'passthrough' to indicate to pass the numerical columns
-through untransformed.
-
-Be aware that the current implementation of HistGradientBoostingClassifier is still
-incomplete. For example, does not yet support sparse input data.
-"""
 def treebased_model_with_heterogeneously_data_type(data: pd.DataFrame,
                                                    targets: pd.Series) -> None:
+    """
+    Using numerical and categorical variables together to train a tree-based model.
+
+    For tree-based model, it's only required to encode categorical variables.
+    Therefore, use special string 'passthrough' to indicate to pass the numerical columns
+    through untransformed.
+
+    Be aware that the current implementation of HistGradientBoostingClassifier is still
+    incomplete. For example, does not yet support sparse input data.
+    """
     # Build a pipeline with a column transformer in order to deal with
     # numerical and categorical variables
     print("\nReference pipeline with no numerical scaling and integer-coded categories")
@@ -197,9 +197,10 @@ def treebased_model_with_heterogeneously_data_type(data: pd.DataFrame,
     )
     kfold_cross_validation(model, data, targets)
 
-    # Just to prove that using a one-hot encoding with based-tree model is NOT REQUIRED AND KINDA BAD
-    # Does not affect the accuracy and improve the fit duration probably due to sparce_output=False
-    # as a workaround because HistGradientBoostingClassifier does not yet support sparse input data
+    # Just to prove that using a one-hot encoding with based-tree model is NOT REQUIRED AND KINDA
+    # BAD. Does not affect the accuracy and improve the fit duration probably due to
+    # sparce_output=False as a workaround because HistGradientBoostingClassifier does not yet
+    # support sparse input data
     print("\nPipeline with no numerical scaling and one-hot encoded categories")
     model = GradientBoostingClassifierModel.build_pipeline_with_transformer(
         transformers = [
@@ -214,15 +215,16 @@ def treebased_model_with_heterogeneously_data_type(data: pd.DataFrame,
     kfold_cross_validation(model, data, targets)
 
 
-"""
-Using numerical and categorical variables together to train a tree-based model with
-a target encoder which is well suited for nominal, categorical features with high cardinality.
-This encoding scheme is useful with categorical features with high cardinality, where one-hot
-encoding would inflate the feature space making it more expensive for a downstream model to process.
-A classical example of high cardinality categories are location based such as zip code or region.
-"""
 def treebased_model_with_mix_encoder(data: pd.DataFrame,
                                      targets: pd.Series) -> None:
+    """
+    Using numerical and categorical variables together to train a tree-based model with
+    a target encoder which is well suited for nominal, categorical features with high cardinality.
+    This encoding scheme is useful with categorical features with high cardinality, where one-hot
+    encoding would inflate the feature space making it more expensive for a downstream model to
+    process. A classical example of high cardinality categories are location based such as zip code
+    or region.
+    """
     # Get categorical features with high cardinality
     high_cardinality, low_cardinality = \
         dh.get_cardinality_features(dh.get_subset(data, dtypes=[str]))
