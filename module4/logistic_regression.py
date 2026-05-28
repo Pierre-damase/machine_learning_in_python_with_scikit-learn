@@ -90,10 +90,10 @@ def decision_boundary_display(logistic_regression: LogisticRegressionModel,
 #########
 def build_logistic_regression(columns: list[str]) -> LogisticRegressionModel:
     return LogisticRegressionModel.build_pipeline_with_transformer(
-        transformers = [
+        transformers=[
             (StandardScaler(), columns)
         ],
-        model = LogisticRegression()
+        model=LogisticRegression()
     )
 
 

@@ -16,10 +16,10 @@ from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
 #########
 def build_kneighbors_regressor(columns: list[str]) -> KNeighborsRegressorModel:
     return KNeighborsRegressorModel.build_pipeline_with_transformer(
-        transformers = [
+        transformers=[
             (StandardScaler(), columns)
         ],
-        model = KNeighborsRegressor()
+        model=KNeighborsRegressor()
     )
 
 

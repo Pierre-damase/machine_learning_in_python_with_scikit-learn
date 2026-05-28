@@ -75,10 +75,10 @@ def build_pipeline(transformer: type[KBinsDiscretizer
                    **kwargs):
     """Transform the input features."""
     return LinearRegressionModel.build_pipeline_with_transformer(
-        transformers = [
+        transformers=[
             (transformer(**kwargs), columns)
         ],
-        model = LinearRegression()
+        model=LinearRegression()
     )
 
 def run_model(model_class: type[DecisionTreeRegressor

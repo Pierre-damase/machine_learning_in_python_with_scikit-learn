@@ -3,6 +3,7 @@ from typing import overload
 
 import numpy as np
 import pandas as pd
+from config import GENERATED_DATASET_FEATURES, TargetColumn
 from scipy.io import arff
 from sklearn.datasets import (fetch_california_housing,
                               make_gaussian_quantiles, make_moons)
@@ -78,7 +79,8 @@ def make_gaussian_quantiles_dataset() -> DataSetType:
     x_data, y_data = make_gaussian_quantiles(
         n_samples=100, n_features=2, n_classes=2, random_state=42
     )
-    return pd.DataFrame(x_data, columns=["One", "Two"]), pd.Series(y_data, name="Class")
+    return pd.DataFrame(x_data, columns=GENERATED_DATASET_FEATURES), \
+        pd.Series(y_data, name=TargetColumn.GENERATED_DATASET.value)
 
 def make_moons_dataset() -> DataSetType:
     """
@@ -86,7 +88,8 @@ def make_moons_dataset() -> DataSetType:
     algorithm.
     """
     x_data, y_data = make_moons(n_samples=100, noise=0.13, random_state=42)
-    return pd.DataFrame(x_data, columns=["One", "Two"]), pd.Series(y_data, name="Class")
+    return pd.DataFrame(x_data, columns=GENERATED_DATASET_FEATURES), \
+        pd.Series(y_data, name=TargetColumn.GENERATED_DATASET.value)
 
 def make_xor_dataset() -> DataSetType:
     """
@@ -94,10 +97,14 @@ def make_xor_dataset() -> DataSetType:
     class is defined by the Exclusive OR (XOR) operation on the two features. The target class is 1
     if only one of the two features is greater than 0. The target class is 0 otherwise.
     """
-    x_data = pd.DataFrame(
-        np.random.RandomState(0).uniform(low=-1, high=1, size=(200, 2)), columns=["One", "Two"]
-    )
-    return x_data, pd.Series(np.logical_xor(x_data["One"] > 0, x_data["Two"] > 0), name="Class")
+    x_data = pd.DataFrame(np.random.RandomState(0).uniform(low=-1, high=1, size=(200, 2)),
+                          columns=GENERATED_DATASET_FEATURES)
+    y_data = pd.Series(np.logical_xor(
+        x_data[GENERATED_DATASET_FEATURES[0]] > 0,
+        x_data[GENERATED_DATASET_FEATURES[1]] > 0
+    ), name=TargetColumn.GENERATED_DATASET.value)
+
+    return x_data, y_data
 
 
 ########################

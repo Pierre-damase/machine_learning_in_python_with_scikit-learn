@@ -35,11 +35,11 @@ def predictive_model(data: pd.DataFrame, targets: pd.Series) -> None:
     """
     # 1. Machine learning pipeline with column transformer to
     initialized_model = LogisticRegressionModel.build_pipeline_with_transformer(
-        transformers = [
+        transformers=[
             (StandardScaler(), selector(dtype_exclude=object)),
             (OneHotEncoder(handle_unknown="ignore"), selector(dtype_include=object))
         ],
-        model = LogisticRegression(max_iter=500)
+        model=LogisticRegression(max_iter=500)
     )
 
     # 2. KFold cross-validation to evaluate generalization performance of the model

@@ -48,16 +48,16 @@ def _build_gradient_boosting(learning_rate:float = 0.1,
     categorical features.
     """
     return GradientBoostingClassifierModel.build_pipeline_with_transformer(
-        transformers = [
+        transformers=[
             (
                 OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
                 selector(dtype_include=str)
             ),
             ("passthrough", selector(dtype_exclude=str))
         ],
-        model = HistGradientBoostingClassifier(random_state=42,
-                                                    learning_rate=learning_rate,
-                                                    max_leaf_nodes=max_leaf_nodes)
+        model=HistGradientBoostingClassifier(random_state=42,
+                                             learning_rate=learning_rate,
+                                             max_leaf_nodes=max_leaf_nodes)
     )
 
 

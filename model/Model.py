@@ -204,6 +204,13 @@ class Model(Generic[Tmodel]):
         """To configure  all steps of the pipeline to output DataFrame."""
         self.model.set_output(transform="pandas")
 
+    @property
+    def pipeline(self) -> Pipeline:
+        """Return the model explicitly typed as Pipeline."""
+        if not isinstance(self.model, Pipeline):
+            raise TypeError("Model should be a Pipeline to be able to call this method.")
+        return self.model
+
     ############
     # ACCURACY #
     ############

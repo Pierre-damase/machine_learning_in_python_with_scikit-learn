@@ -134,11 +134,11 @@ def linear_model_with_heterogeneously_data_type(data: pd.DataFrame,
     # Build a pipeline with a column transformer in order to deal with
     # numerical and categorical variables
     model = LogisticRegressionModel.build_pipeline_with_transformer(
-        transformers = [
+        transformers=[
             (OneHotEncoder(handle_unknown="ignore"), selector(dtype_include=str)),
             (StandardScaler(), selector(dtype_exclude=str))
         ],
-        model = LogisticRegression(max_iter=500)
+        model=LogisticRegression(max_iter=500)
     )
 
     # KFold cross-validation to evaluate generalization performance of the model
@@ -160,14 +160,14 @@ def treebased_model_with_heterogeneously_data_type(data: pd.DataFrame,
     # numerical and categorical variables
     print("\nReference pipeline with no numerical scaling and integer-coded categories")
     model = GradientBoostingClassifierModel.build_pipeline_with_transformer(
-        transformers = [
+        transformers=[
             (
                 OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
                 selector(dtype_include=str)
             ),
             ("passthrough", selector(dtype_exclude=str))
         ],
-        model = HistGradientBoostingClassifier()
+        model=HistGradientBoostingClassifier()
     )
     kfold_cross_validation(model, data, targets)
 
@@ -175,14 +175,14 @@ def treebased_model_with_heterogeneously_data_type(data: pd.DataFrame,
     # Do not improve the accuracy and time difference is not significant
     print("\nPipeline with numerical scaling and integer-coded categories")
     model = GradientBoostingClassifierModel.build_pipeline_with_transformer(
-        transformers = [
+        transformers=[
             (
                 OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
                 selector(dtype_include=str)
             ),
             (StandardScaler(), selector(dtype_exclude=str))
         ],
-        model = HistGradientBoostingClassifier()
+        model=HistGradientBoostingClassifier()
     )
     kfold_cross_validation(model, data, targets)
 
@@ -192,14 +192,14 @@ def treebased_model_with_heterogeneously_data_type(data: pd.DataFrame,
     # support sparse input data
     print("\nPipeline with no numerical scaling and one-hot encoded categories")
     model = GradientBoostingClassifierModel.build_pipeline_with_transformer(
-        transformers = [
+        transformers=[
             (
                 OneHotEncoder(handle_unknown="ignore", sparse_output=False),
                 selector(dtype_include=str)
             ),
             ("passthrough", selector(dtype_exclude=str))
         ],
-        model = HistGradientBoostingClassifier()
+        model=HistGradientBoostingClassifier()
     )
     kfold_cross_validation(model, data, targets)
 
@@ -222,7 +222,7 @@ def treebased_model_with_mix_encoder(data: pd.DataFrame,
     # numerical and categorical variables (use different encoder depending
     # of data cardinality)
     model = GradientBoostingClassifierModel.build_pipeline_with_transformer(
-        transformers = [
+        transformers=[
             (TargetEncoder(target_type="auto"), high_cardinality.columns.to_list()),
             (
                 OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
@@ -230,7 +230,7 @@ def treebased_model_with_mix_encoder(data: pd.DataFrame,
             ),
             ("passthrough", selector(dtype_exclude=str))
         ],
-        model = HistGradientBoostingClassifier()
+        model=HistGradientBoostingClassifier()
     )
     kfold_cross_validation(model, data, targets)
 

@@ -29,14 +29,14 @@ class loguniform_int:
 def build_gradient_boosting_classifier() -> GradientBoostingClassifierModel:
     """Build a gradient boosting classifier."""
     return GradientBoostingClassifierModel.build_pipeline_with_transformer(
-        transformers = [
+        transformers=[
             (
                 OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
                 selector(dtype_include=str)
             ),
             ("passthrough", selector(dtype_exclude=str))
         ],
-        model = HistGradientBoostingClassifier(random_state=42, max_leaf_nodes=4)
+        model=HistGradientBoostingClassifier(random_state=42, max_leaf_nodes=4)
     )
 
 

@@ -10,6 +10,8 @@ AMES_HOUSING_NUMERICAL_FEATURES = [
   "3SsnPorch", "ScreenPorch", "PoolArea", "MiscVal",
 ]
 
+# Features for generated dataset
+GENERATED_DATASET_FEATURES = ["One", "Two"]
 
 class DataPath(Enum):
     """Path to dataset or tuned hyperparameter saved as csv."""
@@ -26,3 +28,4 @@ class TargetColumn(str, Enum):
     AMES_HOUSING = "SalePrice"
     BLOOD_TRANSFUSION = "Class"
     PENGUIN = "Species"
+    GENERATED_DATASET = "Class" # target column for generated dataset
