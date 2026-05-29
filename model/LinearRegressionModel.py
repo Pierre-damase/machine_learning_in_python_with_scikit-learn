@@ -1,5 +1,6 @@
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
+from types_config import CvResults
 
 from .RegressionModel import RegressionModel
 
@@ -25,4 +26,3 @@ class LinearRegressionModel(RegressionModel[LinearRegression | Pipeline]):
 
         # Set up a logictic regression model
         return self._factory_model_initializer(LinearRegression)
-

@@ -1,19 +1,18 @@
 import time
 from pathlib import Path
-from typing import Generic
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from sklearn.compose import make_column_transformer
+from sklearn.compose import ColumnTransformer, make_column_transformer
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import (GridSearchCV, LearningCurveDisplay,
                                      RandomizedSearchCV, ShuffleSplit,
                                      ValidationCurveDisplay, cross_validate)
 from sklearn.pipeline import Pipeline, make_pipeline
-from types_config import (Tclassifier, Tclassifierwithpipeline, Tcv, Tmodel,
-                          Tpipelinesteps, Tpreprocessor, Tregressor,
-                          Tregressorwithpipeline)
+from types_config import (AcceptModelType, CvResults, Tclassifier,
+                          Tclassifierwithpipeline, Tcv, Tmodel, Tpipelinesteps,
+                          Tpreprocessor, Tregressor, Tregressorwithpipeline)
 
 # Expected parameter for a given search class use to tune hyperparameters
 SEARCH_EXPECTED_PARAM = {
@@ -22,7 +21,7 @@ SEARCH_EXPECTED_PARAM = {
 }
 
 
-class Model(Generic[Tmodel]):
+class Model[Tmodel]():
     model: Tmodel # either a classifier or a regressor or a pipeline
 
     def __init__(self,
@@ -202,7 +201,7 @@ class Model(Generic[Tmodel]):
 
     def set_output(self, transform: str = "pandas") -> None:
         """To configure  all steps of the pipeline to output DataFrame."""
-        self.model.set_output(transform="pandas")
+        self.model.set_output(transform=transform)
 
     @property
     def pipeline(self) -> Pipeline:
@@ -210,6 +209,17 @@ class Model(Generic[Tmodel]):
         if not isinstance(self.model, Pipeline):
             raise TypeError("Model should be a Pipeline to be able to call this method.")
         return self.model
+
+    def get_output_features(self):
+        """
+        Get output feature names for transformation. In order to call this method, training the
+        model is required.
+        """
+        if not isinstance(self.pipeline[0], ColumnTransformer):
+            raise TypeError("In order to get output feature names for transformation, a pipeline "
+                            "with transformers must be done.")
+        return self.pipeline[0].get_feature_names_out()
+
 
     ############
     # ACCURACY #
@@ -257,7 +267,7 @@ class Model(Generic[Tmodel]):
     ####################
     # CROSS VALIDATION #
     ####################
-    def print_cross_validate(self, scores: dict[str, npt.NDArray[np.float64]]) -> None:
+    def print_cross_validate(self, scores: CvResults) -> None:
         """Print cross validation result."""
         # Testing error
         mean_score, std_score = \
@@ -268,21 +278,30 @@ class Model(Generic[Tmodel]):
              f" with an average fitting time of {scores['fit_time'].mean():.3f}")
 
         # Training error
-        if "train_score" in scores.keys():
+        if "train_score" in (res := scores):
             mean_score, std_score = \
-                self.get_cross_validate_mean_and_std(scores['train_score'])
+                self.get_cross_validate_mean_and_std(res['train_score'])
             print("The mean cross-validated training error is "
                   f"{mean_score:.3f} ± {std_score:.3f}")
 
+    def get_cv_estimator(self, scores: CvResults) -> list[AcceptModelType]:
+        """
+        The estimator objects for each cv split. This is available only if return_estimator
+        parameter of kfold_cross_validate is set to True.
+        """
+        if "estimator" in (res := scores):
+            return res["estimator"]
+        raise Exception("In order to get the estimator objects for each cv split, return_estimator"
+                        " must be set to True.")
+
     def revert_negation(self,
-                        results: dict[str, float],
-                        scoring: str | None,
-                        return_train_score: bool) -> dict[str, float]:
+                        results: CvResults,
+                        scoring: str | None) -> CvResults:
         """Revert the negation apply to the error metric to get the actual error."""
         if scoring and scoring.startswith("neg_"):
             results["test_score"] = -results["test_score"]
-            if return_train_score:
-                results["train_score"] = -results["train_score"]
+            if "train_score" in (res := results):
+                results["train_score"] = -res["train_score"]
         return results
 
 
@@ -295,7 +314,8 @@ class Model(Generic[Tmodel]):
                              nb_fold: int = 5,
                              scoring: str | None = None,
                              return_train_score: bool = False,
-                             **kwargs) -> dict[str, npt.NDArray[np.float64]]:
+                             return_estimator: bool = False,
+                             **kwargs) -> CvResults:
         """
         To performe a kfold cross-validation strategy.
 
@@ -314,19 +334,20 @@ class Model(Generic[Tmodel]):
         hyperparameter tuning, an outer cross-validation is performed on the whole dataset using
         the tuned model.
         """
-        results = cross_validate(self.model if "model" not in kwargs.keys() else kwargs["model"],
-                              x_data,
-                              y_data,
-                              cv=nb_fold,
-                              scoring=scoring,
-                              return_train_score=return_train_score,
-                              error_score="raise",
-                              n_jobs=2)
+        results:CvResults = cross_validate(
+            self.model if "model" not in kwargs.keys() else kwargs["model"],
+            x_data,
+            y_data,
+            cv=nb_fold,
+            scoring=scoring,
+            return_train_score=return_train_score,
+            error_score="raise",
+            n_jobs=2,
+            return_estimator=return_estimator)
 
-        return self.revert_negation(results, scoring, return_train_score)
+        return self.revert_negation(results, scoring)
 
-    def print_kfold_cross_validation_accuracy(self,
-                                              scores: dict[str, npt.NDArray[np.float64]]) -> None:
+    def print_kfold_cross_validation_accuracy(self, scores: CvResults) -> None:
         """Print the result (accuracy and fitting time) of a kfold cross-validation strategy."""
         print(f"Kfold cross-validation with K={len(scores['test_score'])}.")
         self.print_cross_validate(scores)
@@ -354,8 +375,7 @@ class Model(Generic[Tmodel]):
                                      n_splits: int,
                                      scoring: str | None = None,
                                      test_size: float = 0.2,
-                                     return_train_score: bool = False) \
-                                     -> dict[str, npt.NDArray[np.float64]]:
+                                     return_train_score: bool = False) -> CvResults:
         """
         To performe a shuffle split cross-validation strategy.
 
@@ -372,23 +392,20 @@ class Model(Generic[Tmodel]):
         n_splits: number of re-shuffling & splitting iterations.
         """
         # Set the cross-validation strategy and performe it
-        results = cross_validate(self.model,
-                                 x_data,
-                                 y_data,
-                                 cv=self.shuffle_split_cv_generator(n_splits, test_size),
-                                 scoring=scoring,
-                                 return_train_score=return_train_score,
-                                 error_score="raise",
-                                 n_jobs=2)
+        results: CvResults = cross_validate(self.model,
+                                            x_data,
+                                            y_data,
+                                            cv=self.shuffle_split_cv_generator(n_splits,
+                                                                               test_size),
+                                            scoring=scoring,
+                                            return_train_score=return_train_score,
+                                            error_score="raise",
+                                            n_jobs=2)
 
-        return self.revert_negation(results, scoring, return_train_score)
+        return self.revert_negation(results, scoring)
 
-    def print_shuffle_split_cross_validation_accuracy(
-            self,
-            scores: dict[str, npt.NDArray[np.float64]]) -> None:
-        """
-        Print the result (accuracy and fitting time) of a shuffle split cross-validation strategy.
-        """
+    def print_shuffle_split_cross_validation_accuracy(self, scores: CvResults) -> None:
+        """Print the result (accuracy and fitting time) of a shuffle split cv strategy."""
         print(f"Shuffle split cross-validation with n={len(scores['test_score'])}.")
         self.print_cross_validate(scores)
 
@@ -434,8 +451,11 @@ class Model(Generic[Tmodel]):
             # Save cross-validation result
             scores["testing_mean"].append(results["test_score"].mean())
             scores["testing_std"].append(results["test_score"].std())
-            scores["training_mean"].append(results["train_score"].mean())
-            scores["training_std"].append(results["train_score"].std())
+            if (res := {
+                    k: v for k, v in results.items() if k in ["training_mean", "training_std"]
+            }):
+                scores["training_mean"].append(res["train_score"].mean())
+                scores["training_std"].append(res["train_score"].std())
 
     def manual_hyperparameter_tuning(self,
                                      data: pd.DataFrame,

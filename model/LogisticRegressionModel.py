@@ -1,6 +1,7 @@
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from types_config import CvResults
 
 from .Model import Model
 
@@ -69,3 +70,23 @@ class LogisticRegressionModel(Model[LogisticRegression | Pipeline]):
         attribute of that step such as coef_.
         """
         return self.model[-1].coef_[0]
+
+    def get_coefficients(self, scores: CvResults) -> dict[str, list[float]]:
+        """Get coefficients of a logistic regression."""
+        data, features = [], []
+        for estimator in self.get_cv_estimator(scores):
+            # if not features:
+            #     features.extend(estimator.feature_names_in_)
+            if isinstance(estimator, Pipeline):
+                if not features:
+                    # 1st element is the transformer. Remove the transformer name.
+                    features.extend([
+                        f.split('__')[1] for f in estimator[0].get_feature_names_out()
+                    ])
+                data.append(estimator[-1].coef_[0]) # last element of the pipeline is the model
+            else:
+                if not features:
+                    features.extend(estimator.feature_names_in_)
+                data.append(estimator.coef_[0])
+
+        return {k: list(v) for k, v in zip(features, zip(*data))}

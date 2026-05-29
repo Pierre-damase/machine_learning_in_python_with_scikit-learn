@@ -17,12 +17,12 @@ FEATURES = ["Culmen Length (mm)", "Culmen Depth (mm)"]
 def load_penguins() -> pd.DataFrame:
     """Load penguin dataset, extract features of interest and drop na."""
     # Load data
-    data, targets = dh.load_data_from_csv(DataPath.PENGUIN.value, TargetColumn.PENGUIN)
+    data, targets = dh.load_data_from_file(DataPath.PENGUIN.value, TargetColumn.PENGUIN)
 
     #Filter data
     mask = targets.isin(["Adelie Penguin (Pygoscelis adeliae)",
                          "Chinstrap penguin (Pygoscelis antarctica)"])
-    return pd.concat([data[FEATURES], targets], axis=1)[mask].dropna()
+    return pd.DataFrame(pd.concat([data[FEATURES], targets], axis=1)[mask].dropna())
 
 
 #################

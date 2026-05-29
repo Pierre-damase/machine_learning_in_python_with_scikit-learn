@@ -115,7 +115,7 @@ def randomized_search_tuning(model: GradientBoostingClassifierModel,
 ############
 def run_analysis():
     # 1. Load data
-    adult_census = dh.load_data_from_arff(DataPath.ADULT_CENSUS.value,
+    adult_census = dh.load_data_from_file(DataPath.ADULT_CENSUS.value,
                                           TargetColumn.ADULT_CENSUS)
 
     # 2. Split data into random train and test subsets

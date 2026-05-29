@@ -1,5 +1,7 @@
-from typing import TypeVar
+from typing import NotRequired, TypedDict, TypeVar
 
+import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from sklearn.compose import make_column_selector as selector
 from sklearn.dummy import DummyClassifier
@@ -85,6 +87,18 @@ type AcceptPipelineType = (OneHotEncoder
                             | AcceptPreprocessorType)
 Tpipelinesteps = TypeVar('Tpipelinesteps', bound=AcceptPipelineType)
 
+####################
+# CROSS-VALIDATION #
+####################
 # Cross-validation type, either an int to specify the number of folds in a KFold or a CV splitter
 type AcceptCvType = (int | ShuffleSplit)
 Tcv = TypeVar('Tcv', bound=AcceptCvType)
+
+# Cross-validation result contains at least the test result , test time, train time and may
+# contains the train result and estimator for each split.
+class CvResults(TypedDict):
+    fit_time: npt.NDArray[np.float64]
+    score_time: npt.NDArray[np.float64]
+    test_score: npt.NDArray[np.float64]
+    train_score: NotRequired[npt.NDArray[np.float64]]
+    estimator: NotRequired[list[AcceptModelType]]

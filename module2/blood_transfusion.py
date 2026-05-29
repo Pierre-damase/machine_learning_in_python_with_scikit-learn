@@ -1,8 +1,8 @@
+import data_handler as dh
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from config import DataPath, TargetColumn
-from data_handler import load_data_from_csv
 from model import (DummyClassifierModel, KNeighborsClassifierModel,
                    SupportVectorClassificationModel)
 from sklearn.neighbors import KNeighborsClassifier
@@ -31,8 +31,7 @@ def load_blood_transfusion_dataset() -> DataSetType:
 
     target: whether the individual donated blood in March 2007
     """
-    return load_data_from_csv(DataPath.BLOOD_TRANSFUSION.value,
-                              TargetColumn.BLOOD_TRANSFUSION)
+    return dh.load_data_from_file(DataPath.BLOOD_TRANSFUSION.value, TargetColumn.BLOOD_TRANSFUSION)
 
 
 ###########

@@ -1,3 +1,4 @@
+from ctypes import ArgumentError
 from pathlib import Path
 from typing import overload
 
@@ -15,13 +16,28 @@ from types_config import DataSetType
 #############
 # LOAD DATA #
 #############
-def load_data(path: Path, target: str):
-    """Load data as a DataFrame."""
-    if str(path).endswith(".csv"):
-        return load_data_from_csv(path, target)
-    return load_data_from_arff(path, target)
+@overload
+def load_data_from_file(path: Path, target: None = None) -> pd.DataFrame:
+    """Load data from a file without extracting the target."""
+    return load_data_from_file(path)
 
-def load_data_from_arff(path: Path, target: str) -> DataSetType:
+@overload
+def load_data_from_file(path: Path, target: str) -> DataSetType:
+    """Load data from a file with extracting a target."""
+    return load_data_from_file(path, target)
+
+def load_data_from_file(path: Path, target: str | None = None) -> pd.DataFrame | DataSetType:
+    """Load data as a DataFrame."""
+    # .csv file
+    if str(path).endswith(".csv"):
+        return _load_data_from_csv(path, target)
+
+    # .arff file
+    if target is None:
+        raise ArgumentError("For .arff file, a target is required.")
+    return _load_data_from_arff(path, target)
+
+def _load_data_from_arff(path: Path, target: str) -> DataSetType:
     """Load .arff file as a DataFrame."""
     # Load as DataFrame
     data, _ = arff.loadarff(path)
@@ -43,16 +59,16 @@ def load_data_from_arff(path: Path, target: str) -> DataSetType:
         )
 
 @overload
-def load_data_from_csv(path: Path, target: None = None) -> pd.DataFrame:
+def _load_data_from_csv(path: Path, target: None = None) -> pd.DataFrame:
     """Load .csv file as DataFrame without extracting a target."""
-    return load_data_from_csv(path)
+    return _load_data_from_csv(path)
 
 @overload
-def load_data_from_csv(path: Path, target: str) -> DataSetType:
+def _load_data_from_csv(path: Path, target: str) -> DataSetType:
     """Load .csv file as DataFrame with extracting a target."""
-    return load_data_from_csv(path, target)
+    return _load_data_from_csv(path, target)
 
-def load_data_from_csv(path: Path,
+def _load_data_from_csv(path: Path,
                        target: str | None = None) -> pd.DataFrame | DataSetType:
     """Load .csv file as DataFrame."""
     data = pd.read_csv(path)
@@ -75,7 +91,7 @@ def load_california_dataset() -> DataSetType:
     return housing.data, housing.target * 100
 
 def make_gaussian_quantiles_dataset() -> DataSetType:
-    """Make gaussian quantiles dataset."""
+    """Make gaussian quantiles dataset. a non-linear dataset."""
     x_data, y_data = make_gaussian_quantiles(
         n_samples=100, n_features=2, n_classes=2, random_state=42
     )
@@ -85,7 +101,7 @@ def make_gaussian_quantiles_dataset() -> DataSetType:
 def make_moons_dataset() -> DataSetType:
     """
     Make moons dataset, a simple toy dataset to visualize clustering and classification
-    algorithm.
+    algorithm. A non-linear dataset.
     """
     x_data, y_data = make_moons(n_samples=100, noise=0.13, random_state=42)
     return pd.DataFrame(x_data, columns=GENERATED_DATASET_FEATURES), \
@@ -96,6 +112,7 @@ def make_xor_dataset() -> DataSetType:
     Dataset where the data points are sampled from a uniform distribution in a 2D sapce and the
     class is defined by the Exclusive OR (XOR) operation on the two features. The target class is 1
     if only one of the two features is greater than 0. The target class is 0 otherwise.
+    A non-linear dataset.
     """
     x_data = pd.DataFrame(np.random.RandomState(0).uniform(low=-1, high=1, size=(200, 2)),
                           columns=GENERATED_DATASET_FEATURES)

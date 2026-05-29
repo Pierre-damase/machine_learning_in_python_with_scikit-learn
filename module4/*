@@ -27,7 +27,7 @@ type PreProcessorType = (KBinsDiscretizer
                      | SplineTransformer
                      | StandardScaler)
 
-type TransformerType = dict[str, PreProcessorType | bool | int | str]
+type TransformerType = list[dict[str, PreProcessorType | bool | int | str]]
 
 
 ########
@@ -103,57 +103,9 @@ def decision_boundary(model: Pipeline,
 #########
 # MODEL #
 #########
-def set_transformer_parameter(transformer: TransformerType) -> TransformerType:
-    return {k: v for k, v in transformer.items() if k not in ["columns", "type"]}
-
 def logistic_regression(x_data: pd.DataFrame,
                         y_data: pd.Series,
-                        transformers: list[TransformerType],
-                        train_model: bool = True,
-                        **classifier_args) -> LogisticRegressionModel:
-    """
-    Perform a logistic regression.
-
-    Parameter
-    ---------
-    transformers: a list of dictionary.
-
-    {
-      "type": the transformer to apply,
-      "columns": indicate on which column the transformer must be applied,
-      "param_name": a parameter of the transformer to set with a given value,
-      ...
-    }
-
-    as many parameters as need can be set as well as zero.
-
-    classifier_args: parameter of the model, in this case a logistic regression
-    """
-    # Build the pipeline steps
-    regression = LogisticRegressionModel.build_pipeline_with_transformer(
-        transformers=[
-            *[
-                (
-                    ele["type"](**set_transformer_parameter(ele)),
-                    ele["columns"]
-                )
-                if "columns" in ele.keys()
-                else ele["type"](**set_transformer_parameter(ele))
-                for ele in transformers
-            ]
-        ],
-        model=LogisticRegression(**classifier_args)
-    )
-
-    # Train the model
-    if train_model:
-        regression.start(x_train=x_data, y_train=y_data)
-
-    return regression
-
-def logistic_regression_old(x_data: pd.DataFrame,
-                        y_data: pd.Series,
-                        transformers: list[TransformerType],
+                        transformers: TransformerType,
                         train_model: bool = True,
                         **classifier_args) -> LogisticRegressionModel:
     """
@@ -181,7 +133,7 @@ def logistic_regression_old(x_data: pd.DataFrame,
                 (
                     ele["type"](**{k: v for k, v in ele.items() if k not in ["columns", "type"]}),
                     ele["columns"]
-                ) for ele in [ele for ele in transformers if "columns" in ele.keys()]
+                ) for ele in transformers
             ]
         ],
         model=LogisticRegression(**classifier_args)
@@ -194,7 +146,7 @@ def logistic_regression_old(x_data: pd.DataFrame,
     return regression
 
 def logistic_regressions(data: list[DataSetType],
-                        transformers: list[TransformerType],
+                        transformers: TransformerType,
                         **classifier_args) -> list[LogisticRegressionModel]:
     """Perform a logistic regression for each data, a list of tuple of data and targets."""
     regressions = []
@@ -219,7 +171,9 @@ def run_model_with_feature_transformation(data: list[DataSetType]) -> None:
     # constrained to follow axis-aligned segments, which is very similar to what a decision tree
     # would do. Binning works pretty well for moons and gauss datasets but does not help for the
     # XOR dataset.
-    transformers = [{"type": KBinsDiscretizer, "n_bins": 5, "encode": "onehot"}]
+    transformers = [
+        {"type": KBinsDiscretizer, "columns": FEATURES, "n_bins": 5, "encode": "onehot"}
+    ]
     scatterplot(data,
                 TITLES,
                 regressions=logistic_regressions(data, transformers),
@@ -229,7 +183,9 @@ def run_model_with_feature_transformation(data: list[DataSetType]) -> None:
     # smooth and while it favors axis-aligned decision rules when extrapolating in low density
     # regions, it can adopt a more curvy decision boundary in the high density regions. However, as
     # for the binning transformation, the model still fail ot separate the data for the XOR dataset
-    transformers = [{"type": SplineTransformer, "degree": 3, "n_knots": 5}]
+    transformers = [
+        {"type": SplineTransformer, "columns": FEATURES, "degree": 3, "n_knots": 5}
+    ]
     scatterplot(data,
                 TITLES,
                 regressions=logistic_regressions(data, transformers),
@@ -245,7 +201,7 @@ def run_model_with_polynomial_expansion(data: list[DataSetType]) -> None:
     # the three datasets (depending on degree and C hyperparameters).
     transformers = [
         {"type": StandardScaler, "columns": FEATURES},
-        {"type": PolynomialFeatures, "degree": 3, "include_bias": False}
+        {"type": PolynomialFeatures, "columns": FEATURES, "degree": 3, "include_bias": False}
     ]
     scatterplot(data,
                 TITLES,
@@ -256,7 +212,7 @@ def run_model_with_polynomial_expansion(data: list[DataSetType]) -> None:
     # (kernel="poly"). Similar to PolynomialFeatures.
     transformers = [
         {"type": StandardScaler, "columns": FEATURES},
-        {"type": Nystroem, "kernel": "poly", "degree": 3, "coef0": 1,
+        {"type": Nystroem, "columns": FEATURES, "kernel": "poly", "degree": 3, "coef0": 1,
          "n_components": 100}
     ]
     scatterplot(data,
@@ -272,7 +228,7 @@ def run_model_with_rbf(data: list[DataSetType]) -> None:
     # feature space
     transformers = [
         {"type": StandardScaler, "columns": FEATURES},
-        {"type": Nystroem, "kernel": "rbf", "gamma": 1.0, "n_components": 100}
+        {"type": Nystroem, "columns": FEATURES, "kernel": "rbf", "gamma": 1.0, "n_components": 100}
     ]
     scatterplot(data,
                 TITLES,
@@ -286,8 +242,8 @@ def run_model_with_multi_step_feature_engineering(data: list[DataSetType]) -> Cv
     """
     # Combining binning transformation and a kernel approximation
     transformers = [
-        {"type": KBinsDiscretizer, "n_bins": 5},
-        {"type": Nystroem, "kernel": "rbf", "gamma": 1.0, "n_components": 100}
+        {"type": KBinsDiscretizer, "columns": FEATURES, "n_bins": 5},
+        {"type": Nystroem, "columns": FEATURES, "kernel": "rbf", "gamma": 1.0, "n_components": 100}
     ]
     scatterplot(data,
                 TITLES,
@@ -296,8 +252,8 @@ def run_model_with_multi_step_feature_engineering(data: list[DataSetType]) -> Cv
 
     # Combining spline transformation and a kernel approximation
     transformers = [
-        {"type": SplineTransformer, "n_knots": 5},
-        {"type": Nystroem, "kernel": "rbf", "gamma": 1.0, "n_components": 100}
+        {"type": SplineTransformer, "columns": FEATURES, "n_knots": 5},
+        {"type": Nystroem, "columns": FEATURES, "kernel": "rbf", "gamma": 1.0, "n_components": 100}
     ]
     scatterplot(data,
                 TITLES,
@@ -306,7 +262,7 @@ def run_model_with_multi_step_feature_engineering(data: list[DataSetType]) -> Cv
 
 def logistic_regression_with_cv(data: pd.DataFrame,
                                 targets: pd.Series,
-                                transformers: list[TransformerType],
+                                transformers: TransformerType,
                                 return_estimator: bool = True,
                                 **classifier_args):
     """Perform a logistic regression with a cross-validation step and analysis of the estimator."""
@@ -358,24 +314,15 @@ def run_model_with_all_data(data: pd.DataFrame,
     ]
     if polynomial_expansion:
         transformers.append({
-            "type": PolynomialFeatures, "degree": 2,
+            "type": PolynomialFeatures, "columns": data.columns.to_list(), "degree": 2,
             "interaction_only": True, "include_bias": False
         })
+
+    print(transformers)
 
     # Run model
     return logistic_regression_with_cv(data, targets, transformers, **classifier_args)
 
-def cross_validation_comparison(scores: list[CvResults],
-                                types: list[str]) -> None:
-    """Compare cross-validation results between two different model."""
-    # Which model outperformed the most ?
-    for i in range(len(scores)-1):
-        top = sum(scores[i]['test_score'] < scores[i+1]['test_score'])
-        print(f"The 1st model ({types[i]}) is outperformed by the 2nd ({types[i+1]}) "
-              f"{top} out of {len(scores[i]['test_score'])}.\n")
-
-    # Plot the test score between the 2 models for each cv fold
-    plot_cross_validation_scores([score["test_score"] for score in scores], types)
 
 ############
 # ANALYSIS #
@@ -408,24 +355,24 @@ def run_analysis_on_adult_census():
     # (masters, prof-school, doctorate)
     scores_with_all_data = run_model_with_all_data(*adult_census, max_iter=200)
 
-    # 4. Build a logistic regression with feature engineering. Extend the previous transformers to
-    # add the feature engineering step.
-    scores_with_polynomial_expansion = run_model_with_all_data(*adult_census,
-                                                               polynomial_expansion=True,
-                                                               C=0.01,
-                                                               max_iter=200)
-
-    # 5. Check the pertinence of using both non-numerical and numerical data + feature engineering
-    # In this case, using both categorical and numerical features is really important but feature
-    # engineering does not improve the model performance (the improvement is not significant).
-    cross_validation_comparison(
-        [scores_with_num_data, scores_with_all_data, scores_with_polynomial_expansion],
-        ["Numerical features only", "All features", "Polynomial expansion"]
+    # 4. Check the pertinence to use both numerical and categorical features
+    top = sum(scores_with_all_data['test_score'] > scores_with_num_data['test_score'])
+    print("\nModel with both non-numerical and numerical data outperformed the model using only "
+          f"the numerical data {top} out of {len(scores_with_all_data['test_score'])}.")
+    plot_cross_validation_scores(
+        [scores_with_all_data['test_score'], scores_with_num_data['test_score']],
+        ['All features', 'Numerical features only']
     )
 
+    # 5. Build a logistic regression with feature engineering. Extend the previous transformers to
+    # add the feature engineering step.
+    scores_with_all_data = run_model_with_all_data(*adult_census,
+                                                   polynomial_expansion=True,
+                                                   C=0.01,
+                                                   max_iter=200)
 
 def run_analysis():
-    run_analysis_with_generated_data()
+    # run_analysis_with_generated_data()
     run_analysis_on_adult_census()
 
 

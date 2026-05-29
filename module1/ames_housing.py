@@ -52,8 +52,8 @@ def predictive_model(data: pd.DataFrame, targets: pd.Series) -> None:
 ############
 def run_analysis():
     # 1. Load data
-    data, targets = dh.load_data_from_csv(DataPath.AMES_HOUSING.value,
-                                          TargetColumn.AMES_HOUSING)
+    data, targets = dh.load_data_from_file(DataPath.AMES_HOUSING.value,
+                                           TargetColumn.AMES_HOUSING)
 
     # 2. Convert continuous target into a classification target
     categorical_targets = convert_targets(targets)

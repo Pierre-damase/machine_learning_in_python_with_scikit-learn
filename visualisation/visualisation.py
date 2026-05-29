@@ -8,6 +8,11 @@ from sklearn.model_selection import (LearningCurveDisplay,
                                      ValidationCurveDisplay)
 
 
+def _show():
+    """To show a graphic."""
+    plt.tight_layout()
+    plt.show()
+
 ####################
 # DATA OBSERVATION #
 ####################
@@ -44,7 +49,7 @@ def _histogram(data: pd.DataFrame) -> None:
     """Simple visualisation of numerical values as histrogram."""
     _ = data.hist(figsize=(20, 14))
     plt.title('Histogram for numerical values')
-    plt.show()
+    _show()
 
 def _crosstab(data: pd.DataFrame, x: str, y: str) -> None:
     """
@@ -73,7 +78,7 @@ def _pairplot(data: pd.DataFrame, target: pd.Series, columns: list[str]) -> None
         diag_kind="hist",
         diag_kws={"bins": 30},
     )
-    plt.show()
+    _show()
 
 
 ################
@@ -98,7 +103,7 @@ def scaler_jointplot(x_train: pd.DataFrame,
                x_axis,
                y_axis,
                f"Jointplot of {x_axis} and {y_axis} after data scaling")
-    plt.show()
+    _show()
 
 def _jointplot(data: pd.DataFrame, x_axis: str, y_axis: str, title: str) -> None:
     """Jointplot."""
@@ -123,7 +128,7 @@ def error_distribution(scores: dict[str, npt.NDArray[np.float64]]):
         errors.plot.hist(bins=50, edgecolor="black")
         plt.xlabel("Mean absolute error")
         plt.title("Training and testing error distribution via cross-validation")
-        plt.show()
+        _show()
     except Exception as e:
         print(e)
 
@@ -137,7 +142,7 @@ def show_validation_curve(curve: ValidationCurveDisplay, xlabel: str) -> None:
         xlabel=xlabel,
         title="Validation curve"
     )
-    plt.show()
+    _show()
 
 
 ##################
@@ -150,7 +155,7 @@ def show_learning_curve(curve: LearningCurveDisplay) -> None:
         xlabel="Number of samples in the training set",
         title="Learning curve"
     )
-    plt.show()
+    _show()
 
 
 ############
@@ -182,7 +187,7 @@ def show_errorbars_for_hyperparameter_tuning(train_scores: dict[str, list[float]
     plt.xlabel(xlabel)
     plt.ylabel("Scores")
     plt.legend()
-    plt.show()
+    _show()
 
 
 ########################
@@ -209,3 +214,43 @@ def show_parallel_coordinates_for_hyperparameter_tuning(data: pd.DataFrame) -> N
                                   dimensions=data.columns,
                                   color_continuous_scale=px.colors.sequential.Viridis)
     fig.show()
+
+
+###############
+# COEFFICIENT #
+###############
+def plot_coefficients_of_logistic_regression(coef: dict[str, list[float]]):
+    """
+    Plot coefficients of logistic regression.
+
+    Parameter
+    ---------
+    coef: dictionary with features as keys and coefficients as values
+    """
+    # Set up dataframe. Filtered out to keep only the most important features (top 15)
+    data = pd.DataFrame.from_dict(coef)
+    if len(coef) > 15:
+        top_features = data.median().sort_values(ascending=False).head(15).index
+        data = data[top_features]
+
+    # Plot
+    _, ax = plt.subplots()
+    _ = data.abs().plot.box(color={"whiskers": "black", "medians": "black", "caps": "black"},
+                            vert=False,
+                            ax=ax)
+    _show()
+
+
+####################
+# CROSS-VALIDATION #
+####################
+def plot_cross_validation_scores(test_scores: list[npt.NDArray[np.float64]], labels: list[str]):
+    """Plot cross-validation scores."""
+    indices = np.arange(len(test_scores[0]))
+    for i in range(len(test_scores)):
+        plt.scatter(indices, test_scores[i], label=labels[i])
+    plt.ylim((0, 1))
+    plt.xlabel("Cross-validation iteration")
+    plt.ylabel("Accuracy")
+    _ = plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    _show()

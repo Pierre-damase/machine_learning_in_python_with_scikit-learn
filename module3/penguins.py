@@ -20,7 +20,7 @@ PENGUIN_NUMERICAL_FEATURES = [
 ########
 def load_penguins() -> DataSetType:
     """Load penguin dataset,extract numerical features of interest and drop na."""
-    data = dh.load_data_from_csv(
+    data = dh.load_data_from_file(
         DataPath.PENGUIN.value
     )[PENGUIN_NUMERICAL_FEATURES + [TargetColumn.PENGUIN]].dropna()
     return pd.DataFrame(data.drop(TargetColumn.PENGUIN, axis=1)), \

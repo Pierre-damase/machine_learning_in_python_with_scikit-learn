@@ -41,7 +41,7 @@ def generate_data(n_sample: int = 100, min: float = -1.4, max: float = 1.4) -> p
 
 def load_penguins() -> DataSetType:
     """Load penguin dataset, extract numerical features of interest and drop na."""
-    data = dh.load_data_from_csv(
+    data = dh.load_data_from_file(
         DataPath.PENGUIN.value
     )[PENGUIN_FEATURES + [PENGUIN_TARGET]].dropna()
     return pd.DataFrame(data.drop(PENGUIN_TARGET, axis=1)), pd.Series(data[PENGUIN_TARGET])

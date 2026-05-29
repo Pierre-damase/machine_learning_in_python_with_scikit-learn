@@ -19,7 +19,7 @@ TARGET = "Body Mass (g)"
 ########
 def load_penguins() -> pd.DataFrame:
     """Load penguin dataset, extract features of interest and drop na."""
-    data, targets = dh.load_data_from_csv(DataPath.PENGUIN.value, TARGET)
+    data, targets = dh.load_data_from_file(DataPath.PENGUIN.value, TARGET)
     return pd.concat([data[FEATURE], targets], axis=1).dropna()
 
 
