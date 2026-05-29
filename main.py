@@ -7,7 +7,8 @@ from module3 import (run_automated_tuning, run_california_housing,
                      run_manual_tuning, run_penguins)
 from module4 import (run_feature_engineering_for_linear_regression,
                      run_feature_engineering_for_logistic_regression,
-                     run_linear_regression, run_logistic_regression)
+                     run_linear_regression, run_logistic_regression,
+                     run_regularized_regression)
 
 
 def run_module_1():
@@ -34,7 +35,8 @@ def run_module_4():
     # run_linear_regression()
     # run_feature_engineering_for_linear_regression()
     # run_logistic_regression()
-    run_feature_engineering_for_logistic_regression()
+    # run_feature_engineering_for_logistic_regression()
+    run_regularized_regression()
 
 if __name__ == "__main__":
     # run_module_1()

@@ -16,7 +16,7 @@ from sklearn.preprocessing import (KBinsDiscretizer, OneHotEncoder,
                                    PolynomialFeatures, SplineTransformer,
                                    StandardScaler)
 from types_config import CvResults, DataSetType
-from visualisation import (plot_coefficients_of_logistic_regression,
+from visualisation import (plot_coefficients_of_linear_model,
                            plot_cross_validation_scores)
 
 TITLES = ["Moons dataset", "Gaussian quantiles dataset", "XOR dataset"]
@@ -326,7 +326,7 @@ def logistic_regression_with_cv(data: pd.DataFrame,
 
     # 3. Determine which is the most important feature seen by the model.
     if return_estimator:
-        plot_coefficients_of_logistic_regression(regression.get_coefficients(scores))
+        plot_coefficients_of_linear_model(regression.get_coefficients(scores))
 
     return scores
 

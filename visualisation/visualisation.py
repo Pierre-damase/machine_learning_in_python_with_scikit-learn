@@ -219,9 +219,9 @@ def show_parallel_coordinates_for_hyperparameter_tuning(data: pd.DataFrame) -> N
 ###############
 # COEFFICIENT #
 ###############
-def plot_coefficients_of_logistic_regression(coef: dict[str, list[float]]):
+def plot_coefficients_of_linear_model(coef: dict[str, list[float]]):
     """
-    Plot coefficients of logistic regression.
+    Plot coefficients of linear model.
 
     Parameter
     ---------
@@ -229,15 +229,16 @@ def plot_coefficients_of_logistic_regression(coef: dict[str, list[float]]):
     """
     # Set up dataframe. Filtered out to keep only the most important features (top 15)
     data = pd.DataFrame.from_dict(coef)
-    if len(coef) > 15:
+    if len(coef) > 20:
         top_features = data.median().sort_values(ascending=False).head(15).index
         data = data[top_features]
 
     # Plot
     _, ax = plt.subplots()
-    _ = data.abs().plot.box(color={"whiskers": "black", "medians": "black", "caps": "black"},
-                            vert=False,
-                            ax=ax)
+    data.abs().plot.box(color={"whiskers": "black", "medians": "black", "caps": "black"},
+                        vert=False,
+                        ax=ax)
+    ax.set(xscale="symlog")
     _show()
 
 

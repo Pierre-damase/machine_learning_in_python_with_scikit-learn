@@ -1,18 +1,19 @@
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
-from types_config import CvResults
+from types_config import Tpipelinesteps
 
-from .RegressionModel import RegressionModel
+from .LinearModel import LinearModel
+from .RegressorMixin import RegressorMixin
 
 
-class LinearRegressionModel(RegressionModel[LinearRegression | Pipeline]):
+class LinearRegressionModel(RegressorMixin, LinearModel[LinearRegression | Pipeline]):
     """
     Linear regression model.
 
     [To predict continuous target]
     """
     def __init__(self,
-                 pipeline_steps: list[LinearRegression] = []):
+                 pipeline_steps: list[Tpipelinesteps] = []):
         super().__init__(pipeline_steps)
 
         self.model = self._model_initializer()

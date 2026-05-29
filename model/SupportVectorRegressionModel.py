@@ -1,9 +1,10 @@
 from sklearn.svm import SVR
 
-from .RegressionModel import RegressionModel
+from .Model import Model
+from .RegressorMixin import RegressorMixin
 
 
-class SupportVectorRegressionModel(RegressionModel[SVR]):
+class SupportVectorRegressionModel(RegressorMixin, Model[SVR]):
     """
     Epsilon-Support Vector Regression model.
 

@@ -1,6 +1,6 @@
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from types_config import Tpipelinesteps
 
 from .Model import Model
 
@@ -17,8 +17,7 @@ class KNeighborsClassifierModel(Model[KNeighborsClassifier | Pipeline]):
     """
     def __init__(self,
                  n_neighbors: int = 5,
-                 pipeline_steps: list[KNeighborsClassifier
-                                      | StandardScaler] = []):
+                 pipeline_steps: list[Tpipelinesteps] = []):
         super().__init__(pipeline_steps=pipeline_steps)
 
         self.model = self._model_initializer(n_neighbors)

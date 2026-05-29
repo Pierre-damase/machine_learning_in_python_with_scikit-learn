@@ -2,22 +2,10 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
-from types_config import Tpipelinesteps, Tregressor
-
-from .Model import Model
 
 
-class RegressionModel(Model[Tregressor]):
-    """
-    Decision tree regressor model.
-
-    [To predict continuous target]
-    """
-    def __init__(self,
-                 pipeline_steps: list[Tpipelinesteps] = []):
-        super().__init__(pipeline_steps)
-
-
+class RegressorMixin:
+    """Mixin class to define specific logic of regressor."""
     #########
     # ERROR #
     #########
@@ -51,11 +39,11 @@ class RegressionModel(Model[Tregressor]):
     ###################
     # TRAIN & PREDICT #
     ###################
-    def predict(self,
-                x_train: pd.DataFrame,
-                x_test: pd.DataFrame,
-                y_train: pd.Series,
-                y_test: pd.Series) -> None:
+    def _predict_regressor(self,
+                           y_train: pd.Series,
+                           y_train_predicted: npt.NDArray[np.generic],
+                           y_test: pd.Series,
+                           y_test_predicted: npt.NDArray[np.generic]) -> None:
         """
         Predict the target and check model performance.
 
@@ -63,20 +51,16 @@ class RegressionModel(Model[Tregressor]):
         ----------
         model: machine learning model
 
-        x_train: training data
-
-        x_test: testing data
-
         y_train: training target
 
-        y_test: testing target
-        """
-        # Predict target
-        y_train_predicted = self.model.predict(x_train)
-        y_test_predicted = self.model.predict(x_test)
+        y_train_predicted: predicted training target
 
-        # Check the training error
+        y_test: testing target
+
+        y_test_predicted: predicted testing target
+        """
+      # Check the training error
         self.print_training_error(y_train, y_train_predicted)
 
-        # Check the testing error
+      # Check the testing error
         self.print_testing_error(y_test, y_test_predicted)

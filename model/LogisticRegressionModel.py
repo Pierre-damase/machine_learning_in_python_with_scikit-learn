@@ -1,12 +1,11 @@
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from types_config import CvResults
+from types_config import Tpipelinesteps
 
-from .Model import Model
+from .LinearModel import LinearModel
 
 
-class LogisticRegressionModel(Model[LogisticRegression | Pipeline]):
+class LogisticRegressionModel(LinearModel[LinearRegression | Pipeline]):
     """
     Logistic regression model.
 
@@ -22,11 +21,7 @@ class LogisticRegressionModel(Model[LogisticRegression | Pipeline]):
                     as tuples of the form (transformer, columns)
     """
     def __init__(self,
-                 pipeline_steps: list[
-                     LogisticRegression|
-                     OneHotEncoder|
-                     StandardScaler]|
-                     tuple[OneHotEncoder|StandardScaler, any] = []):
+                 pipeline_steps: list[Tpipelinesteps] = []):
         super().__init__(pipeline_steps=pipeline_steps)
 
         self.model = self._model_initializer()
@@ -47,46 +42,3 @@ class LogisticRegressionModel(Model[LogisticRegression | Pipeline]):
         """Print model parameter at initialization."""
         print(f"Build a {model.__class__.__name__} model with "
               f"{model.max_iter} iterations.")
-
-
-    ###############
-    # COEFFICIENT #
-    ###############
-    def print_weights(self, features: list[str]) -> None:
-        """
-        Print the coefficient of the linear regression model, i.e. the associated weight of each
-        feature.
-        """
-        coefficients = self.get_weights()
-        for i in range(len(features)):
-            print(f"The weight associated to {features[i]} is {coefficients[i]:.3f}")
-
-    def get_weights(self) -> list[float]:
-        """
-        Get the coefficient of the linear regression model, i.e. the associated weight of each
-        feature.
-
-        self.model[-1] allow to access to the last step of the pipeline. Then it's possible to get
-        attribute of that step such as coef_.
-        """
-        return self.model[-1].coef_[0]
-
-    def get_coefficients(self, scores: CvResults) -> dict[str, list[float]]:
-        """Get coefficients of a logistic regression."""
-        data, features = [], []
-        for estimator in self.get_cv_estimator(scores):
-            # if not features:
-            #     features.extend(estimator.feature_names_in_)
-            if isinstance(estimator, Pipeline):
-                if not features:
-                    # 1st element is the transformer. Remove the transformer name.
-                    features.extend([
-                        f.split('__')[1] for f in estimator[0].get_feature_names_out()
-                    ])
-                data.append(estimator[-1].coef_[0]) # last element of the pipeline is the model
-            else:
-                if not features:
-                    features.extend(estimator.feature_names_in_)
-                data.append(estimator.coef_[0])
-
-        return {k: list(v) for k, v in zip(features, zip(*data))}

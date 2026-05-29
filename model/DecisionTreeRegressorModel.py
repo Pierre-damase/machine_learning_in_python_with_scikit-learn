@@ -3,10 +3,11 @@ from sklearn.model_selection import (LearningCurveDisplay, ShuffleSplit,
                                      ValidationCurveDisplay)
 from sklearn.tree import DecisionTreeRegressor
 
-from .RegressionModel import RegressionModel
+from .Model import Model
+from .RegressorMixin import RegressorMixin
 
 
-class DecisionTreeRegressorModel(RegressionModel[DecisionTreeRegressor]):
+class DecisionTreeRegressorModel(RegressorMixin, Model[DecisionTreeRegressor]):
     """
     Decision tree regressor model.
 

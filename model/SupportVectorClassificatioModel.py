@@ -2,8 +2,7 @@ import pandas as pd
 from sklearn.model_selection import (LearningCurveDisplay,
                                      ValidationCurveDisplay)
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC
+from types_config import Tpipelinesteps
 
 from .Model import Model
 
@@ -22,7 +21,7 @@ class SupportVectorClassificationModel(Model[Pipeline]):
     Parameter gamma allows to tune the flexibility of the model.
     """
     def __init__(self,
-                 pipeline_steps: list[StandardScaler|SVC] = []):
+                 pipeline_steps: list[Tpipelinesteps] = []):
         super().__init__(pipeline_steps=pipeline_steps)
 
         self.model = self._factory_pipeline_initializer(*pipeline_steps)

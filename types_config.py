@@ -24,6 +24,15 @@ from sklearn.tree import DecisionTreeRegressor
 ########
 type DataSetType = tuple[pd.DataFrame, pd.Series]
 
+################
+# LINEAR MODEL #
+################
+type AcceptLinearModelWithPipelineType = (LinearRegression
+                                          | LogisticRegression
+                                          | Pipeline)
+Tlinearmodel = TypeVar('Tlinearmodel', bound=AcceptLinearModelWithPipelineType)
+
+
 ##############
 # CLASSIFIER #
 ##############
@@ -62,18 +71,22 @@ Tmodel = TypeVar('Tmodel', bound=AcceptModelType)
 #################
 # PRE-PROCESSOR #
 #################
-# str type for passthrough, columns specified with it are added at the right
-type AcceptPreprocessorType = (tuple[KBinsDiscretizer
-                                     | QuantileTransformer
-                                     | MinMaxScaler
-                                     | Nystroem
-                                     | OneHotEncoder
-                                     | OrdinalEncoder
-                                     | PolynomialFeatures
-                                     | PowerTransformer
-                                     | SplineTransformer
-                                     | StandardScaler
-                                     | str, selector])
+type PreprocessorType = (KBinsDiscretizer
+                         | QuantileTransformer
+                         | MinMaxScaler
+                         | Nystroem
+                         | OneHotEncoder
+                         | OrdinalEncoder
+                         | PolynomialFeatures
+                         | PowerTransformer
+                         | SplineTransformer
+                         | StandardScaler)
+
+# Either a tuple (transformer, columns) with transformer=transformer to apply and
+#                                      columns=which to modify with the transfomer or 'passthrough'
+# Or just a transformer which is apply on all data
+type AcceptPreprocessorType = (PreprocessorType
+                               | tuple[PreprocessorType | str, selector])
 Tpreprocessor = TypeVar('Tpreprocessor', bound=AcceptPreprocessorType)
 
 ##################

@@ -11,8 +11,10 @@ from sklearn.model_selection import (GridSearchCV, LearningCurveDisplay,
                                      ValidationCurveDisplay, cross_validate)
 from sklearn.pipeline import Pipeline, make_pipeline
 from types_config import (AcceptModelType, CvResults, Tclassifier,
-                          Tclassifierwithpipeline, Tcv, Tmodel, Tpipelinesteps,
+                          Tclassifierwithpipeline, Tcv, Tpipelinesteps,
                           Tpreprocessor, Tregressor, Tregressorwithpipeline)
+
+from .RegressorMixin import RegressorMixin
 
 # Expected parameter for a given search class use to tune hyperparameters
 SEARCH_EXPECTED_PARAM = {
@@ -41,12 +43,15 @@ class Model[Tmodel]():
 
         Parameter
         ---------
-        kwargs['transformers']: tuples of the form (transformer, columns) with columns get either
-        with the make_column_selector class of scikit-learn or by using the columns property of a
-        pandas DataFrame (in this cas it's required to convert the pandas.Index into a list of
-        string)
+        transformers: a list that is either made of transformers which are applied on the whole
+        data or tuples of the form (transformer, columns) with transformer the given transformation
+        to apply and columns the data to transform.
 
-        kwargs['model']: the model to apply, either a classifier or a regressor
+        Columns is either got with the make_column_selector class of scikit-learn or by using the
+        columns property of a pandas DataFrame (in this cas it's required to convert the
+        pandas.Index into a list of string)
+
+        model: the model to apply, either a classifier or a regressor
 
         output: to transform the transformer output into a DataFrame. By default None.
         """
@@ -109,6 +114,14 @@ class Model[Tmodel]():
         *transformers: tuples of the form (transformer, columns)
         """
         return make_column_transformer(*transformers)
+
+
+    #############
+    # REGRESSOR #
+    #############
+    @property
+    def is_regressor(self) -> bool:
+        return isinstance(self, RegressorMixin)
 
 
     ###########
@@ -181,12 +194,23 @@ class Model[Tmodel]():
         # Predict target
         y_train_predicted = self.model.predict(x_train)
 
-        # Check model performance with training data
-        self.print_training_accuracy(y_train, y_train_predicted)
+        if self.is_regressor:
+            self._predict_regressor(y_train, y_train_predicted, y_test, self.model.predict(x_test))
+        else:
+            # Check model performance with training data
+            self.print_training_accuracy(y_train, y_train_predicted)
 
-        # Check model performance with testing data
-        self.print_testing_accuracy(x_test, y_test)
+            # Check model performance with testing data
+            self.print_testing_accuracy(x_test, y_test)
 
+
+    def _predict_regressor(self,
+                           y_train: pd.Series,
+                           y_train_predicted: npt.NDArray[np.generic],
+                           y_test: pd.Series,
+                           y_test_predicted: npt.NDArray[np.generic]) -> None:
+        """Specific preidction for regressor, check RegressorMix for the implementation."""
+        pass
 
     #############
     # PARAMETER #

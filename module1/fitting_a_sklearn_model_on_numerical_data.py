@@ -121,8 +121,7 @@ def model_evaluation_using_cross_validation(data: pd.DataFrame,
 ############
 def run_analysis():
     # Load adult census data as DataFrame and extract the target
-    adult_census = dh.load_data_from_arff(DataPath.ADULT_CENSUS.value,
-                                          TargetColumn.ADULT_CENSUS)
+    adult_census = dh.load_data_from_file(DataPath.ADULT_CENSUS.value, TargetColumn.ADULT_CENSUS)
 
     first_model_with_scikit_learn(*adult_census)
 

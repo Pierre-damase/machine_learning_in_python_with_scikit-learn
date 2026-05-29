@@ -240,8 +240,7 @@ def treebased_model_with_mix_encoder(data: pd.DataFrame,
 ############
 def run_analysis():
     # Load data
-    adult_census = dh.load_data_from_arff(DataPath.ADULT_CENSUS.value,
-                                          TargetColumn.ADULT_CENSUS)
+    adult_census = dh.load_data_from_file(DataPath.ADULT_CENSUS.value, TargetColumn.ADULT_CENSUS)
 
     encoding_of_categorical_variables(*adult_census)
     linear_model_with_heterogeneously_data_type(*adult_census)

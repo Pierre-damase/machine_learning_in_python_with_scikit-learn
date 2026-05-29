@@ -114,8 +114,7 @@ def optimum_gradient_boosting(data: pd.DataFrame,
 # ANALYSIS #
 ############
 def run_analysis():
-    adult_census = dh.load_data_from_arff(DataPath.ADULT_CENSUS.value,
-                                          TargetColumn.ADULT_CENSUS)
+    adult_census = dh.load_data_from_file(DataPath.ADULT_CENSUS.value, TargetColumn.ADULT_CENSUS)
 
     # Logistic regression manual tuning
     # manual_logistic_regression_tuning(*adult_census)
