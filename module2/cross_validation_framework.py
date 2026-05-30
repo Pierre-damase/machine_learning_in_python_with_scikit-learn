@@ -22,7 +22,7 @@ def simple_test_continuous_target_prediction(data: pd.DataFrame, targets: pd.Ser
     => This error is called the empirical or training error.
     """
     # 1. Build a decision tree regressor model
-    regressor = DecisionTreeRegressorModel()
+    regressor = DecisionTreeRegressorModel.build()
 
     # 2. Train the model on the whole dataset
     regressor.train(data, targets)
@@ -48,7 +48,7 @@ def test_continuous_target_prediction(data: pd.DataFrame, targets: pd.Series):
     train_test_split = dh.sklearn_train_test_split(data, targets)
 
     # 2. Build a decision tree regressor model
-    regressor = DecisionTreeRegressorModel()
+    regressor = DecisionTreeRegressorModel.build()
 
     # 3. Train the model and calculate its accuracy (training and testing)
     regressor.start(*train_test_split)

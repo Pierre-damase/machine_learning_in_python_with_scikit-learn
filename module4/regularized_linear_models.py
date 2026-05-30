@@ -52,10 +52,11 @@ def run_analysis():
     housing = load_data()
 
     # Build model. By default, the training error is in average one order of magnitude lower than
-    # the testing error, which indicates overfitting.
-    regression = LinearRegressionModel.build_pipeline_with_transformer(
-        transformers=[PolynomialFeatures(degree=2, include_bias=False)],
-        model=LinearRegression()
+    # the testing error, which indicates overfitting. Some coefficients are extremly large while
+    # others are extremly small, yet non-zero. Furthermore, the coefficient values can be very
+    # unstable across cv folds.
+    regression = LinearRegressionModel.build_pipeline(
+        [PolynomialFeatures(degree=2, include_bias=False)]
     )
     scores = cross_validation(regression, *housing)
     plot_coefficients_of_linear_model(regression.get_coefficients(scores))

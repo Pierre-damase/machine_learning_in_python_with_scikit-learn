@@ -21,7 +21,7 @@ def overfitting_vs_underfitting(data: pd.DataFrame, targets: pd.Series):
     of the model to predict unseen data (in this use case the testing test)
     """
     # 1. Build a decesion tree regressor model
-    regressor = DecisionTreeRegressorModel()
+    regressor = DecisionTreeRegressorModel.build()
 
     # 2. Cross-validation to compare testing and training error
     scoring:str = "neg_mean_absolute_error"
@@ -58,7 +58,7 @@ def validation_curve(data: pd.DataFrame, targets: pd.Series):
     error. Therefore, the testing error is minimal and this is the best compromise.
     """
     # 1. Build a decesion tree regressor model
-    regressor = DecisionTreeRegressorModel()
+    regressor = DecisionTreeRegressorModel.build()
 
     # 2. Compute validation curve
     curve = regressor.compute_validation_curve(data,
@@ -80,7 +80,7 @@ def learning_curve(data: pd.DataFrame, targets: pd.Series):
     training set.
     """
     # 1. Build a decesion tree regressor model
-    regressor = DecisionTreeRegressorModel()
+    regressor = DecisionTreeRegressorModel.build()
 
     # 2. Compute validation curve
     curve = regressor.compute_learning_curve(data,
@@ -89,7 +89,10 @@ def learning_curve(data: pd.DataFrame, targets: pd.Series):
                                              scoring="neg_mean_absolute_error",
                                              score_name="Mean absolute error",
                                              negate_score=True,
-                                             train_sizes=np.linspace(0.1, 1.0, num=5, endpoint=True))
+                                             train_sizes=np.linspace(0.1,
+                                                                     1.0,
+                                                                     num=5,
+                                                                     endpoint=True))
     show_learning_curve(curve)
 
 

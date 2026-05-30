@@ -1,15 +1,10 @@
 from sklearn.pipeline import Pipeline
-from types_config import CvResults, Tlinearmodel, Tpipelinesteps
+from types_config import CvResults, Tlinearestimator, Tlinearmodel
 
 from .Model import Model
 
 
-class LinearModel(Model[Tlinearmodel]):
-    """Linear model."""
-    def __init__(self, pipeline_steps: list[Tpipelinesteps] = []):
-        super().__init__(pipeline_steps)
-
-
+class LinearModel(Model[Tlinearestimator, Tlinearmodel]):
     ###############
     # COEFFICIENT #
     ###############

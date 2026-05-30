@@ -234,7 +234,7 @@ def plot_coefficients_of_linear_model(coef: dict[str, list[float]]):
         data = data[top_features]
 
     # Plot
-    _, ax = plt.subplots()
+    _, ax = plt.subplots(figsize=(10, 10))
     data.abs().plot.box(color={"whiskers": "black", "medians": "black", "caps": "black"},
                         vert=False,
                         ax=ax)

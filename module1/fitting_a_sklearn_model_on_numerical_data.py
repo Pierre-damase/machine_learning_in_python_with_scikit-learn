@@ -3,7 +3,6 @@ import pandas as pd
 from config import DataPath, TargetColumn
 from model import (DummyClassifierModel, KNeighborsClassifierModel,
                    LogisticRegressionModel)
-from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from visualisation import check_data, scaler_jointplot
 
@@ -30,9 +29,9 @@ def first_model_with_scikit_learn(data: pd.DataFrame,
     train_test_split = dh.manual_train_test_split(data, targets)
 
     # 4. Build model
-    k_neighbors = KNeighborsClassifierModel(5)
+    k_neighbors = KNeighborsClassifierModel.build()
     k_neighbors.start(*train_test_split)
-    k_neighbors = KNeighborsClassifierModel(50)
+    k_neighbors = KNeighborsClassifierModel.build(n_neighbors=50)
     k_neighbors.start(*train_test_split)
 
 
@@ -53,14 +52,14 @@ def working_with_numerical_data(data: pd.DataFrame,
     train_test_split = dh.sklearn_train_test_split(data, targets)
 
     # 3.1 Build logistic regression model
-    logistic_regression = LogisticRegressionModel()
+    logistic_regression = LogisticRegressionModel.build()
     logistic_regression.start(*train_test_split)
 
     # 4. Build dummy classifier model
-    high_income = DummyClassifierModel(strategy="constant", constant=">50K")
+    high_income = DummyClassifierModel.build(constant=">50K")
     high_income.start(*train_test_split) # catastrophic (maybe highlight a class inbalance)
 
-    low_income = DummyClassifierModel(strategy="constant", constant="<=50K")
+    low_income = DummyClassifierModel.build(constant="<=50K")
     low_income.start(*train_test_split) # ok
 
 
@@ -87,13 +86,11 @@ def preprocessing_for_numerical_features(data: pd.DataFrame,
                          y_axis="hours-per-week")
 
         # 4. Build logistic regression model
-        logistic_regression = LogisticRegressionModel()
+        logistic_regression = LogisticRegressionModel.build()
         logistic_regression.start(*train_test_split)
     else:
         # 3&4. Start a simple pipeline to scale the data + build a logistic regression model
-        logistic_regression = LogisticRegressionModel(
-            pipeline_steps=[StandardScaler(), LogisticRegression()]
-        )
+        logistic_regression = LogisticRegressionModel.build_pipeline([StandardScaler()])
         logistic_regression.start(*train_test_split)
 
 
@@ -104,9 +101,7 @@ def model_evaluation_using_cross_validation(data: pd.DataFrame,
     # check_data(data, targets)
 
     # 2. Build logistic regression model
-    logistic_regression = LogisticRegressionModel(
-        pipeline_steps=[StandardScaler(), LogisticRegression()]
-    )
+    logistic_regression = LogisticRegressionModel.build_pipeline([StandardScaler()])
 
     # 3. KFold cross-validation to evaluate generalization performance of the model
     scores = logistic_regression.kfold_cross_validate(data, targets, 5)
@@ -124,7 +119,6 @@ def run_analysis():
     adult_census = dh.load_data_from_file(DataPath.ADULT_CENSUS.value, TargetColumn.ADULT_CENSUS)
 
     first_model_with_scikit_learn(*adult_census)
-
 
     # Load numerical data from adult census data as DataFrame and extract the target
     data, targets = _load_numerical_data(adult_census[0]), adult_census[1]

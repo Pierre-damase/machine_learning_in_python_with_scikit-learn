@@ -19,9 +19,7 @@ def manual_logistic_regression_tuning(data: pd.DataFrame,
     data = dh.get_subset(data, dtypes=[int, float])
 
     # 2. Build the model
-    model = LogisticRegressionModel(pipeline_steps=[
-        StandardScaler(), LogisticRegression(max_iter=500)
-    ])
+    model = LogisticRegressionModel.build_pipeline([StandardScaler()], max_iter=500)
 
     # 3. Tuning of hyperparameter C
     hyperparameters = {
@@ -47,7 +45,7 @@ def _build_gradient_boosting(learning_rate:float = 0.1,
     Build a gradient boosting classifier with a transformer to deal with numerical and
     categorical features.
     """
-    return GradientBoostingClassifierModel.build_pipeline_with_transformer(
+    return GradientBoostingClassifierModel.build_pipeline(
         transformers=[
             (
                 OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
@@ -55,9 +53,9 @@ def _build_gradient_boosting(learning_rate:float = 0.1,
             ),
             ("passthrough", selector(dtype_exclude=str))
         ],
-        model=HistGradientBoostingClassifier(random_state=42,
-                                             learning_rate=learning_rate,
-                                             max_leaf_nodes=max_leaf_nodes)
+        random_state=42,
+        learning_rate=learning_rate,
+        max_leaf_nodes=max_leaf_nodes
     )
 
 
@@ -117,11 +115,11 @@ def run_analysis():
     adult_census = dh.load_data_from_file(DataPath.ADULT_CENSUS.value, TargetColumn.ADULT_CENSUS)
 
     # Logistic regression manual tuning
-    # manual_logistic_regression_tuning(*adult_census)
+    manual_logistic_regression_tuning(*adult_census)
 
     # Gradient boosting classifier manual tuning
-    # manual_gradient_boosting_tuning(*adult_census, train_size=0.2)
-    # manual_gradient_boosting_tuning(*adult_census, train_size=0.8)
+    manual_gradient_boosting_tuning(*adult_census, train_size=0.2)
+    manual_gradient_boosting_tuning(*adult_census, train_size=0.8)
 
     # print("\nGradient boosting with optimum hyperparameters.")
     optimum_gradient_boosting(*adult_census, learning_rate=0.1, max_leaf_nodes=30)

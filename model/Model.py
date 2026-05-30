@@ -1,5 +1,6 @@
 import time
 from pathlib import Path
+from typing import ClassVar
 
 import numpy as np
 import numpy.typing as npt
@@ -10,9 +11,8 @@ from sklearn.model_selection import (GridSearchCV, LearningCurveDisplay,
                                      RandomizedSearchCV, ShuffleSplit,
                                      ValidationCurveDisplay, cross_validate)
 from sklearn.pipeline import Pipeline, make_pipeline
-from types_config import (AcceptModelType, CvResults, Tclassifier,
-                          Tclassifierwithpipeline, Tcv, Tpipelinesteps,
-                          Tpreprocessor, Tregressor, Tregressorwithpipeline)
+from types_config import (AcceptEstimatorType, CvResults, Tcv, Testimator,
+                          Tmodel, Tpreprocessor)
 
 from .RegressorMixin import RegressorMixin
 
@@ -23,23 +23,66 @@ SEARCH_EXPECTED_PARAM = {
 }
 
 
-class Model[Tmodel]():
+class Model[Testimator, Tmodel]():
+    _estimator_class: type[Testimator] # scikit-learn estimator
+    _default_params: ClassVar[dict[str, int | float | str]] = {} # default model parameters
+
     model: Tmodel # either a classifier or a regressor or a pipeline
 
-    def __init__(self,
-                 pipeline_steps: list[Tpipelinesteps] = []):
+    def __init__(self, model_instance: Tmodel):
         """Base class to build machine learning model."""
-        self.pipeline_steps = pipeline_steps
-        self.use_pipeline: bool = self._use_pipeline(self.pipeline_steps)
+        self.model = model_instance
+
 
     @classmethod
-    def build_pipeline_with_transformer(cls,
-                                        transformers: list[Tpreprocessor],
-                                        model: Tclassifierwithpipeline|Tregressorwithpipeline):
+    def _create_estimator(cls, model_params: dict[str, int | float | str]) -> Testimator:
         """
-        Set up a column transformers to deal with numerical and categorical values:
+        To instanciate an estimator with the given parameter or default.
+
+        Parameter
+        ---------
+        model_params: model parameters
+        """
+        # Get class attribute
+        estimator_cls: type[Testimator] = getattr(cls, "_estimator_class")
+        default_params: dict[str, int | float | str] = getattr(cls, "_default_params")
+
+        # Set parametes
+        params = default_params | model_params
+
+        # Instanciate the estimator
+        print(f"Build a {estimator_cls.__name__} model"
+              f"{f' with parameter(s) {str(params)}' if model_params else ''}")
+        return estimator_cls(**params)
+
+    @classmethod
+    def build(cls: type[Model[Testimator, Testimator]],
+              **model_params) -> Model[Testimator, Testimator]:
+        """
+        Initialise a machine learning model.
+
+        In this case, model is necessarily an estimator and not a pipeline. This is why we use the
+        syntax Model[Testimator, Testimator].
+
+        Parameter
+        ---------
+        **model_params: model parameters
+        """
+        return cls(model_instance=cls._create_estimator(model_params))
+
+    @classmethod
+    def build_pipeline(cls: type[Model[Testimator, Pipeline]],
+                       transformers: list[Tpreprocessor],
+                       **model_params) -> Model[Testimator, Pipeline]:
+        """
+        Set up a column transformers.
+
+        For example to deal with numerical and categorical values:
         - Encoding of categorical variables
         - Scaling of numerical variables
+
+        In this case, model is necessarily a pipeline. This is why we use the syntax
+        Model[Testimator, Pipeline].
 
         Parameter
         ---------
@@ -51,77 +94,43 @@ class Model[Tmodel]():
         columns property of a pandas DataFrame (in this cas it's required to convert the
         pandas.Index into a list of string)
 
-        model: the model to apply, either a classifier or a regressor
-
-        output: to transform the transformer output into a DataFrame. By default None.
+        **model_params: model parameters
         """
-        return cls(pipeline_steps=[*transformers, model])
-
-
-    ###############
-    # INITIALIZER #
-    ###############
-    def _print_model_initialization(self, model: Tclassifier|Tregressor):
-        """Print model parameter at initialization."""
-        print(f"Build a {model.__class__.__name__} model.")
-
-    def _factory_model_initializer(self,
-                                   model_class: type[Tclassifier|Tregressor], **kwargs) \
-                                   -> Tclassifier|Tregressor:
-        """Initialize a T model."""
-        model = model_class(**kwargs)
-        self._print_model_initialization(model)
-        return model
-
-    def _factory_pipeline_initializer(self, *steps) -> Pipeline:
-        """
-        Initialize a pipeline.
-
-        Parameter
-        ---------
-        *steps: list of estimator objects
-        """
-        # Column transformer parameters past ?
-        # Parameter past as tuples of the form (transformer, columns)
+        # Column transformer past ? There are past as tuples of the form (transformer, columns).
         column_transformer_steps, left_over_steps = [], []
-        for ele in steps:
+        for ele in transformers:
             if isinstance(ele, tuple):
                 column_transformer_steps.append(ele)
             else:
                 left_over_steps.append(ele)
 
-        # Initialize a column transformer if needed
+        # Initialise a column transformer to allow different columns of the input to be transformed
+        # separately and the features generated by each transformer will be concatenated to form a
+        # single feature space
         if column_transformer_steps:
-            preprocessor = \
-                self._factory_transformer_initialize(*column_transformer_steps)
+            preprocessor = make_column_transformer(*column_transformer_steps)
             left_over_steps.insert(0, preprocessor)
 
-        # Construct a pipeline from the given estimators
+        # Instanciate the model
+        left_over_steps.append(cls._create_estimator(model_params))
+
+        # Instanciate the pipeline
         print(f"Set up a pipeline to build a machine learning model.")
-        return make_pipeline(*left_over_steps)
-
-    def _use_pipeline(self, pipeline_steps = []):
-        """Some models can either be used with or without a pipeline."""
-        return True if pipeline_steps else False
-
-    def _factory_transformer_initialize(self, *transformers):
-        """
-        Initialize a column transformer
-        in order to handle categorical and numerical values.
-
-        Parameter
-        ---------
-        *transformers: tuples of the form (transformer, columns)
-        """
-        return make_column_transformer(*transformers)
+        print(f"\n{left_over_steps}\n")
+        return cls(model_instance=make_pipeline(*left_over_steps))
 
 
-    #############
-    # REGRESSOR #
-    #############
+    ############
+    # PROPERTY #
+    ############
     @property
     def is_regressor(self) -> bool:
         return isinstance(self, RegressorMixin)
+
+    @property
+    def is_pipeline(self) -> bool:
+        """Some models can either be used with or without a pipeline."""
+        return isinstance(self.model, Pipeline)
 
 
     ###########
@@ -209,7 +218,7 @@ class Model[Tmodel]():
                            y_train_predicted: npt.NDArray[np.generic],
                            y_test: pd.Series,
                            y_test_predicted: npt.NDArray[np.generic]) -> None:
-        """Specific preidction for regressor, check RegressorMix for the implementation."""
+        """Specific prediction for regressor, check RegressorMix for the implementation."""
         pass
 
     #############
@@ -296,7 +305,6 @@ class Model[Tmodel]():
         # Testing error
         mean_score, std_score = \
             self.get_cross_validate_mean_and_std(scores['test_score'])
-        # print(f"Shuffle split cross-validation with n={n_splits}.\n"
         print("The mean cross-validated testing error is: "
              f"{mean_score:.3f} ± {std_score:.3f}"
              f" with an average fitting time of {scores['fit_time'].mean():.3f}")
@@ -308,7 +316,7 @@ class Model[Tmodel]():
             print("The mean cross-validated training error is "
                   f"{mean_score:.3f} ± {std_score:.3f}")
 
-    def get_cv_estimator(self, scores: CvResults) -> list[AcceptModelType]:
+    def get_cv_estimator(self, scores: CvResults) -> list[AcceptEstimatorType]:
         """
         The estimator objects for each cv split. This is available only if return_estimator
         parameter of kfold_cross_validate is set to True.
@@ -475,9 +483,7 @@ class Model[Tmodel]():
             # Save cross-validation result
             scores["testing_mean"].append(results["test_score"].mean())
             scores["testing_std"].append(results["test_score"].std())
-            if (res := {
-                    k: v for k, v in results.items() if k in ["training_mean", "training_std"]
-            }):
+            if (res := {k: v for k, v in results.items() if k == "train_score"}):
                 scores["training_mean"].append(res["train_score"].mean())
                 scores["training_std"].append(res["train_score"].std())
 

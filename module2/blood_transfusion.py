@@ -107,9 +107,7 @@ def learning_curve(svm: SupportVectorClassificationModel,
 def blood_transfusion_svm(data: pd.DataFrame, targets: pd.Series) -> None:
     """Set up SVM classifier for blood transfusion dataset."""
     # 1. Set up a support vector machine classifier (SVM)
-    svm = SupportVectorClassificationModel(pipeline_steps=[
-        StandardScaler(), SVC(kernel="rbf")
-    ])
+    svm = SupportVectorClassificationModel.build_pipeline([StandardScaler()], kernel="rbf")
 
     # 2. Cross-validation
     cross_validation(svm, data, targets)
@@ -123,9 +121,9 @@ def blood_transfusion_svm(data: pd.DataFrame, targets: pd.Series) -> None:
     # 5. Training set size tuning with gamma = 1, the optimal value of the hyperparameter
     #    This hyperparameter + a larger dataset help to improve the testing accuracy (up to 80%)
     #    It's remain quite low.
-    svm = SupportVectorClassificationModel(pipeline_steps=[
-        StandardScaler(), SVC(kernel="rbf", gamma=1.0)
-    ])
+    svm = SupportVectorClassificationModel.build_pipeline([StandardScaler()],
+                                                          kernel="rbf",
+                                                          gamma=1.0)
     learning_curve(svm, data, targets)
 
 
@@ -137,7 +135,7 @@ def blood_transfusion_dummy_classifier(
         targets: pd.Series) -> None:
     """Set up dummy classifier for blood transfusion dataset."""
     # 1. Set up a dummy classifier model
-    model = DummyClassifierModel(strategy="most_frequent")
+    model = DummyClassifierModel.build(strategy="most_frequent")
 
     # 2. KFold cross-validation
     scores = model.kfold_cross_validate(data, targets, 10)
@@ -158,10 +156,7 @@ def blood_transfusion_knearest_classifier(
         print_score: bool = False) -> dict[str, npt.NDArray[np.float64]]:
     """Set up k-nearest classifier for blood transfusion dataset."""
     # 1. Set up a k-nearest classifier
-    model = KNeighborsClassifierModel(pipeline_steps=[
-        StandardScaler(),
-        KNeighborsClassifier(n_neighbors=n_neighbors)
-    ])
+    model = KNeighborsClassifierModel.build_pipeline([StandardScaler()], n_neighbors=n_neighbors)
 
     # 2. KFold cross-validation
     scores = model.kfold_cross_validate(
@@ -205,10 +200,7 @@ def manually_tune_knearest_classifier(data: pd.DataFrame, targets: pd.Series) ->
 def tune_knearest_classifier(data: pd.DataFrame, targets: pd.Series):
     """Tune neighbors number for k-nearest classifier."""
     # 1. Build a k-nearest classifier
-    model = KNeighborsClassifierModel(pipeline_steps=[
-        StandardScaler(),
-        KNeighborsClassifier(n_neighbors=5)
-    ])
+    model = KNeighborsClassifierModel.build_pipeline([StandardScaler()])
 
     # 2.
     param_range = np.array([1, 2, 5, 10, 20, 50, 100, 200, 500])

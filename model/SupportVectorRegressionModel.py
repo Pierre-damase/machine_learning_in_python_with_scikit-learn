@@ -1,10 +1,11 @@
 from sklearn.svm import SVR
+from types_config import Tmodel
 
 from .Model import Model
 from .RegressorMixin import RegressorMixin
 
 
-class SupportVectorRegressionModel(RegressorMixin, Model[SVR]):
+class SupportVectorRegressionModel(RegressorMixin, Model[SVR, Tmodel]):
     """
     Epsilon-Support Vector Regression model.
 
@@ -12,7 +13,4 @@ class SupportVectorRegressionModel(RegressorMixin, Model[SVR]):
 
     [To predict continuous target]
     """
-    def __init__(self, kernel: str, degree: int):
-        super().__init__()
-
-        self.model = self._factory_model_initializer(SVR, kernel=kernel, degree=degree)
+    _estimator_class = SVR

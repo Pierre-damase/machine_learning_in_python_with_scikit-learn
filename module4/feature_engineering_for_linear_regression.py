@@ -74,12 +74,7 @@ def build_pipeline(transformer: type[KBinsDiscretizer
                    columns: list[str],
                    **kwargs):
     """Transform the input features."""
-    return LinearRegressionModel.build_pipeline_with_transformer(
-        transformers=[
-            (transformer(**kwargs), columns)
-        ],
-        model=LinearRegression()
-    )
+    return LinearRegressionModel.build_pipeline([(transformer(**kwargs), columns)])
 
 def run_model(model_class: type[DecisionTreeRegressor
                                 | LinearRegression
@@ -366,7 +361,7 @@ def data_engineering_on_penguins():
 
     # Build model without any data engineering
     print("\nLinear model without any data engineering.")
-    model = LinearRegressionModel()
+    model = LinearRegressionModel.build()
     cross_validation(model, *penguins)
 
     # Build model with the preprocessing step PolynomialFeatures. The MAE is lower and less spread,

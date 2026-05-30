@@ -122,7 +122,7 @@ def automatic_linear_regression(penguins: pd.DataFrame,
     x_range = np.linspace(x_data.min(), x_data.max(), num=342)
 
     # Build Model
-    linear_regression = LinearRegressionModel()
+    linear_regression = LinearRegressionModel.build()
     linear_regression.start(x_train=x_data, y_train=y_data)
 
     # Check optimum parameters

@@ -2,23 +2,19 @@ import pandas as pd
 from sklearn.model_selection import (LearningCurveDisplay, ShuffleSplit,
                                      ValidationCurveDisplay)
 from sklearn.tree import DecisionTreeRegressor
+from types_config import Tmodel
 
 from .Model import Model
 from .RegressorMixin import RegressorMixin
 
 
-class DecisionTreeRegressorModel(RegressorMixin, Model[DecisionTreeRegressor]):
+class DecisionTreeRegressorModel(RegressorMixin, Model[DecisionTreeRegressor, Tmodel]):
     """
     Decision tree regressor model.
 
     [To predict continuous target]
     """
-    def __init__(self):
-        super().__init__()
-
-        self.model = \
-            self._factory_model_initializer(DecisionTreeRegressor, random_state=0)
-
+    _estimator_class = DecisionTreeRegressor
 
     ####################
     # VALIDATION CURVE #

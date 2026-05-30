@@ -34,16 +34,11 @@ def build_kneighbors_classifier(scaler,
                                 columns: list[str],
                                 **kwargs) -> KNeighborsClassifierModel:
     """Build a KNeighbors classifier pipeline."""
-    return KNeighborsClassifierModel.build_pipeline_with_transformer(
-        transformers=[
-            (scaler(**kwargs), columns)
-        ],
-        model=KNeighborsClassifier(n_neighbors=5)
-    )
+    return KNeighborsClassifierModel.build_pipeline([(scaler(**kwargs), columns)])
 
 def build_kneighbors_classifier_without_scaler() -> KNeighborsClassifierModel:
     """Build a KNeighbors classifier model without data scaling."""
-    return KNeighborsClassifierModel(n_neighbors=5)
+    return KNeighborsClassifierModel.build()
 
 
 ####################

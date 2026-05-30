@@ -7,7 +7,8 @@ from sklearn.compose import make_column_selector as selector
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.kernel_approximation import Nystroem
-from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.linear_model import (LinearRegression, LogisticRegression, Ridge,
+                                  RidgeCV)
 from sklearn.model_selection import ShuffleSplit
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.pipeline import Pipeline
@@ -24,49 +25,44 @@ from sklearn.tree import DecisionTreeRegressor
 ########
 type DataSetType = tuple[pd.DataFrame, pd.Series]
 
-################
-# LINEAR MODEL #
-################
-type AcceptLinearModelWithPipelineType = (LinearRegression
-                                          | LogisticRegression
-                                          | Pipeline)
-Tlinearmodel = TypeVar('Tlinearmodel', bound=AcceptLinearModelWithPipelineType)
 
+########
+# MODEL #
+########
+# Linear model
+type AcceptLinearEstimatorType = (LinearRegression
+                              | LogisticRegression
+                              | Ridge
+                              | RidgeCV)
+Tlinearestimator = TypeVar('Tlinearestimator', bound=AcceptLinearEstimatorType)
 
-##############
-# CLASSIFIER #
-##############
-type AcceptClassifierWithPipelineType = (HistGradientBoostingClassifier
-                                     | KNeighborsClassifier
-                                     | LogisticRegression
-                                     | SVC)
-Tclassifierwithpipeline = TypeVar('Tclassifierwithpipeline', bound=AcceptClassifierWithPipelineType)
+Tlinearmodel = TypeVar('Tlinearmodel', bound=AcceptLinearEstimatorType | Pipeline)
 
+# Classifier
 type AcceptClassifierType = (DecisionTreeRegressor
-                        | DummyClassifier
-                        | Pipeline
-                        | AcceptClassifierWithPipelineType)
+                             | DummyClassifier
+                             | HistGradientBoostingClassifier
+                             | KNeighborsClassifier
+                             | LogisticRegression
+                             | Ridge
+                             | RidgeCV
+                             | SVC)
 Tclassifier = TypeVar('Tclassifier', bound=AcceptClassifierType)
 
-#############
-# REGRESSOR #
-#############
-type AcceptRegressorWithPipelineType = (KNeighborsRegressor
-                                        | LinearRegression)
-Tregressorwithpipeline = TypeVar('Tregressorwithpipeline', bound=AcceptRegressorWithPipelineType)
-
+# Regressor
 type AcceptRegressorType = (DecisionTreeRegressor
-                            | Pipeline
-                            | SVR
-                            | AcceptRegressorWithPipelineType)
+                            | KNeighborsRegressor
+                            | LinearRegression
+                            | SVR)
 Tregressor = TypeVar('Tregressor', bound=AcceptRegressorType)
 
+# Estimator
+type AcceptEstimatorType = (AcceptClassifierType | AcceptRegressorType)
+Testimator = TypeVar('Testimator', bound=AcceptEstimatorType)
 
-#########
-# MODEL #
-#########
-type AcceptModelType = (AcceptClassifierType | AcceptRegressorType)
-Tmodel = TypeVar('Tmodel', bound=AcceptModelType)
+# Model
+Tmodel = TypeVar('Tmodel', bound=AcceptEstimatorType | Pipeline)
+
 
 #################
 # PRE-PROCESSOR #
@@ -89,16 +85,6 @@ type AcceptPreprocessorType = (PreprocessorType
                                | tuple[PreprocessorType | str, selector])
 Tpreprocessor = TypeVar('Tpreprocessor', bound=AcceptPreprocessorType)
 
-##################
-# PIPELINE STEPS #
-##################
-type AcceptPipelineType = (OneHotEncoder
-                            | OrdinalEncoder
-                            | StandardScaler
-                            | AcceptClassifierWithPipelineType
-                            | AcceptRegressorWithPipelineType
-                            | AcceptPreprocessorType)
-Tpipelinesteps = TypeVar('Tpipelinesteps', bound=AcceptPipelineType)
 
 ####################
 # CROSS-VALIDATION #

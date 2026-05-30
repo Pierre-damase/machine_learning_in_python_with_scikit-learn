@@ -1,17 +1,13 @@
-from sklearn.pipeline import Pipeline
-from types_config import Tpipelinesteps
+from sklearn.ensemble import HistGradientBoostingClassifier
+from types_config import Tmodel
 
 from .Model import Model
 
 
-class GradientBoostingClassifierModel(Model[Pipeline]):
+class GradientBoostingClassifierModel(Model[HistGradientBoostingClassifier, Tmodel]):
     """
     Build a gradient-boosting model.
 
     [To predict discrete target]
     """
-    def __init__(self,
-                 pipeline_steps: list[Tpipelinesteps]):
-        super().__init__(pipeline_steps=pipeline_steps)
-
-        self.model = self._factory_pipeline_initializer(*self.pipeline_steps)
+    _estimator_class = HistGradientBoostingClassifier

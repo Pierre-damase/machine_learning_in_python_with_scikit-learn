@@ -130,7 +130,7 @@ def logistic_regression(x_data: pd.DataFrame,
     classifier_args: parameter of the model, in this case a logistic regression
     """
     # Build the pipeline steps
-    regression = LogisticRegressionModel.build_pipeline_with_transformer(
+    regression = LogisticRegressionModel.build_pipeline(
         transformers=[
             *[
                 (
@@ -142,7 +142,7 @@ def logistic_regression(x_data: pd.DataFrame,
                 for ele in transformers
             ]
         ],
-        model=LogisticRegression(**classifier_args)
+        **classifier_args
     )
 
     # Train the model
@@ -175,7 +175,7 @@ def logistic_regression_old(x_data: pd.DataFrame,
     classifier_args: parameter of the model, in this case a logistic regression
     """
     # Build the pipeline steps
-    regression = LogisticRegressionModel.build_pipeline_with_transformer(
+    regression = LogisticRegressionModel.build_pipeline(
         transformers=[
             *[
                 (
@@ -184,7 +184,7 @@ def logistic_regression_old(x_data: pd.DataFrame,
                 ) for ele in [ele for ele in transformers if "columns" in ele.keys()]
             ]
         ],
-        model=LogisticRegression(**classifier_args)
+        **classifier_args
     )
 
     # Train the model

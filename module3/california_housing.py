@@ -6,7 +6,6 @@ import pandas as pd
 from config import DataPath
 from model import KNeighborsRegressorModel
 from sklearn.model_selection import RandomizedSearchCV
-from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import StandardScaler
 from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
 
@@ -15,12 +14,7 @@ from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
 # MODEL #
 #########
 def build_kneighbors_regressor(columns: list[str]) -> KNeighborsRegressorModel:
-    return KNeighborsRegressorModel.build_pipeline_with_transformer(
-        transformers=[
-            (StandardScaler(), columns)
-        ],
-        model=KNeighborsRegressor()
-    )
+    return KNeighborsRegressorModel.build_pipeline([(StandardScaler(), columns)])
 
 
 #########################
