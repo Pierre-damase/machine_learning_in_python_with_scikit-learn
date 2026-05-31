@@ -151,48 +151,6 @@ def logistic_regression(x_data: pd.DataFrame,
 
     return regression
 
-def logistic_regression_old(x_data: pd.DataFrame,
-                        y_data: pd.Series,
-                        transformers: list[TransformerType],
-                        train_model: bool = True,
-                        **classifier_args) -> LogisticRegressionModel:
-    """
-    Perform a logistic regression.
-
-    Parameter
-    ---------
-    transformers: a list of dictionary.
-
-    {
-      "type": the transformer to apply,
-      "columns": indicate on which column the transformer must be applied,
-      "param_name": a parameter of the transformer to set with a given value,
-      ...
-    }
-
-    as many parameters as need can be set as well as zero.
-
-    classifier_args: parameter of the model, in this case a logistic regression
-    """
-    # Build the pipeline steps
-    regression = LogisticRegressionModel.build_pipeline(
-        transformers=[
-            *[
-                (
-                    ele["type"](**{k: v for k, v in ele.items() if k not in ["columns", "type"]}),
-                    ele["columns"]
-                ) for ele in [ele for ele in transformers if "columns" in ele.keys()]
-            ]
-        ],
-        **classifier_args
-    )
-
-    # Train the model
-    if train_model:
-        regression.start(x_train=x_data, y_train=y_data)
-
-    return regression
-
 def logistic_regressions(data: list[DataSetType],
                         transformers: list[TransformerType],
                         **classifier_args) -> list[LogisticRegressionModel]:
@@ -423,11 +381,9 @@ def run_analysis_on_adult_census():
         ["Numerical features only", "All features", "Polynomial expansion"]
     )
 
-
 def run_analysis():
-    run_analysis_with_generated_data()
+    # run_analysis_with_generated_data()
     run_analysis_on_adult_census()
-
 
 if __name__ == "__main__":
     run_analysis()

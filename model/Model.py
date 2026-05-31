@@ -11,8 +11,8 @@ from sklearn.model_selection import (GridSearchCV, LearningCurveDisplay,
                                      RandomizedSearchCV, ShuffleSplit,
                                      ValidationCurveDisplay, cross_validate)
 from sklearn.pipeline import Pipeline, make_pipeline
-from types_config import (AcceptEstimatorType, CvResults, Tcv, Testimator,
-                          Tmodel, Tpreprocessor)
+from types_config import (AcceptEstimatorType, AcceptPreprocessorType,
+                          CvResults, Tcv, Testimator, Tmodel, Tpreprocessor)
 
 from .RegressorMixin import RegressorMixin
 
@@ -116,7 +116,6 @@ class Model[Testimator, Tmodel]():
 
         # Instanciate the pipeline
         print(f"Set up a pipeline to build a machine learning model.")
-        print(f"\n{left_over_steps}\n")
         return cls(model_instance=make_pipeline(*left_over_steps))
 
 
@@ -316,7 +315,8 @@ class Model[Testimator, Tmodel]():
             print("The mean cross-validated training error is "
                   f"{mean_score:.3f} ± {std_score:.3f}")
 
-    def get_cv_estimator(self, scores: CvResults) -> list[AcceptEstimatorType]:
+    def get_cv_estimator(self, scores: CvResults) -> list[AcceptEstimatorType
+                                                          | AcceptPreprocessorType]:
         """
         The estimator objects for each cv split. This is available only if return_estimator
         parameter of kfold_cross_validate is set to True.
@@ -325,6 +325,21 @@ class Model[Testimator, Tmodel]():
             return res["estimator"]
         raise Exception("In order to get the estimator objects for each cv split, return_estimator"
                         " must be set to True.")
+
+    def get_mean_cv_results(self,
+                            scores: CvResults,
+                            columns: list[int | float]) -> pd.DataFrame:
+        """
+        When performing multiple cross-validation for hyperparameter tuning using method such as as
+        grid-search, it's possible to store the cross-validation values corresponding to each set
+        of hyperparameters.
+        """
+        # Get cross-validation values for each set of hyperparameters
+        cv_results = [
+            getattr(ele[-1], "cv_results_").mean(axis=0) for ele in self.get_cv_estimator(scores)
+        ]
+
+        return pd.DataFrame(cv_results, columns=columns).aggregate(["mean", "std"]).T
 
     def revert_negation(self,
                         results: CvResults,
@@ -335,6 +350,50 @@ class Model[Testimator, Tmodel]():
             if "train_score" in (res := results):
                 results["train_score"] = -res["train_score"]
         return results
+
+    def make_cross_validate(self,
+                            x_data: pd.DataFrame,
+                            y_data: pd.Series,
+                            scoring: str | None = None,
+                            return_train_score: bool = False,
+                            return_estimator: bool = False,
+                            nb_fold: int | None = None,
+                            n_splits: int | None = None,
+                            test_size: float | None = None,
+                            **kwargs) -> CvResults:
+        """
+        Generic methods to either perform a kfold or shuffle split cross-validation.
+
+        Parameter
+        ---------
+        * k-fold cv *
+        nb_fold: the number of fold
+
+        * Suffle split cv *
+
+        n_splits: the number of re-shuffling & splitting iterations
+
+        test_size: represent the proportion of the dataset to include in the test split
+        """
+        if nb_fold:
+            return self.kfold_cross_validate(x_data,
+                                             y_data,
+                                             nb_fold= nb_fold,
+                                             scoring=scoring,
+                                             return_train_score=return_train_score,
+                                             return_estimator=return_estimator,
+                                             **kwargs)
+        elif n_splits and test_size:
+            return self.shuffle_split_cross_validate(x_data,
+                                                     y_data,
+                                                     n_splits,
+                                                     test_size=test_size,
+                                                     scoring=scoring,
+                                                     return_train_score=return_train_score,
+                                                     return_estimator=return_estimator)
+        else:
+            raise Exception("To perform a kfold cv, nb_fold is required. For shuffle split cv, "
+                            "n_splits and test_size are required.")
 
 
     ##########################
@@ -407,7 +466,8 @@ class Model[Testimator, Tmodel]():
                                      n_splits: int,
                                      scoring: str | None = None,
                                      test_size: float = 0.2,
-                                     return_train_score: bool = False) -> CvResults:
+                                     return_train_score: bool = False,
+                                     return_estimator: bool = False) -> CvResults:
         """
         To performe a shuffle split cross-validation strategy.
 
@@ -432,7 +492,8 @@ class Model[Testimator, Tmodel]():
                                             scoring=scoring,
                                             return_train_score=return_train_score,
                                             error_score="raise",
-                                            n_jobs=2)
+                                            n_jobs=2,
+                                            return_estimator=return_estimator)
 
         return self.revert_negation(results, scoring)
 

@@ -192,10 +192,10 @@ def manually_tune_knearest_classifier(data: pd.DataFrame, targets: pd.Series) ->
         x.append(i)
 
     # Show scores
-    show_errorbars_for_hyperparameter_tuning(train_scores,
-                                             test_scores,
+    show_errorbars_for_hyperparameter_tuning(test_scores,
                                              x,
-                                             "N neighbors")
+                                             xlabel="N neighbors",
+                                             train_scores=train_scores)
 
 def tune_knearest_classifier(data: pd.DataFrame, targets: pd.Series):
     """Tune neighbors number for k-nearest classifier."""

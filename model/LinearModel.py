@@ -1,5 +1,9 @@
+import numpy as np
+import numpy.typing as npt
+from sklearn.base import is_regressor
 from sklearn.pipeline import Pipeline
-from types_config import CvResults, Tlinearestimator, Tlinearmodel
+from types_config import (AcceptEstimatorType, AcceptPreprocessorType,
+                          CvResults, Tlinearestimator, Tlinearmodel)
 
 from .Model import Model
 
@@ -27,28 +31,47 @@ class LinearModel(Model[Tlinearestimator, Tlinearmodel]):
         """
         return self.model[-1].coef_[0]
 
+    def get_coef_from_pipeline(self,
+                               estimators: list[AcceptEstimatorType | AcceptPreprocessorType]) \
+                               -> tuple[list[str], list[npt.NDArray[np.float64]]]:
+        """Get estimators' coefficients for model use within a pipeline."""
+        # Get features. The last element of the pipeline is the actual classifier/regressor model
+        # but no feature names defined at this step.
+        features = [f.split('__')[-1] for f in estimators[0][:-1].get_feature_names_out()]
+
+        # Get associated weight fro each feature. The last element of the pipeline is the model.
+        coefficients = []
+        for estimator in estimators:
+            if self.is_regressor:
+                coefficients.append(getattr(estimator[-1], "coef_"))
+            else:
+                coefficients.append(getattr(estimator[-1], "coef_")[0])
+
+        return features, coefficients
+
+    def get_coef_from_model(self,
+                            estimators: list[AcceptEstimatorType | AcceptPreprocessorType]) \
+                            -> tuple[list[str], list[npt.NDArray[np.float64]]]:
+        """Get estimators' coefficients for model use without a pipeline."""
+        # Get features
+        features = list(getattr(estimators[0], "feature_names_in_"))
+
+        # Get associated weight fro each feature
+        coefficients = []
+        for estimator in estimators:
+            if self.is_regressor:
+                coefficients.append(getattr(estimator, "coef_"))
+            else:
+                coefficients.append(getattr(estimator, "coef_")[0])
+
+        return features, coefficients
+
     def get_coefficients(self, scores: CvResults) -> dict[str, list[float]]:
         """Get coefficients of a logistic regression."""
-        data, features = [], []
-        for estimator in self.get_cv_estimator(scores):
-            if isinstance(estimator, Pipeline):
-                if not features:
-                    # 1st element is the transformer. Remove the transformer name.
-                    features.extend([
-                        f.split('__')[-1] for f in estimator[0].get_feature_names_out()
-                    ])
+        estimators = self.get_cv_estimator(scores)
+        if isinstance(estimators[0], Pipeline):
+            features, coefficients = self.get_coef_from_pipeline(estimators)
+        else:
+            features, coefficients = self.get_coef_from_model(estimators)
 
-                # Last element of the pipeline is the model
-                if self.is_regressor:
-                    data.append(estimator[-1].coef_)
-                else:
-                    data.append(estimator[-1].coef_[0])
-            else:
-                if not features:
-                    features.extend(estimator.feature_names_in_)
-                if self.is_regressor:
-                    data.append(estimator.coef_)
-                else:
-                    data.append(estimator.coef_[0])
-
-        return {k: list(v) for k, v in zip(features, zip(*data))}
+        return {k: list(v) for k, v in zip(features, zip(*coefficients))}

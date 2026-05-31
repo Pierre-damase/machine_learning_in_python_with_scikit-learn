@@ -177,15 +177,21 @@ def _errorbar(means: list[float],
                  elinewidth=1.5,
                  label=label)
 
-def show_errorbars_for_hyperparameter_tuning(train_scores: dict[str, list[float]],
-                                             test_scores: dict[str, list[float]],
+def show_errorbars_for_hyperparameter_tuning(test_scores: dict[str, list[float]],
                                              x: list[float],
-                                             xlabel: str) -> None:
+                                             xlabel: str,
+                                             xscale: str = "linear",
+                                             yscale: str = "linear",
+                                             train_scores: dict[str, list[float]] | None = None) \
+                                             -> None:
     """Display errorbar for manual tuning of hyperparameter."""
-    _errorbar(train_scores["mean"], train_scores["std"], x, "blue", "Train")
     _errorbar(test_scores["mean"], test_scores["std"], x, "orange", "Test")
+    if train_scores:
+        _errorbar(train_scores["mean"], train_scores["std"], x, "blue", "Train")
     plt.xlabel(xlabel)
+    plt.xscale(xscale)
     plt.ylabel("Scores")
+    plt.yscale(yscale)
     plt.legend()
     _show()
 
@@ -234,11 +240,14 @@ def plot_coefficients_of_linear_model(coef: dict[str, list[float]]):
         data = data[top_features]
 
     # Plot
-    _, ax = plt.subplots(figsize=(10, 10))
-    data.abs().plot.box(color={"whiskers": "black", "medians": "black", "caps": "black"},
-                        vert=False,
-                        ax=ax)
-    ax.set(xscale="symlog")
+    titles = ["Linear model coefficients", "Linear model coefficients with log scaling"]
+    _, axs = plt.subplots(ncols=len(titles), figsize=(14, 10), constrained_layout=True)
+    for i in range(len(axs)):
+        data.abs().plot.box(color={"whiskers": "black", "medians": "black", "caps": "black"},
+                            vert=False,
+                            ax=axs[i])
+        axs[i].set(title=titles[i])
+    axs[1].set(xscale="symlog")
     _show()
 
 

@@ -29,10 +29,10 @@ def manual_logistic_regression_tuning(data: pd.DataFrame,
 
     # 4. Show scores
     show_errorbars_for_hyperparameter_tuning(
-        {"mean": scores["training_mean"], "std": scores["training_std"]},
         {"mean": scores["testing_mean"], "std": scores["testing_std"]},
         hyperparameters["logisticregression__C"],
-        "C"
+        xlabel="C",
+        train_scores={"mean": scores["training_mean"], "std": scores["training_std"]}
     )
 
 
@@ -118,11 +118,11 @@ def run_analysis():
     manual_logistic_regression_tuning(*adult_census)
 
     # Gradient boosting classifier manual tuning
-    manual_gradient_boosting_tuning(*adult_census, train_size=0.2)
-    manual_gradient_boosting_tuning(*adult_census, train_size=0.8)
+    #manual_gradient_boosting_tuning(*adult_census, train_size=0.2)
+    #manual_gradient_boosting_tuning(*adult_census, train_size=0.8)
 
     # print("\nGradient boosting with optimum hyperparameters.")
-    optimum_gradient_boosting(*adult_census, learning_rate=0.1, max_leaf_nodes=30)
+    #optimum_gradient_boosting(*adult_census, learning_rate=0.1, max_leaf_nodes=30)
 
 if __name__ == "__main__":
     run_analysis()

@@ -7,7 +7,7 @@ from .RegressorMixin import RegressorMixin
 
 class RidgeRegressionModel(RegressorMixin, LinearModel[Ridge, Tlinearmodel]):
     """
-    Ridge regression model to perform regularizzation.
+    Ridge regression model to perform linear regression with regularizzation.
 
     [To predict continous target]
     """
