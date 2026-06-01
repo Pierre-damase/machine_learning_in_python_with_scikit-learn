@@ -42,48 +42,6 @@ def histogram(penguins: pd.DataFrame):
         plt.xlabel(feature)
         plt.show()
 
-def decision_boundary_display(logistic_regression: LogisticRegressionModel,
-                              penguins_test: pd.DataFrame,
-                              x_test: pd.DataFrame,
-                              response_method: str):
-    """
-    Display the decision function boundary. We expect a straight line which separted the classes of
-    the target.
-
-    [Only possible for logistic regression problem with 2 features.]
-
-    The equation of the decision boundary is: coef0 * x0 + coef1 * x1 + b = 0 with
-    - x0 the culmen length and coef0 the associated weight
-    - x1 the culmen depth and coef1 the associated weight
-    - b the intercept
-
-    Parameter
-    ---------
-    logistic_regression: the trained model
-
-    penguins_test: the whole test dataset, i.e. data and targets together.
-
-    x_test: data test
-
-    reponse_method: respond method use, either
-    - predict
-    - predict_proba: in order to show the confidence on individual classifications. For example,
-    close to the boundary, the confidence is quite low and the probability to be either the first
-    class or the second is close to 0.5, therefore this region is white.
-    """
-    DecisionBoundaryDisplay.from_estimator(logistic_regression.model,
-                                           x_test,
-                                           response_method=response_method,
-                                           cmap="RdBu_r",
-                                           alpha=0.5)
-    sns.scatterplot(data=penguins_test,
-                    x=FEATURES[0],
-                    y=FEATURES[1],
-                    hue=TargetColumn.PENGUIN.value,
-                    palette=["tab:red", "tab:blue"])
-    plt.title("Decision boundary of the trained LogisticRegression")
-    plt.show()
-
 
 #########
 # MODEL #
@@ -108,17 +66,27 @@ def run_analysis():
     penguins_test = pd.concat([x_test, y_test], axis=1)
 
     # Build model
-    model = build_logistic_regression(x_train.columns.to_list())
+    model: LogisticRegressionModel = build_logistic_regression(x_train.columns.to_list())
 
     # Run model
     model.start(x_train, x_test, y_train, y_test)
 
     # Decision function boundary with predict as response method
-    decision_boundary_display(model, penguins_test, x_test, response_method="predict")
+    model.decision_boundary_display(penguins_test,
+                                    x_test,
+                                    response_method="predict",
+                                    cmap="RdBu_r",
+                                    hue=TargetColumn.PENGUIN.value,
+                                    alpha=0.5)
     model.print_weights(FEATURES)
 
     # Decision function boundary with predict_proba as response method
-    decision_boundary_display(model, penguins_test, x_test, response_method="predict_proba")
+    model.decision_boundary_display(penguins_test,
+                                    x_test,
+                                    response_method="predict_proba",
+                                    cmap="RdBu_r",
+                                    hue=TargetColumn.PENGUIN.value,
+                                    alpha=0.5)
 
 if __name__ == "__main__":
     run_analysis()

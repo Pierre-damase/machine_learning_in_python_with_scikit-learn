@@ -304,7 +304,7 @@ class Model[Testimator, Tmodel]():
         # Testing error
         mean_score, std_score = \
             self.get_cross_validate_mean_and_std(scores['test_score'])
-        print("The mean cross-validated testing error is: "
+        print("\nThe mean cross-validated testing error is: "
              f"{mean_score:.3f} ± {std_score:.3f}"
              f" with an average fitting time of {scores['fit_time'].mean():.3f}")
 

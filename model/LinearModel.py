@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.typing as npt
-from sklearn.base import is_regressor
+import pandas as pd
 from sklearn.pipeline import Pipeline
 from types_config import (AcceptEstimatorType, AcceptPreprocessorType,
                           CvResults, Tlinearestimator, Tlinearmodel)
@@ -31,7 +31,7 @@ class LinearModel(Model[Tlinearestimator, Tlinearmodel]):
         """
         return self.model[-1].coef_[0]
 
-    def get_coef_from_pipeline(self,
+    def _get_coef_from_pipeline(self,
                                estimators: list[AcceptEstimatorType | AcceptPreprocessorType]) \
                                -> tuple[list[str], list[npt.NDArray[np.float64]]]:
         """Get estimators' coefficients for model use within a pipeline."""
@@ -49,7 +49,7 @@ class LinearModel(Model[Tlinearestimator, Tlinearmodel]):
 
         return features, coefficients
 
-    def get_coef_from_model(self,
+    def _get_coef_from_model(self,
                             estimators: list[AcceptEstimatorType | AcceptPreprocessorType]) \
                             -> tuple[list[str], list[npt.NDArray[np.float64]]]:
         """Get estimators' coefficients for model use without a pipeline."""
@@ -70,8 +70,25 @@ class LinearModel(Model[Tlinearestimator, Tlinearmodel]):
         """Get coefficients of a logistic regression."""
         estimators = self.get_cv_estimator(scores)
         if isinstance(estimators[0], Pipeline):
-            features, coefficients = self.get_coef_from_pipeline(estimators)
+            features, coefficients = self._get_coef_from_pipeline(estimators)
         else:
-            features, coefficients = self.get_coef_from_model(estimators)
+            features, coefficients = self._get_coef_from_model(estimators)
 
         return {k: list(v) for k, v in zip(features, zip(*coefficients))}
+
+    def print_nlargest_coefficient(self,
+                                   coefficients: dict[str, list[float]],
+                                   n_largest: int = 5) -> None:
+        """
+        Return the n-largest coefficient for a linear model.
+
+        Parameter
+        ---------
+        coef: a dictionary with key as coefficient name and value a list of coefficent values, one
+        for each cross-validation step.
+
+        n_largest: number of coefficient to print
+        """
+        data = pd.DataFrame.from_dict(coefficients)
+        print("The nlargest absolute value of the coefficients are "
+              f"{data.max().nlargest(n_largest).to_dict()}")

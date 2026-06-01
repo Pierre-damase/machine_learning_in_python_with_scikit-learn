@@ -35,7 +35,7 @@ type TransformerType = dict[str, PreProcessorType | bool | int | str]
 ########
 def make_non_linear_data() -> list[DataSetType]:
     """Generate non-linear data."""
-    return [dh.make_gaussian_quantiles_dataset(), dh.make_moons_dataset(), dh.make_xor_dataset()]
+    return [dh.make_moons_dataset(), dh.make_gaussian_quantiles_dataset(), dh.make_xor_dataset()]
 
 def load_adult_census() -> DataSetType:
     """Load adult census dataset."""
@@ -59,15 +59,17 @@ def scatterplot(data: list[DataSetType],
     for i in range(len(data)):
         # Decision boundary
         if regressions is not None:
-            decision_boundary(regressions[i].pipeline, data[i][0], axs[i])
+            # decision_boundary(regressions[i].pipeline, data[i][0], axs[i])
 
-        # Scatterplot
-        axs[i].scatter(data[i][0][FEATURES[0]],
-                       data[i][0][FEATURES[1]],
-                       c=data[i][1],
-                       cmap=ListedColormap(["tab:red", "tab:blue"]),
-                       edgecolor="white",
-                       linewidth=1)
+            regressions[i].decision_boundary_display(
+                pd.concat([data[i][0], data[i][1]], axis=1),
+                data[i][0],
+                response_method="predict_proba",
+                hue=data[i][1],
+                plot_method="pcolormesh",
+                draw_contour_lines=True,
+                ax=axs[i])
+
         axs[i].set(title=titles[i],
                    xlabel=FEATURES[0],
                    ylabel=FEATURES[1] if i == 0 else None)
@@ -382,8 +384,8 @@ def run_analysis_on_adult_census():
     )
 
 def run_analysis():
-    # run_analysis_with_generated_data()
-    run_analysis_on_adult_census()
+    run_analysis_with_generated_data()
+    # run_analysis_on_adult_census()
 
 if __name__ == "__main__":
     run_analysis()
