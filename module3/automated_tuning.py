@@ -1,23 +1,15 @@
-from config import (
-    DataPath,
-    TargetColumn
-)
-from model import GradientBoostingClassifierModel
-from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
-import data_handler as dh
-
-
 from pathlib import Path
+
+import data_handler as dh
+import pandas as pd
+from config import DataPath, TargetColumn
+from model import GradientBoostingClassifierModel
+from scipy.stats import loguniform
 from sklearn.compose import make_column_selector as selector
 from sklearn.ensemble import HistGradientBoostingClassifier
-from sklearn.model_selection import (
-    GridSearchCV,
-    RandomizedSearchCV
-)
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.preprocessing import OrdinalEncoder
-from scipy.stats import loguniform
-
-import pandas as pd
+from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
 
 
 class loguniform_int:
@@ -34,29 +26,36 @@ class loguniform_int:
 #########
 # MODEL #
 #########
-"""Build a gradient boosting classifier."""
 def build_gradient_boosting_classifier() -> GradientBoostingClassifierModel:
-    return GradientBoostingClassifierModel.build_pipeline_with_transformer(
-        transformers = [
+    """Build a gradient boosting classifier."""
+    return GradientBoostingClassifierModel.build_pipeline(
+        transformers=[
             (
                 OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
                 selector(dtype_include=str)
             ),
             ("passthrough", selector(dtype_exclude=str))
         ],
-        model = HistGradientBoostingClassifier(random_state=42, max_leaf_nodes=4)
+        random_state=42,
+        max_leaf_nodes=4
     )
 
 
 #########################
 # HYPERPARAMETER TUNING #
 #########################
-"""
-Hyperparameter tuning by grid-search.
+def grid_search_tuning(model: GradientBoostingClassifierModel,
+                       x_data: pd.DataFrame,
+                       y_data: pd.Series,
+                       x_train: pd.DataFrame,
+                       y_train: pd.Series,
+                       path: Path) -> None:
+    """
+    Hyperparameter tuning by grid-search.
 
-For tree-based models, ordinal encoder avoids having high-dimensional representations.
+    For tree-based models, ordinal encoder avoids having high-dimensional representations.
 
-  - learning_rate: control the ability of a new tree to correct the error of the previous sequence
+    - learning_rate: control the ability of a new tree to correct the error of the previous sequence
     of trees.
       . A gradient boosting model with large learning rate will tend to overfit. It is due to the
         fact that the sequence of added trees will rapidly correct the residuals and thus will
@@ -65,14 +64,8 @@ For tree-based models, ordinal encoder avoids having high-dimensional representa
       . On an other hand, setting a low learning rate will pervent the model to miminimize the loss
         even on the training set and therefore will cause underfitting.
 
-  - max_leaf_nodes: control the depth of each tree
-"""
-def grid_search_tuning(model: GradientBoostingClassifierModel,
-                       x_data: pd.DataFrame,
-                       y_data: pd.Series,
-                       x_train: pd.DataFrame,
-                       y_train: pd.Series,
-                       path: Path) -> None:
+    - max_leaf_nodes: control the depth of each tree
+    """
     # 1. Set up the parameter grid used by the grid-search algorithm
     #    Explicitly specified hyperparameter values to try out
     param_grid = {
@@ -85,22 +78,22 @@ def grid_search_tuning(model: GradientBoostingClassifierModel,
         GridSearchCV, param_grid, x_data, y_data, x_train, y_train, path=path, cv=2
     )
 
-"""
-Hyperparameter tuning by randomized-search.
-
-  - learning_rate: control the ability of a new tree to correct the error of the
-                   previous sequence of trees
-  - max_leaf_nodes: control the depth of each tree
-  - l2_regularization: control the strength of the regulation
-  - min_sample_leaf: control the minimum number of samples required in a leaf
-  - max_bins: control the maximum number of bins to construct the histograms
-"""
 def randomized_search_tuning(model: GradientBoostingClassifierModel,
                              x_data: pd.DataFrame,
                              y_data: pd.Series,
                              x_train: pd.DataFrame,
                              y_train: pd.Series,
                              path: Path) -> None:
+    """
+    Hyperparameter tuning by randomized-search.
+
+    - learning_rate: control the ability of a new tree to correct the error of the
+                   previous sequence of trees
+    - max_leaf_nodes: control the depth of each tree
+    - l2_regularization: control the strength of the regulation
+    - min_sample_leaf: control the minimum number of samples required in a leaf
+    - max_bins: control the maximum number of bins to construct the histograms
+    """
     # 1. Set up the parameter distribution used by the randomized-search algorithm
     #    Specified a range of hyperparameter values to try out
     param_dist = {
@@ -118,12 +111,12 @@ def randomized_search_tuning(model: GradientBoostingClassifierModel,
     )
 
 
-FILE_RANDOMIZED_SEARCH = "randomized_search.csv"
-FILE_GRID_SEARCH = "grid_search.csv"
-
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # 1. Load data
-    adult_census = dh.load_data_from_arff(DataPath.ADULT_CENSUS.value,
+    adult_census = dh.load_data_from_file(DataPath.ADULT_CENSUS.value,
                                           TargetColumn.ADULT_CENSUS)
 
     # 2. Split data into random train and test subsets
@@ -140,3 +133,6 @@ if __name__ == "__main__":
     path = Path(*DataPath.HYPERPARAMETER_TUNING.value.parts + ("randomized_search.csv",))
     randomized_search_tuning(model, *adult_census, x_train, y_train, path)
     show_parallel_coordinates_for_hyperparameter_tuning(pd.read_csv(path))
+
+if __name__ == "__main__":
+    run_analysis()

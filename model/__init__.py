@@ -3,7 +3,10 @@ from .DummyClassifierModel import DummyClassifierModel
 from .GradientBoostingClassifierModel import GradientBoostingClassifierModel
 from .KNeighborsClassifierModel import KNeighborsClassifierModel
 from .KNeighborsRegressorModel import KNeighborsRegressorModel
+from .LinearRegressionModel import LinearRegressionModel
 from .LogisticRegressionModel import LogisticRegressionModel
+from .RidgeRegressionModel import RidgeRegressionModel
+from .RidgeRegressionModelCV import RidgeRegressionModelCV
 from .SupportVectorClassificatioModel import SupportVectorClassificationModel
 
 __all__ = [
@@ -12,6 +15,9 @@ __all__ = [
     'GradientBoostingClassifierModel',
     'KNeighborsClassifierModel',
     'KNeighborsRegressorModel',
+    'LinearRegressionModel',
     'LogisticRegressionModel',
-    'SupportVectorClassificatioModel'
-    ]
+    'RidgeRegressionModel',
+    'RidgeRegressionModelCV',
+    'SupportVectorClassificationModel'
+]

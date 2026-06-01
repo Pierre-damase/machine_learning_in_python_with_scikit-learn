@@ -1,65 +1,61 @@
-from sklearn.model_selection import GridSearchCV
-from config import (
-    DataPath,
-    PENGUIN_NUMERICAL_FEATURES,
-    TargetColumn
-)
-from model import KNeighborsClassifierModel
+from pathlib import Path
 
 import data_handler as dh
-
-
-from pathlib import Path
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import MinMaxScaler, PowerTransformer, QuantileTransformer, StandardScaler
-
 import pandas as pd
+from config import DataPath, TargetColumn
+from model import KNeighborsClassifierModel
+from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import (MinMaxScaler, PowerTransformer,
+                                   QuantileTransformer, StandardScaler)
+from types_config import DataSetType
+
+PENGUIN_NUMERICAL_FEATURES = [
+    "Body Mass (g)", "Flipper Length (mm)", "Culmen Length (mm)"
+]
 
 
 ########
 # DATA #
 ########
-"""Load penguin dataset,extract numerical features of interest and drop na."""
-def load_penguins() -> tuple[pd.DataFrame, pd.Series]:
-    data, targets = dh.load_data_from_csv(DataPath.PENGUIN.value, TargetColumn.PENGUIN)
-    tmp = pd.concat([data[PENGUIN_NUMERICAL_FEATURES], targets], axis=1).dropna()
-    return tmp.drop(columns=[TargetColumn.PENGUIN]), pd.Series(tmp[TargetColumn.PENGUIN.value])
+def load_penguins() -> DataSetType:
+    """Load penguin dataset,extract numerical features of interest and drop na."""
+    data = dh.load_data_from_file(
+        DataPath.PENGUIN.value
+    )[PENGUIN_NUMERICAL_FEATURES + [TargetColumn.PENGUIN]].dropna()
+    return pd.DataFrame(data.drop(TargetColumn.PENGUIN, axis=1)), \
+        pd.Series(data[TargetColumn.PENGUIN])
 
 
 #########
 # MODEL #
 #########
-"""Build a KNeighbors classifier pipeline."""
 def build_kneighbors_classifier(scaler,
                                 columns: list[str],
                                 **kwargs) -> KNeighborsClassifierModel:
-    return KNeighborsClassifierModel.build_pipeline_with_transformer(
-        transformers = [
-            (scaler(**kwargs), columns)
-        ],
-        model = KNeighborsClassifier(n_neighbors=5)
-    )
+    """Build a KNeighbors classifier pipeline."""
+    return KNeighborsClassifierModel.build_pipeline([(scaler(**kwargs), columns)])
 
-"""Build a KNeighbors classifier model without data scaling."""
 def build_kneighbors_classifier_without_scaler() -> KNeighborsClassifierModel:
-    return KNeighborsClassifierModel(n_neighbors=5)
+    """Build a KNeighbors classifier model without data scaling."""
+    return KNeighborsClassifierModel.build()
 
 
 ####################
 # CROSS-VALIDATION #
 ####################
-"""Cross-validation to evaluate the model performance without any tuning."""
 def cross_validation(model: KNeighborsClassifierModel, x_data: pd.DataFrame, y_data: pd.Series):
+    """Cross-validation to evaluate the model performance without any tuning."""
     scores = model.kfold_cross_validate(
         x_data, y_data, nb_fold=10, scoring="balanced_accuracy", return_train_score=True
     )
     model.print_cross_validate(scores)
 
-"""Run cross-validation for model without data scaling."""
 def run_cv_without_scaler(x_data: pd.DataFrame,
                           y_data: pd.Series,
                           x_train: pd.DataFrame,
                           y_train: pd.Series):
+    """Run cross-validation for model without data scaling."""
     model = build_kneighbors_classifier_without_scaler()
     model.start(x_train=x_train, y_train=y_train)
     cross_validation(model, x_data, y_data)
@@ -68,11 +64,11 @@ def run_cv_without_scaler(x_data: pd.DataFrame,
 #################
 # MANUALLY TUNE #
 #################
-"""Manually try out some hyperparameters value to tune the model."""
 def manually_tune_model(model: KNeighborsClassifierModel,
                         x_data: pd.DataFrame,
                         y_data: pd.Series,
                         n_neighbors: int):
+    """Manually try out some hyperparameters value to tune the model."""
     # Set new parameter value
     print(f"Try out model with n_neighbors = {n_neighbors}")
     model.set_hyperparameters(kneighborsclassifier__n_neighbors=n_neighbors)
@@ -84,12 +80,12 @@ def manually_tune_model(model: KNeighborsClassifierModel,
 ##################
 # AUTOMATED TUNE #
 ##################
-"""Build various KNeighbors classifier then tune hyperparameter n_neighbors."""
 def tune_model(model: KNeighborsClassifierModel,
                x_data: pd.DataFrame,
                y_data: pd.Series,
                x_train: pd.DataFrame,
                y_train: pd.Series):
+    """Build various KNeighbors classifier then tune hyperparameter n_neighbors."""
     # 1. Set up the paramater grid used but the grid-search algorithm
     param_grid = {
         "kneighborsclassifier__n_neighbors": [5, 51, 101],
@@ -106,7 +102,10 @@ def tune_model(model: KNeighborsClassifierModel,
     )
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # 1. Load data
     penguins = load_penguins()
 
@@ -126,3 +125,6 @@ if __name__ == "__main__":
 
     # 6. Tune KNeighbors classifier
     tune_model(model, *penguins, x_train, y_train)
+
+if __name__ == "__main__":
+    run_analysis()

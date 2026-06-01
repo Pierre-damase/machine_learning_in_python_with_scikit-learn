@@ -1,28 +1,28 @@
+import data_handler as dh
+import pandas as pd
 from model import DecisionTreeRegressorModel
 from sklearn.metrics import mean_absolute_error
 
-import data_handler as dh
-import pandas as pd
 
 ###########
 # SECTION #
 ###########
-"""
-Test continuous target prediction.
-
-We get alsmot a perfect prediction score. It's way to optimistic and there is some
-problems with the current model.
-
-Indeed, we trained and predicted on the same dataset. Since our decision tree was
-fully grown, every sample in the dataset is stored in a leaf node. Therefore, our
-decision tree fully memorized the dataset given during fit and therefore made no
-error when predicting.
-
-=> This error is called the empirical or training error.
-"""
 def simple_test_continuous_target_prediction(data: pd.DataFrame, targets: pd.Series):
+    """
+    Test continuous target prediction.
+
+    We get alsmot a perfect prediction score. It's way to optimistic and there is some
+    problems with the current model.
+
+    Indeed, we trained and predicted on the same dataset. Since our decision tree was
+    fully grown, every sample in the dataset is stored in a leaf node. Therefore, our
+    decision tree fully memorized the dataset given during fit and therefore made no
+    error when predicting.
+
+    => This error is called the empirical or training error.
+    """
     # 1. Build a decision tree regressor model
-    regressor = DecisionTreeRegressorModel()
+    regressor = DecisionTreeRegressorModel.build()
 
     # 2. Train the model on the whole dataset
     regressor.train(data, targets)
@@ -38,17 +38,17 @@ def simple_test_continuous_target_prediction(data: pd.DataFrame, targets: pd.Ser
     regressor.print_training_accuracy(targets, predicted_targets)
 
 
-"""
-Instead of the previous metod, use train-test split on the dataset.
-
-Then performe a cross validation.
-"""
 def test_continuous_target_prediction(data: pd.DataFrame, targets: pd.Series):
+    """
+    Instead of the previous metod, use train-test split on the dataset.
+
+    Then performe a cross validation.
+    """
     # 1. Randomnly split data between train and test set
     train_test_split = dh.sklearn_train_test_split(data, targets)
 
     # 2. Build a decision tree regressor model
-    regressor = DecisionTreeRegressorModel()
+    regressor = DecisionTreeRegressorModel.build()
 
     # 3. Train the model and calculate its accuracy (training and testing)
     regressor.start(*train_test_split)
@@ -65,9 +65,15 @@ def test_continuous_target_prediction(data: pd.DataFrame, targets: pd.Series):
     regressor.print_shuffle_split_cross_validation_accuracy(scores)
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # Load data
     housing = dh.load_california_dataset()
 
     # simple_test_continuous_target_prediction(*housing)
     test_continuous_target_prediction(*housing)
+
+if __name__ == "__main__":
+    run_analysis()

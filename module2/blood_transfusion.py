@@ -1,55 +1,46 @@
-from config import (
-    DataPath,
-    TargetColumn
-)
-from data_handler import load_data_from_csv
-from model import (
-    DummyClassifierModel,
-    KNeighborsClassifierModel,
-    SupportVectorClassificationModel
-)
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC
-from visualisation.visualisation import (
-    show_errorbars_for_hyperparameter_tuning,
-    show_learning_curve,
-    show_validation_curve
-)
-
+import data_handler as dh
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+from config import DataPath, TargetColumn
+from model import (DummyClassifierModel, KNeighborsClassifierModel,
+                   SupportVectorClassificationModel)
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from types_config import DataSetType
+from visualisation.visualisation import (
+    show_errorbars_for_hyperparameter_tuning, show_learning_curve,
+    show_validation_curve)
 
 
 ###################
 # DATA MANAGEMENT #
 ###################
-"""
-Load blood transfusion dataset.
+def load_blood_transfusion_dataset() -> DataSetType:
+    """
+    Load blood transfusion dataset.
 
-Returns
--------
-data: blood donation information including
+    Returns
+    -------
+    data: blood donation information including
         - R: recency - months since last donation
         - F: frequency - total number of donation
         - M: Monetary - total blood donated in c.c.
         - T: Time - months since first donation
 
-target: whether the individual donated blood in March 2007
-"""
-def load_blood_transfusion_dataset() -> tuple[pd.DataFrame, pd.Series]:
-    return load_data_from_csv(DataPath.BLOOD_TRANSFUSION.value,
-                              TargetColumn.BLOOD_TRANSFUSION)
+    target: whether the individual donated blood in March 2007
+    """
+    return dh.load_data_from_file(DataPath.BLOOD_TRANSFUSION.value, TargetColumn.BLOOD_TRANSFUSION)
 
 
 ###########
 # SECTION #
 ###########
-"""Evaluate the generalization performance of the model."""
 def cross_validation(svm: SupportVectorClassificationModel,
                      data: pd.DataFrame,
                      targets: pd.Series) -> None:
+    """Evaluate the generalization performance of the model."""
     scores = svm.shuffle_split_cross_validate(data, targets, 10, return_train_score=True)
     svm.print_shuffle_split_cross_validation_accuracy(scores)
 
@@ -57,17 +48,17 @@ def cross_validation(svm: SupportVectorClassificationModel,
 #########################
 # HYPERPARAMETER TUNING #
 #########################
-"""
-Use validation curve to tune hyperparameter gamma.
-
-  - gamma > 1: over-fitting
-  - gamma ~= 1: best parameter for this model
-  - gamma < 1: it's not very clear if the classifier is under-fitting
-               but the testing error is worse than for gamma ~= 1
-"""
 def validation_curve(svm: SupportVectorClassificationModel,
                      data: pd.DataFrame,
                      targets: pd.Series) -> None:
+    """
+    Use validation curve to tune hyperparameter gamma.
+
+    - gamma > 1: over-fitting
+    - gamma ~= 1: best parameter for this model
+    - gamma < 1: it's not very clear if the classifier is under-fitting
+               but the testing error is worse than for gamma ~= 1
+    """
     curve = svm.compute_validation_curve(data,
                                          targets,
                                          cv=svm.shuffle_split_cv_generator(10),
@@ -80,26 +71,24 @@ def validation_curve(svm: SupportVectorClassificationModel,
 ############################
 # TRAINING SET SIZE TUNING #
 ############################
-"""
-Use learning curve to tune the training set size.
-
-Adding new samples to the training set does not significantly improve the training
-and testing score. Moreover, it's interesting to notice that the testing score is
-close to 76% knowing that ~ 76% of the sample belong to "not donated". This may
-mean that our small pipeline is not really able to use the input features to
-improve upon that simplistic baseline and increasing the training set size does
-not help either.
-
-  - This observation may be explained by the input features which are not very
-    informative and the classification problem is therefore impossible to solve
-    to a high accuracy
-  - On the other hand, using the default hyperparameter value of the SVC class
-    to try out the training set size is sub-optimal
-  - An, it's also possible that SVC is sub-optimal to solve this problem
-"""
 def learning_curve(svm: SupportVectorClassificationModel,
                    data: pd.DataFrame,
                    targets: pd.Series) -> None:
+    """
+    Use learning curve to tune the training set size.
+
+    Adding new samples to the training set does not significantly improve the training and testing
+    score. Moreover, it's interesting to notice that the testing score is close to 76% knowing that
+    ~ 76% of the sample belong to "not donated". This may mean that our small pipeline is not
+    really able to use the input features to improve upon that simplistic baseline and increasing
+    the training set size does not help either.
+
+      - This observation may be explained by the input features which are not very informative and
+        the classification problem is therefore impossible to solve to a high accuracy
+      - On the other hand, using the default hyperparameter value of the SVC class to try out the
+        training set size is sub-optimal
+      - An, it's also possible that SVC is sub-optimal to solve this problem
+    """
     curve = svm.compute_learning_curve(data,
                                        targets,
                                        cv=svm.shuffle_split_cv_generator(10),
@@ -115,12 +104,10 @@ def learning_curve(svm: SupportVectorClassificationModel,
 #######
 # SVM #
 #######
-"""Set up SVM classifier for blood transfusion dataset."""
 def blood_transfusion_svm(data: pd.DataFrame, targets: pd.Series) -> None:
+    """Set up SVM classifier for blood transfusion dataset."""
     # 1. Set up a support vector machine classifier (SVM)
-    svm = SupportVectorClassificationModel(pipeline_steps=[
-        StandardScaler(), SVC(kernel="rbf")
-    ])
+    svm = SupportVectorClassificationModel.build_pipeline([StandardScaler()], kernel="rbf")
 
     # 2. Cross-validation
     cross_validation(svm, data, targets)
@@ -134,21 +121,21 @@ def blood_transfusion_svm(data: pd.DataFrame, targets: pd.Series) -> None:
     # 5. Training set size tuning with gamma = 1, the optimal value of the hyperparameter
     #    This hyperparameter + a larger dataset help to improve the testing accuracy (up to 80%)
     #    It's remain quite low.
-    svm = SupportVectorClassificationModel(pipeline_steps=[
-        StandardScaler(), SVC(kernel="rbf", gamma=1.0)
-    ])
+    svm = SupportVectorClassificationModel.build_pipeline([StandardScaler()],
+                                                          kernel="rbf",
+                                                          gamma=1.0)
     learning_curve(svm, data, targets)
 
 
 ####################
 # DUMMY CLASSIFIER #
 ####################
-"""Set up dummy classifier for blood transfusion dataset."""
 def blood_transfusion_dummy_classifier(
         data: pd.DataFrame,
         targets: pd.Series) -> None:
+    """Set up dummy classifier for blood transfusion dataset."""
     # 1. Set up a dummy classifier model
-    model = DummyClassifierModel(strategy="most_frequent")
+    model = DummyClassifierModel.build(strategy="most_frequent")
 
     # 2. KFold cross-validation
     scores = model.kfold_cross_validate(data, targets, 10)
@@ -161,18 +148,15 @@ def blood_transfusion_dummy_classifier(
 #########################
 # KNEIGHBORS CLASSIFIER #
 #########################
-"""Set up k-nearest classifier for blood transfusion dataset."""
 def blood_transfusion_knearest_classifier(
         data: pd.DataFrame,
         targets: pd.Series,
         nb_fold: int = 10,
         n_neighbors: int = 1,
         print_score: bool = False) -> dict[str, npt.NDArray[np.float64]]:
+    """Set up k-nearest classifier for blood transfusion dataset."""
     # 1. Set up a k-nearest classifier
-    model = KNeighborsClassifierModel(pipeline_steps=[
-        StandardScaler(),
-        KNeighborsClassifier(n_neighbors=n_neighbors)
-    ])
+    model = KNeighborsClassifierModel.build_pipeline([StandardScaler()], n_neighbors=n_neighbors)
 
     # 2. KFold cross-validation
     scores = model.kfold_cross_validate(
@@ -183,19 +167,19 @@ def blood_transfusion_knearest_classifier(
 
     return scores
 
-"""
-Manually tune neighbors number for k-nearest classifier.
-
-Result identical than ValidationCurveDisplay.from_estimator
-"""
 def manually_tune_knearest_classifier(data: pd.DataFrame, targets: pd.Series) -> None:
+    """
+    Manually tune neighbors number for k-nearest classifier.
+
+    Result identical than ValidationCurveDisplay.from_estimator
+    """
     train_scores: dict[str, list[float]] = {"mean": [], "std": []}
     test_scores: dict[str, list[float]] = {"mean": [], "std": []}
     x: list[float] = []
 
     # Perform k-nearest classifier with various k-fold value
     for i in np.array([1, 2, 5, 10, 20, 50, 100, 200, 250]):
-        scores = blood_transfusion_knearest_classifier(*blood_transfusion, n_neighbors=i)
+        scores = blood_transfusion_knearest_classifier(data, targets, n_neighbors=i)
         # Train
         train_scores["mean"].append(scores["train_score"].mean())
         train_scores["std"].append(scores["train_score"].std())
@@ -208,18 +192,15 @@ def manually_tune_knearest_classifier(data: pd.DataFrame, targets: pd.Series) ->
         x.append(i)
 
     # Show scores
-    show_errorbars_for_hyperparameter_tuning(train_scores,
-                                             test_scores,
+    show_errorbars_for_hyperparameter_tuning(test_scores,
                                              x,
-                                             "N neighbors")
+                                             xlabel="N neighbors",
+                                             train_scores=train_scores)
 
-"""Tune neighbors number for k-nearest classifier."""
 def tune_knearest_classifier(data: pd.DataFrame, targets: pd.Series):
+    """Tune neighbors number for k-nearest classifier."""
     # 1. Build a k-nearest classifier
-    model = KNeighborsClassifierModel(pipeline_steps=[
-        StandardScaler(),
-        KNeighborsClassifier(n_neighbors=5)
-    ])
+    model = KNeighborsClassifierModel.build_pipeline([StandardScaler()])
 
     # 2.
     param_range = np.array([1, 2, 5, 10, 20, 50, 100, 200, 500])
@@ -232,7 +213,10 @@ def tune_knearest_classifier(data: pd.DataFrame, targets: pd.Series):
     show_validation_curve(curve, xlabel="Hyperparameter gamma")
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # Load data and targets
     blood_transfusion = load_blood_transfusion_dataset()
 
@@ -246,3 +230,6 @@ if __name__ == "__main__":
     # Tune neighbors number for k-nearest classifier
     manually_tune_knearest_classifier(*blood_transfusion)
     tune_knearest_classifier(*blood_transfusion)
+
+if __name__ == "__main__":
+    run_analysis()

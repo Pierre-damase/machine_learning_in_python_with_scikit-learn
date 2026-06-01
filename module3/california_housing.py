@@ -1,46 +1,38 @@
-from model import KNeighborsRegressorModel
-from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
-import data_handler as dh
-
-
-from sklearn.model_selection import RandomizedSearchCV
-from config import DataPath
 from pathlib import Path
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.preprocessing import StandardScaler
 
-import pandas as pd
+import data_handler as dh
 import numpy as np
+import pandas as pd
+from config import DataPath
+from model import KNeighborsRegressorModel
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.preprocessing import StandardScaler
+from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
 
 
 #########
 # MODEL #
 #########
 def build_kneighbors_regressor(columns: list[str]) -> KNeighborsRegressorModel:
-    return KNeighborsRegressorModel.build_pipeline_with_transformer(
-        transformers = [
-            (StandardScaler(), columns)
-        ],
-        model = KNeighborsRegressor()
-    )
+    return KNeighborsRegressorModel.build_pipeline([(StandardScaler(), columns)])
 
 
 #########################
 # HYPERPARAMETER TUNING #
 #########################
-"""
-Hyperparameter tuning by randomized-search.
-
-  - n_neighbors of the KNeighborsRegressor
-  - with_mean fo the StandardScaler
-  - with_std of the StandarSacler
-"""
 def randomized_search_tuning(model: KNeighborsRegressorModel,
                              x_data: pd.DataFrame,
                              y_data: pd.Series,
                              x_train: pd.DataFrame,
                              y_train: pd.Series,
                              path: Path) -> None:
+    """
+    Hyperparameter tuning by randomized-search.
+
+    - n_neighbors of the KNeighborsRegressor
+    - with_mean fo the StandardScaler
+    - with_std of the StandarSacler
+    """
     # Set up the parameter distribution used by the randomized-search algorithm
     param_dist = {
         'kneighborsregressor__n_neighbors': np.logspace(0, 3, num=10).astype(np.int32),
@@ -61,7 +53,10 @@ def randomized_search_tuning(model: KNeighborsRegressorModel,
                                             scoring="neg_mean_absolute_error")
 
 
-if __name__ == "__main__":
+############
+# ANALYSIS #
+############
+def run_analysis():
     # 1. Load data
     housing = dh.load_california_dataset()
 
@@ -76,3 +71,6 @@ if __name__ == "__main__":
     path = Path(*DataPath.HYPERPARAMETER_TUNING.value.parts + (file_name,))
     # randomized_search_tuning(model, *housing, x_train, y_train, path)
     show_parallel_coordinates_for_hyperparameter_tuning(pd.read_csv(path))
+
+if __name__ == "__main__":
+    run_analysis()
