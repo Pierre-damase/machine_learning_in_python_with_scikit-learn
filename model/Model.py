@@ -12,7 +12,7 @@ from sklearn.model_selection import (GridSearchCV, LearningCurveDisplay,
                                      ValidationCurveDisplay, cross_validate)
 from sklearn.pipeline import Pipeline, make_pipeline
 from types_config import (AcceptEstimatorType, AcceptPreprocessorType,
-                          CvResults, Tcv, Testimator, Tmodel, Tpreprocessor)
+                          CvResults, Tcv, Tpreprocessor)
 
 from .RegressorMixin import RegressorMixin
 
@@ -299,7 +299,7 @@ class Model[Testimator, Tmodel]():
     ####################
     # CROSS VALIDATION #
     ####################
-    def print_cross_validate(self, scores: CvResults) -> None:
+    def print_cross_validate(self, scores: CvResults, verbose: bool = False) -> None:
         """Print cross validation result."""
         # Testing error
         mean_score, std_score = \
@@ -307,6 +307,9 @@ class Model[Testimator, Tmodel]():
         print("\nThe mean cross-validated testing error is: "
              f"{mean_score:.3f} ± {std_score:.3f}"
              f" with an average fitting time of {scores['fit_time'].mean():.3f}")
+
+        if verbose:
+            print(f"\nTest scores accross the various step of the cv: {scores['test_score']}\n")
 
         # Training error
         if "train_score" in (res := scores):

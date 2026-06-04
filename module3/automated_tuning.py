@@ -106,9 +106,15 @@ def randomized_search_tuning(model: GradientBoostingClassifierModel,
 
     # 2. Tune hyperparameters. For performance issue only run 10 iterations.
     #    In order to make a decent analysis, at least 500 iterations would be best.
-    model.automated_search_cross_validation(
-        RandomizedSearchCV, param_dist, x_data, y_data, x_train, y_train, path=path, cv=5, n_iter=20
-    )
+    model.automated_search_cross_validation(RandomizedSearchCV,
+                                            param_dist,
+                                            x_data,
+                                            y_data,
+                                            x_train,
+                                            y_train,
+                                            path=path,
+                                            cv=5,
+                                            n_iter=20)
 
 
 ############

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from config import GENERATED_DATASET_FEATURES, TargetColumn
 from scipy.io import arff
-from sklearn.datasets import (fetch_california_housing,
+from sklearn.datasets import (fetch_california_housing, make_blobs,
                               make_gaussian_quantiles, make_moons)
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, StandardScaler
@@ -89,6 +89,12 @@ def load_california_dataset() -> DataSetType:
     """
     housing = fetch_california_housing(as_frame=True)
     return housing.data, housing.target * 100
+
+def make_blobs_dataset(n_samples: int, centers: list[list[int]]) -> DataSetType:
+    """Make isotropic gaussian blobs for clustering."""
+    x_data, y_data = make_blobs(n_samples=n_samples, centers=centers, random_state=0)
+    return pd.DataFrame(x_data, columns=GENERATED_DATASET_FEATURES), \
+        pd.Series(y_data, name=TargetColumn.GENERATED_DATASET.value)
 
 def make_gaussian_quantiles_dataset() -> DataSetType:
     """Make gaussian quantiles dataset. a non-linear dataset."""
