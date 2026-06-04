@@ -1,3 +1,4 @@
+from .DecisionTreeClassifierModel import DecisionTreeClassifierModel
 from .DecisionTreeRegressorModel import DecisionTreeRegressorModel
 from .DummyClassifierModel import DummyClassifierModel
 from .GradientBoostingClassifierModel import GradientBoostingClassifierModel
@@ -10,6 +11,7 @@ from .RidgeRegressionModelCV import RidgeRegressionModelCV
 from .SupportVectorClassificatioModel import SupportVectorClassificationModel
 
 __all__ = [
+    'DecisionTreeClassifierModel',
     'DecisionTreeRegressorModel',
     'DummyClassifierModel',
     'GradientBoostingClassifierModel',

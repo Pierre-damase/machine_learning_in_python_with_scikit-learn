@@ -4,11 +4,16 @@ from sklearn.model_selection import (LearningCurveDisplay, ShuffleSplit,
 from sklearn.tree import DecisionTreeRegressor
 from types_config import Tmodel
 
+from .DecisionBoundaryMixin import DecisionBoundaryMixin
 from .Model import Model
 from .RegressorMixin import RegressorMixin
+from .TreeMixin import TreeMixin
 
 
-class DecisionTreeRegressorModel(RegressorMixin, Model[DecisionTreeRegressor, Tmodel]):
+class DecisionTreeRegressorModel(DecisionBoundaryMixin,
+                                 RegressorMixin,
+                                 TreeMixin,
+                                 Model[DecisionTreeRegressor, Tmodel]):
     """
     Decision tree regressor model.
 
@@ -28,7 +33,7 @@ class DecisionTreeRegressorModel(RegressorMixin, Model[DecisionTreeRegressor, Tm
                                  cv: ShuffleSplit,
                                  **kwargs) -> ValidationCurveDisplay:
         """
-        Use validation curve to try out hyperparamerter max_depth.
+        Use validation curve to try out hyperparameter max_depth.
 
         Parameter
         ---------

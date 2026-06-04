@@ -34,7 +34,7 @@ class SupportVectorClassificationModel(Model[SVC, Tmodel]):
                                  score_name: str,
                                  **kwargs) -> ValidationCurveDisplay:
         """
-        Use validation curve to try out hyperparamerter gamma.
+        Use validation curve to try out hyperparameter gamma.
 
         Parameter
         ---------

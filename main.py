@@ -10,6 +10,8 @@ from module4 import (run_ames_housing_linear_model,
                      run_feature_engineering_for_logistic_regression,
                      run_linear_regression, run_logistic_regression,
                      run_regularized_regression)
+from module5 import (run_ames_housing_with_decision_tree,
+                     run_classification_tree, run_regression_tree)
 
 
 def run_module_1():
@@ -33,15 +35,22 @@ def run_module_3():
 
 def run_module_4():
     """Run methods of the 4th module named Linear Models."""
-    # run_linear_regression()
-    # run_feature_engineering_for_linear_regression()
-    # run_logistic_regression()
-    # run_feature_engineering_for_logistic_regression()
-    # run_regularized_regression()
+    run_linear_regression()
+    run_feature_engineering_for_linear_regression()
+    run_logistic_regression()
+    run_feature_engineering_for_logistic_regression()
+    run_regularized_regression()
     run_ames_housing_linear_model()
+
+def run_module_5():
+    """Run methods of the 5th module named Decision tree models."""
+    # run_classification_tree()
+    # run_regression_tree()
+    run_ames_housing_with_decision_tree()
 
 if __name__ == "__main__":
     # run_module_1()
     # run_module_2()
     # run_module_3()
-    run_module_4()
+    # run_module_4()
+    run_module_5()

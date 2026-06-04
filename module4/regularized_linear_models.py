@@ -14,9 +14,9 @@ from types_config import CvResults, DataSetType, Tpreprocessor
 from visualisation import (plot_coefficients_of_linear_model,
                            show_errorbars_for_hyperparameter_tuning)
 
-FEATURES_HOUSING = ["LotFrontage", "LotArea", "PoolArea", "YearBuilt", "YrSold"]
+HOUSING_FEATURES = ["LotFrontage", "LotArea", "PoolArea", "YearBuilt", "YrSold"]
 
-FEATURES_PENGUIN = ["Culmen Length (mm)", "Culmen Depth (mm)"]
+PENGUIN_FEATURES = ["Culmen Length (mm)", "Culmen Depth (mm)"]
 
 type ClassModelTypes = (LinearRegressionModel | LogisticRegressionModel)
 Tclassmodel = TypeVar('Tclassmodel', bound=ClassModelTypes)
@@ -28,13 +28,13 @@ Tclassmodel = TypeVar('Tclassmodel', bound=ClassModelTypes)
 def load_ames_housing() -> DataSetType:
     """Load ames housing dataset."""
     data, targets = dh.load_data_from_file(DataPath.AMES_HOUSING.value, TargetColumn.AMES_HOUSING)
-    return dh.get_subset(data, FEATURES_HOUSING), targets
+    return dh.get_subset(data, HOUSING_FEATURES), targets
 
 def load_penguin() -> DataSetType:
     """Load penguin dataset."""
     data = dh.get_subset(dh.load_data_from_file(DataPath.PENGUIN.value),
-                         columns=FEATURES_PENGUIN + [TargetColumn.PENGUIN]).dropna()
-    return dh.get_subset(data, FEATURES_PENGUIN), pd.Series(data[TargetColumn.PENGUIN])
+                         columns=PENGUIN_FEATURES + [TargetColumn.PENGUIN]).dropna()
+    return dh.get_subset(data, PENGUIN_FEATURES), pd.Series(data[TargetColumn.PENGUIN])
 
 ####################
 # CROSS-VALIDATION #
@@ -229,7 +229,7 @@ def run_regularization_for_classification_task(transformers: list[Tpreprocessor]
         # Get the associated weights of each feature. Skip with feature engineering.
         coefs = regression.get_weights()
         if len(coefs) == 2:
-            weights.append(pd.Series(coefs, index=FEATURES_PENGUIN))
+            weights.append(pd.Series(coefs, index=PENGUIN_FEATURES))
 
         # Boundary decision
         regression.decision_boundary_display(pd.concat([x_train, y_train], axis=1),

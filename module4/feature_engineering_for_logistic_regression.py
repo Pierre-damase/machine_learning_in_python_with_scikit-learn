@@ -59,8 +59,6 @@ def scatterplot(data: list[DataSetType],
     for i in range(len(data)):
         # Decision boundary
         if regressions is not None:
-            # decision_boundary(regressions[i].pipeline, data[i][0], axs[i])
-
             regressions[i].decision_boundary_display(
                 pd.concat([data[i][0], data[i][1]], axis=1),
                 data[i][0],
@@ -77,29 +75,6 @@ def scatterplot(data: list[DataSetType],
     if classifier_title is not None:
         fig.suptitle(classifier_title)
     plt.show()
-
-def decision_boundary(model: Pipeline,
-                      x_data: pd.DataFrame,
-                      ax: Axes):
-    DecisionBoundaryDisplay.from_estimator(model,
-                                           x_data,
-                                           response_method="predict_proba",
-                                           plot_method="pcolormesh",
-                                           cmap="RdBu",
-                                           alpha=0.8,
-                                           vmin=0,
-                                           vmax=1,
-                                           ax=ax)
-
-    DecisionBoundaryDisplay.from_estimator(model,
-                                           x_data,
-                                           response_method="predict_proba",
-                                           plot_method="contour",
-                                           alpha=0.8,
-                                           levels=[0.5],
-                                           linestyles="--",
-                                           linewidth=2,
-                                           ax=ax)
 
 
 #########
