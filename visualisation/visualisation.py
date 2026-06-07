@@ -274,7 +274,9 @@ def plot_bootstrap_samples(data: DataSetType,
                            bootstrap_samples: list[DataSetType],
                            feature_name: str) -> None:
     """
-    Plot resampled data with bootstrap strategy.
+    Plot resampled data with bootstrap strategy. Selected data for the boostrap samples appear
+    with a darker blue circle. Because the boostrap strategy use a selection with replacement,
+    the same data point can be selected several times.
 
     Parameter
     ---------

@@ -354,11 +354,9 @@ def get_cardinality_features(data: pd.DataFrame,
     return pd.DataFrame(data[[k for k,v in cardinality.items() if v > threshold]]), \
            pd.DataFrame(data[[k for k,v in cardinality.items() if v <= threshold]])
 
-
 def make_bootstrap_samples(x_train: pd.DataFrame,
                            y_train: pd.Series,
-                           n_bootstraps: int,
-                           seed: int = 0) -> list[DataSetType]:
+                           n_bootstraps: int) -> list[DataSetType]:
     """
     Bootstraping involves uniformly resampling n data points from a dataset of n points, with
     replacement, ensuring each sample has an equal chance of selection.
@@ -386,16 +384,16 @@ def make_bootstrap_samples(x_train: pd.DataFrame,
     points and y_data the associated targets
     """
     x_data: list[DataSetType] = []
-    for _ in range(n_bootstraps):
-        rng = np.random.default_rng(seed)
+    for i in range(n_bootstraps):
+        rng = np.random.default_rng(i)
 
         # np.arange create an evenly spaced values from 0 to n-1 with n the size of y_train, i.e
         # the number of features/targets.
         # Then randomly select n data points index that will be keep for the bootstrap sample.
         # Replace set to true means that the same index can be selected multiple times
         boostrap_index = rng.choice(np.arange(y_train.shape[0]),
-                                      size=y_train.shape[0],
-                                      replace=True)
+                                    size=y_train.shape[0],
+                                    replace=True)
 
         # Only keep data points with the selected index
         x_data.append({
@@ -405,6 +403,16 @@ def make_bootstrap_samples(x_train: pd.DataFrame,
 
     return x_data
 
+def analyse_bootstrap_samples(bootstrap_samples: list[DataSetType]) -> None:
+    """
+    To determine how many unique data from the original dataset are present in the bootstrap
+    samples.
+    """
+    ratio: list[float] = []
+    for sample in bootstrap_samples:
+        ratio.append((np.unique(sample["x_data"]).size / sample["x_data"].size) * 100)
+    print(f"On average, {np.mean(ratio):.2f}% of the original data present in the "
+          "bootstrap samples.")
 
 ######################
 # DATA NORMALIZATION #

@@ -68,6 +68,36 @@ def scatterplot(x_train: pd.DataFrame,
     plt.title(title)
     plt.show()
 
+def scatterplot_for_bootstrap_samples(x_train: pd.DataFrame,
+                                      x_test: pd.DataFrame,
+                                      y_train: pd.Series,
+                                      y_predicted: list[npt.NDArray[np.float64]],
+                                      bag_prediction: npt.NDArray[np.float64],
+                                      title: str):
+    """
+    Scatterplot for bootstrap samples with the prediction done for each regression model (one
+    regression by bootstrap sample)
+    """
+    sns.scatterplot(x=x_train[GENERATED_DATASET_FEATURE], y=y_train, color="black", alpha=0.5)
+
+    # Prediction of each decision tree model
+    for i in range(len(y_predicted)):
+        plt.plot(x_test[GENERATED_DATASET_FEATURE],
+                 y_predicted[i],
+                 linestyle="--",
+                 alpha=0.8,
+                 label=f"Decision function #{i}")
+
+    # Final prediction
+    plt.plot(x_test[GENERATED_DATASET_FEATURE],
+             bag_prediction,
+             label="Average prediction",
+             linestyle="-")
+
+    plt.legend()
+    plt.title(title)
+    plt.show()
+
 
 #########
 # MODEL #
@@ -143,6 +173,37 @@ def bagging_regressor(x_data: pd.DataFrame, y_data: pd.Series):
     # Cross-validation
     cross_validation(regression, x_data, y_data)
 
+def manual_bagging(x_train: pd.DataFrame, x_test: pd.DataFrame, y_train: pd.Series) -> None:
+    """Manually run bagging algorithm."""
+    # 1. Bootstraping part. Generate many variations of the original training set
+    bootstrap_samples = dh.make_bootstrap_samples(x_train, y_train, 3)
+    plot_bootstrap_samples({"x_data": x_train, "y_data": y_train},
+                           bootstrap_samples,
+                           GENERATED_DATASET_FEATURE)
+    dh.analyse_bootstrap_samples(bootstrap_samples)
+
+    # 2. Fitting part. Each bootstrap sample is fit using a decision tree model for example
+    y_predicted = []
+    for sample in bootstrap_samples:
+        regression = decision_tree(sample["x_data"], sample["y_data"], max_depth=3)
+        y_predicted.append(regression.model.predict(x_test))
+
+    # 3. Aggregation part. The final prediction will consider the aggregated prediction of each
+    # "bootstrap" model, which is an average prediction of each bootstrap sample in regression.
+    bag_prediction = np.mean(y_predicted, axis=0)
+
+    # 4. Display the final prediction as well as the prediction of each model
+    scatterplot_for_bootstrap_samples(x_train,
+                                      x_test,
+                                      y_train,
+                                      y_predicted,
+                                      bag_prediction,
+                                      title="Prediction by trees trained on various bootstraps")
+
+def sklearn_bagging(x_train: pd.DataFrame, x_test: pd.DataFrame, y_train: pd.Series) -> None:
+    """Bagging in scikit-learn."""
+    pass
+
 
 ############
 # ANALYSIS #
@@ -179,15 +240,12 @@ def run_bagging():
     x_train, x_test, y_train = load_generated_data()
 
     # Decision tree
-    regression = decision_tree(x_train, y_train, max_depth=3)
-    scatterplot(x_train, x_test, y_train, predict(regression, x_test),
-                title="Prediction by a single decision tree")
+    #regression = decision_tree(x_train, y_train, max_depth=3)
+    #scatterplot(x_train, x_test, y_train, predict(regression, x_test),
+    #            title="Prediction by a single decision tree")
 
-    # Generate 3 bootstrap samples from the data
-    bootstrap_samples = dh.make_bootstrap_samples(x_train, y_train, 3)
-    plot_bootstrap_samples({"x_data": x_train, "y_data": y_train},
-                           bootstrap_samples,
-                           GENERATED_DATASET_FEATURE)
+    # Manually perform bootstrapping
+    manual_bagging(x_train, x_test, y_train)
 
 def run_random_forest():
     pass
