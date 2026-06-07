@@ -46,8 +46,8 @@ class DecisionBoundaryMixin:
         - x1 the 2nd feature and coef1 the associated weight
         - b the intercept
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         data: the whole test dataset, i.e. data and targets together. Either the train or the test
         dataset
 
@@ -131,8 +131,8 @@ class DecisionBoundaryMixin:
 
         [Only possible for problem with 2 features.]
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         x_data: the features
 
         y_data: the targets

@@ -7,6 +7,7 @@ import seaborn as sns
 from config import GENERATED_DATASET_FEATURES, DataPath, TargetColumn
 from model import DecisionTreeRegressorModel, LinearRegressionModel
 from sklearn.model_selection import GridSearchCV
+from types_config import DataSetType
 
 PENGUIN_FEATURE = "Flipper Length (mm)"
 PENGUIN_TARGET = "Body Mass (g)"
@@ -16,11 +17,12 @@ type ClassModelTypes = (DecisionTreeRegressorModel | LinearRegressionModel)
 ########
 # DATA #
 ########
-def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
+def load_data() -> DataSetType:
     """Load penguin dataset."""
-    data = dh.get_subset(dh.load_data_from_file(DataPath.PENGUIN.value),
-                         columns=[PENGUIN_FEATURE, PENGUIN_TARGET]).dropna()
-    return data, dh.get_subset(data, columns=[PENGUIN_FEATURE]), pd.Series(data[PENGUIN_TARGET])
+    return dh.load_data_from_file(DataPath.PENGUIN.value,
+                                  target=PENGUIN_TARGET,
+                                  columns=[PENGUIN_FEATURE],
+                                  drop_na=True)
 
 def generate_test_data(x_train: pd.DataFrame, offset: int = 0) -> pd.DataFrame:
     """
@@ -37,7 +39,7 @@ def generate_test_data(x_train: pd.DataFrame, offset: int = 0) -> pd.DataFrame:
         columns=[PENGUIN_FEATURE]
     )
 
-def generate_blobs_data():
+def generate_blobs_data() -> pd.DataFrame:
     """
     Build a dataset to illustrate asymmetry in decision tree. The dataset is composed of 2 subsets:
       - A 1st subset where a clear symmetrical separation should be found between the data
@@ -46,19 +48,19 @@ def generate_blobs_data():
     from the second subset than from the first one.
     """
     # Generate both interlaced and separated data
-    x_interlaced, y_interlaced = dh.make_blobs_dataset(300, [[0, 0], [-1, -1]])
-    x_separated, y_separated = dh.make_blobs_dataset(300, [[3, 6], [7, 0]])
+    interlaced_data = dh.make_blobs_dataset(300, [[0, 0], [-1, -1]])
+    separated_data = dh.make_blobs_dataset(300, [[3, 6], [7, 0]])
 
     # Concatenate features / targets from both dataset
-    x_data = np.concat([x_interlaced, x_separated], axis=0)
-    y_data = np.concat([y_interlaced, y_separated])
+    x_data = np.concat([interlaced_data["x_data"], separated_data["x_data"]], axis=0)
+    y_data = np.concat([interlaced_data["y_data"], separated_data["y_data"]])
 
     # Build dataframe. Both dataframe share the same name for features and target.
     data = pd.DataFrame(np.concatenate([x_data, y_data[:, np.newaxis]], axis=1),
-                        columns=GENERATED_DATASET_FEATURES + [y_interlaced.name])
+                        columns=GENERATED_DATASET_FEATURES + [interlaced_data["y_data"].name])
 
     # Set type
-    data[y_interlaced.name] = data[y_interlaced.name].astype(np.int32)
+    data[interlaced_data["y_data"].name] = data[interlaced_data["y_data"].name].astype(np.int32)
 
     return data
 
@@ -99,8 +101,8 @@ def regressor_model(model_class: type[ClassModelTypes],
     """
     Perform either a linear regression or a regression tree.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     model_class: the model to apply
 
     data: the whole dataset
@@ -203,7 +205,7 @@ def run_decision_tree_with_asymmetrical_data():
     """
     # Generate data
     blobs_data = generate_blobs_data()
-    x_train, _, y_train, _ = dh.sklearn_train_test_split(
+    split_data = dh.sklearn_train_test_split(
         dh.get_subset(blobs_data, GENERATED_DATASET_FEATURES),
         pd.Series(blobs_data[TargetColumn.GENERATED_DATASET])
     )
@@ -215,26 +217,28 @@ def run_decision_tree_with_asymmetrical_data():
             tree: DecisionTreeRegressorModel = DecisionTreeRegressorModel.build(
                 max_depth=max_depth, min_samples_leaf=min_samples_leaf
             )
-            tree.start(x_train=x_train, y_train=y_train)
-            tree.decision_boundary_display(pd.concat([x_train, y_train], axis=1),
-                                           x_train,
-                                           response_method="predict",
-                                           hue=TargetColumn.GENERATED_DATASET.value,
-                                           cmap="RdBu",
-                                           alpha=0.5)
+            tree.start(x_train=split_data["x_train"], y_train=split_data["y_train"])
+            tree.decision_boundary_display(
+                pd.concat([split_data["x_train"], split_data["y_train"]], axis=1),
+                split_data["x_train"],
+                response_method="predict",
+                hue=TargetColumn.GENERATED_DATASET.value,
+                cmap="RdBu",
+                alpha=0.5)
             tree.plot_decision_tree(GENERATED_DATASET_FEATURES)
 
 def run_analysis():
     """Use decision tree to build machine learning model with regression task."""
     # Load data
-    penguin, x_train, y_train = load_data()
-    x_test = generate_test_data(x_train)
+    data_train = load_data()
+    x_test = generate_test_data(data_train["x_data"])
+    penguin = pd.concat([data_train["x_data"], data_train["y_data"]], axis=1)
 
     # Run regressor model, either linear regression or regressor tree
-    run_regressor_model(penguin, x_train, x_test, y_train)
+    run_regressor_model(penguin, data_train["x_data"], x_test, data_train["y_data"])
 
     # Hyperparameter tuning
-    run_hyperparameter_tuning(penguin, x_train, x_test, y_train)
+    run_hyperparameter_tuning(penguin, data_train["x_data"], x_test, data_train["y_data"])
 
     # Decision tree with asymmetrical data
     run_decision_tree_with_asymmetrical_data()

@@ -16,9 +16,10 @@ type ClassModelTypes = (DecisionTreeClassifierModel | LogisticRegressionModel)
 # DATA #
 ########
 def load_data() -> DataSetType:
-    data = dh.get_subset(dh.load_data_from_file(DataPath.PENGUIN.value),
-                         columns=PENGUIN_FEATURES + [TargetColumn.PENGUIN]).dropna()
-    return dh.get_subset(data, PENGUIN_FEATURES), pd.Series(data[TargetColumn.PENGUIN])
+    return dh.load_data_from_file(DataPath.PENGUIN.value,
+                                  target=TargetColumn.PENGUIN,
+                                  columns=PENGUIN_FEATURES,
+                                  drop_na=True)
 
 
 ########
@@ -79,31 +80,33 @@ def classifier_model(model_class: type[ClassModelTypes],
     **kwargs: additional parameters for the model such as max_depth for decision tree
     """
     # Split data
-    x_train, x_test, y_train, y_test = dh.sklearn_train_test_split(*penguins, test_size=test_size)
+    split_data = dh.sklearn_train_test_split(**penguins, test_size=test_size)
 
     # Build
     regression = model_class.build(**kwargs)
 
     if param_grid is None:
         # Train model
-        regression.start(x_train, x_test, y_train, y_test)
+        regression.start(**split_data)
 
         # Decision function boundary
-        plot_decision_boundary(regression, pd.concat([x_train, y_train], axis=1), x_train)
+        plot_decision_boundary(regression,
+                               pd.concat([split_data["x_train"], split_data["y_train"]], axis=1),
+                               split_data["x_train"])
 
         # For multi-class problem, it could be useful to use this plot instead of the default one
         # called decision_boundary_display
-        regression.multi_decision_boundary_display(x_test,
-                                                   y_test,
+        regression.multi_decision_boundary_display(split_data["x_test"],
+                                                   split_data["y_test"],
                                                    response_method="predict_proba",
                                                    cmap="Blues")
     else:
         regression.automated_search_cross_validation(GridSearchCV,
                                                      param_grid,
-                                                     penguins[0],
-                                                     penguins[1],
-                                                     x_train,
-                                                     y_train,
+                                                     penguins["x_data"],
+                                                     penguins["y_data"],
+                                                     split_data["x_train"],
+                                                     split_data["y_train"],
                                                      cv=10)
 
     return regression

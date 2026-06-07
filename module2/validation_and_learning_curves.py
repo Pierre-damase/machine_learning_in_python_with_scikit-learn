@@ -9,7 +9,7 @@ from visualisation import (error_distribution, show_learning_curve,
 #####################
 # MODEL PERFORMANCE #
 #####################
-def overfitting_vs_underfitting(data: pd.DataFrame, targets: pd.Series):
+def overfitting_vs_underfitting(x_data: pd.DataFrame, y_data: pd.Series):
     """
     Compare training and testing error.
 
@@ -26,7 +26,7 @@ def overfitting_vs_underfitting(data: pd.DataFrame, targets: pd.Series):
     # 2. Cross-validation to compare testing and training error
     scoring:str = "neg_mean_absolute_error"
     scores = regressor.shuffle_split_cross_validate(
-        data, targets, 30, scoring, test_size = 0.2, return_train_score=True
+        x_data, y_data, 30, scoring, test_size = 0.2, return_train_score=True
     )
     regressor.print_shuffle_split_cross_validation_accuracy(scores)
     error_distribution(scores)
@@ -35,7 +35,7 @@ def overfitting_vs_underfitting(data: pd.DataFrame, targets: pd.Series):
 #########################
 # HYPERPARAMETER TUNING #
 #########################
-def validation_curve(data: pd.DataFrame, targets: pd.Series):
+def validation_curve(x_data: pd.DataFrame, y_data: pd.Series):
     """
     Validation curve help to detect the impact of hyperparameters on the training and testing.
 
@@ -61,8 +61,8 @@ def validation_curve(data: pd.DataFrame, targets: pd.Series):
     regressor = DecisionTreeRegressorModel.build()
 
     # 2. Compute validation curve
-    curve = regressor.compute_validation_curve(data,
-                                               targets,
+    curve = regressor.compute_validation_curve(x_data,
+                                               y_data,
                                                scoring="neg_mean_absolute_error",
                                                score_name="Mean absolute error",
                                                negate_score=True,
@@ -74,7 +74,7 @@ def validation_curve(data: pd.DataFrame, targets: pd.Series):
 ############################
 # TRAINING SET SIZE TUNING #
 ############################
-def learning_curve(data: pd.DataFrame, targets: pd.Series):
+def learning_curve(x_data: pd.DataFrame, y_data: pd.Series):
     """
     Leaning curve to display impact of various learning set sizes on the
     training set.
@@ -83,8 +83,8 @@ def learning_curve(data: pd.DataFrame, targets: pd.Series):
     regressor = DecisionTreeRegressorModel.build()
 
     # 2. Compute validation curve
-    curve = regressor.compute_learning_curve(data,
-                                             targets,
+    curve = regressor.compute_learning_curve(x_data,
+                                             y_data,
                                              cv=regressor.shuffle_split_cv_generator(30),
                                              scoring="neg_mean_absolute_error",
                                              score_name="Mean absolute error",
@@ -103,13 +103,13 @@ def run_analysis():
     # Load data
     housing = dh.load_california_dataset()
 
-    overfitting_vs_underfitting(*housing)
+    overfitting_vs_underfitting(**housing)
 
     # Hyperparameter tuning
-    validation_curve(*housing)
+    validation_curve(**housing)
 
     # Training set size tuning
-    learning_curve(*housing)
+    learning_curve(**housing)
 
 if __name__ == "__main__":
     run_analysis()

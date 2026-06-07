@@ -17,22 +17,14 @@ def load_data(columns: list[str] |None = None) -> DataSetType:
     """
     Load ames housing dataset.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     columns: list of features to select
     """
-    # Load data
-    data = dh.load_data_from_file(DataPath.AMES_HOUSING.value)
-
-    # Filter if needed and keep the targe as well
-    if columns:
-        data = dh.get_subset(data, columns=columns + [TargetColumn.AMES_HOUSING]).dropna()
-        return dh.get_subset(data, AMES_HOUSING_NUMERICAL_FEATURES), \
-            pd.Series(data[TargetColumn.AMES_HOUSING])
-
-    data = data.dropna()
-    return data.drop(TargetColumn.AMES_HOUSING.value, axis=1), \
-        pd.Series(data[TargetColumn.AMES_HOUSING])
+    return dh.load_data_from_file(DataPath.AMES_HOUSING.value,
+                                  target=TargetColumn.AMES_HOUSING,
+                                  columns=columns,
+                                  drop_na=True)
 
 
 #########
@@ -44,8 +36,8 @@ def linear_regression(x_data: pd.DataFrame,
     """
     Perform a linear regression.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     x_data: the whole features
 
     y_data: the whole targets
@@ -66,8 +58,8 @@ def decision_tree(x_data: pd.DataFrame,
     """
     Perform a decision tree.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     x_data: the whole features
 
     y_data: the whole targets
@@ -88,15 +80,15 @@ def decision_tree(x_data: pd.DataFrame,
 
     if tune_maxdepth:
         # Split data
-        x_train, _, y_train, _ = dh.sklearn_train_test_split(x_data, y_data)
+        split_data = dh.sklearn_train_test_split(x_data, y_data)
 
         # Grid-search cv to tune max_depth parameter
         regression.automated_search_cross_validation(GridSearchCV,
                                                      {"max_depth": np.arange(1, 15, 1)},
                                                      x_data,
                                                      y_data,
-                                                     x_train,
-                                                     y_train,
+                                                     split_data["x_train"],
+                                                     split_data["y_train"],
                                                      cv=10)
 
 
@@ -112,15 +104,15 @@ def run_analysis_with_numerical_only():
     housing = load_data(columns=AMES_HOUSING_NUMERICAL_FEATURES)
 
     # Linear regression
-    linear_regression(*housing, [StandardScaler()])
+    linear_regression(**housing, transformers=[StandardScaler()])
 
     # Decision tree with defaut hyperparameter value and tune max_depth
-    decision_tree(*housing, tune_maxdepth=True)
+    decision_tree(**housing, tune_maxdepth=True)
 
     # Decision tree with tuned hyperparameter
-    decision_tree(*housing, max_depth=6)
-    decision_tree(*housing, max_depth=6, random_state=1)
-    decision_tree(*housing, max_depth=6, random_state=2)
+    decision_tree(**housing, max_depth=6)
+    decision_tree(**housing, max_depth=6, random_state=1)
+    decision_tree(**housing, max_depth=6, random_state=2)
 
 def run_analysis_with_all():
     """Run analysis using numerical and categorical data."""
@@ -129,7 +121,7 @@ def run_analysis_with_all():
 
     # Linear regression
     linear_regression(
-        *housing,
+        **housing,
         transformers=[
             (StandardScaler(), selector(dtype_exclude=str)),
             (
@@ -141,7 +133,7 @@ def run_analysis_with_all():
 
     # Decision tree
     decision_tree(
-        *housing,
+        **housing,
         transformers=[
             ("passthrough", selector(dtype_exclude=str)),
             (
@@ -155,7 +147,7 @@ def run_analysis_with_all():
 
 def run_analysis():
     """Use decision tree with ames housing dataset."""
-    # run_analysis_with_numerical_only()
+    run_analysis_with_numerical_only()
     run_analysis_with_all()
 
 if __name__ == "__main__":

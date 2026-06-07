@@ -27,14 +27,16 @@ Tclassmodel = TypeVar('Tclassmodel', bound=ClassModelTypes)
 ########
 def load_ames_housing() -> DataSetType:
     """Load ames housing dataset."""
-    data, targets = dh.load_data_from_file(DataPath.AMES_HOUSING.value, TargetColumn.AMES_HOUSING)
-    return dh.get_subset(data, HOUSING_FEATURES), targets
+    return dh.load_data_from_file(DataPath.AMES_HOUSING.value,
+                                  target=TargetColumn.AMES_HOUSING,
+                                  columns=HOUSING_FEATURES)
 
-def load_penguin() -> DataSetType:
+def load_penguins() -> DataSetType:
     """Load penguin dataset."""
-    data = dh.get_subset(dh.load_data_from_file(DataPath.PENGUIN.value),
-                         columns=PENGUIN_FEATURES + [TargetColumn.PENGUIN]).dropna()
-    return dh.get_subset(data, PENGUIN_FEATURES), pd.Series(data[TargetColumn.PENGUIN])
+    return dh.load_data_from_file(DataPath.PENGUIN.value,
+                                  target=TargetColumn.PENGUIN,
+                                  columns=PENGUIN_FEATURES,
+                                  drop_na=True)
 
 ####################
 # CROSS-VALIDATION #
@@ -172,20 +174,20 @@ def run_regularization_for_regression_task():
     housing = load_ames_housing()
 
     # Linear regression
-    run_simple_linear_regression(*housing)
+    run_simple_linear_regression(**housing)
 
     # Ridge regression
-    run_simple_ridge_regression(*housing, "cholesky")
-    run_simple_ridge_regression(*housing, "saga")
-    run_simple_ridge_regression(*housing, "lsqr")
+    run_simple_ridge_regression(**housing, solver="cholesky")
+    run_simple_ridge_regression(**housing, solver="saga")
+    run_simple_ridge_regression(**housing, solver="lsqr")
 
     # Ridge regression with data scaling
-    run_ridge_regression_with_scaling(*housing, "cholesky")
-    run_ridge_regression_with_scaling(*housing, "saga")
-    run_ridge_regression_with_scaling(*housing, "lsqr")
+    run_ridge_regression_with_scaling(**housing, solver="cholesky")
+    run_ridge_regression_with_scaling(**housing, solver="saga")
+    run_ridge_regression_with_scaling(**housing, solver="lsqr")
 
     # Ridge regression with data scaling and alpha tuning
-    run_ridge_regression_with_tuning(*housing)
+    run_ridge_regression_with_tuning(**housing)
 
 
 #######################
@@ -208,10 +210,10 @@ def run_regularization_for_classification_task(transformers: list[Tpreprocessor]
     by the overall pipeline is now expressive enough to wrap around the minority class.
     """
     # Load data
-    penguin = load_penguin()
+    penguins = load_penguins()
 
     # Split data
-    x_train, x_test, y_train, y_test = dh.sklearn_train_test_split(*penguin, test_size=0.4)
+    split_data = dh.sklearn_train_test_split(**penguins, test_size=0.4)
 
     # C value to try out
     params = [1e-6, 0.01, 0.1, 1, 10, 100, 1e6]
@@ -224,29 +226,32 @@ def run_regularization_for_classification_task(transformers: list[Tpreprocessor]
         regression: LogisticRegressionModel = LogisticRegressionModel.build_pipeline(transformers,
                                                                                      C=params[i],
                                                                                      **kwargs)
-        regression.start(x_train, x_test, y_train, y_test)
+        regression.start(**split_data)
 
         # Get the associated weights of each feature. Skip with feature engineering.
         coefs = regression.get_weights()
+        print(len(coefs))
+        print(PENGUIN_FEATURES)
         if len(coefs) == 2:
             weights.append(pd.Series(coefs, index=PENGUIN_FEATURES))
 
         # Boundary decision
-        regression.decision_boundary_display(pd.concat([x_train, y_train], axis=1),
-                                             x_train,
-                                             response_method="predict_proba",
-                                             multiclass_colors=["blue", "red", "green"],
-                                             palette=["tab:blue", "tab:red", "tab:green"],
-                                             hue=TargetColumn.PENGUIN.value,
-                                             plot_method="pcolormesh",
-                                             draw_contour_lines=True,
-                                             ax=axs[i],
-                                             alpha=0.8,
-                                             vmin=0.0,
-                                             vmax=1.0)
+        regression.decision_boundary_display(
+            pd.concat([split_data["x_train"], split_data["y_train"]], axis=1),
+            split_data["x_train"],
+            response_method="predict_proba",
+            multiclass_colors=["blue", "red", "green"],
+            palette=["tab:blue", "tab:red", "tab:green"],
+            hue=TargetColumn.PENGUIN.value,
+            plot_method="pcolormesh",
+            draw_contour_lines=True,
+            ax=axs[i],
+            alpha=0.8,
+            vmin=0.0,
+            vmax=1.0)
         axs[i].set(title=f"Decision boundary with C={params[i]}",
-                   xlabel=x_train.columns[0],
-                   ylabel=x_train.columns[1] if i == 0 else None)
+                   xlabel=split_data["x_train"].columns[0],
+                   ylabel=split_data["x_train"].columns[1] if i == 0 else None)
     plt.show()
 
     # Impact of the regularization on the coefficient, i.e. the weight associated to each feature.
@@ -264,16 +269,17 @@ def run_analysis():
     models.
     """
     # Regularization for regression task using ridge regression
-    #run_regularization_for_regression_task()
+    run_regularization_for_regression_task()
 
     # Regularization for classification task by using various C parameter
-    #run_regularization_for_classification_task(transformers=[StandardScaler()])
+    run_regularization_for_classification_task(transformers=[StandardScaler()])
 
     # Use Nystroem to experiment impact of the regularization with non-linear feature engineering
-    run_regularization_for_classification_task(transformers=[
+    transformers = [
         StandardScaler(),
         Nystroem(kernel="rbf", gamma=1.0, n_components=100, random_state=0)
-    ],
+    ]
+    run_regularization_for_classification_task(transformers=transformers,
                                                max_iter=1000)
 
 if __name__ == "__main__":

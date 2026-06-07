@@ -35,8 +35,8 @@ class DecisionTreeRegressorModel(DecisionBoundaryMixin,
         """
         Use validation curve to try out hyperparameter max_depth.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         **kwargs: for decision tree regressor, the max_depth hyperparameter is used to
               control the tradeoff between under-fitting and over-fitting.
               Therefore, always use this parameter to find the right tradeoff. Only
@@ -68,8 +68,8 @@ class DecisionTreeRegressorModel(DecisionBoundaryMixin,
         """
         Use learning curve to try out various training set size.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         **kwargs: pass train_sizes to try out various training set sizes
         """
         return super().compute_learning_curve(

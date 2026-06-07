@@ -39,8 +39,8 @@ class Model[Testimator, Tmodel]():
         """
         To instanciate an estimator with the given parameter or default.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         model_params: model parameters
         """
         # Get class attribute
@@ -64,8 +64,8 @@ class Model[Testimator, Tmodel]():
         In this case, model is necessarily an estimator and not a pipeline. This is why we use the
         syntax Model[Testimator, Testimator].
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         **model_params: model parameters
         """
         return cls(model_instance=cls._create_estimator(model_params))
@@ -84,8 +84,8 @@ class Model[Testimator, Tmodel]():
         In this case, model is necessarily a pipeline. This is why we use the syntax
         Model[Testimator, Pipeline].
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         transformers: a list that is either made of transformers which are applied on the whole
         data or tuples of the form (transformer, columns) with transformer the given transformation
         to apply and columns the data to transform.
@@ -367,13 +367,12 @@ class Model[Testimator, Tmodel]():
         """
         Generic methods to either perform a kfold or shuffle split cross-validation.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         * k-fold cv *
         nb_fold: the number of fold
 
         * Suffle split cv *
-
         n_splits: the number of re-shuffling & splitting iterations
 
         test_size: represent the proportion of the dataset to include in the test split
@@ -413,8 +412,8 @@ class Model[Testimator, Tmodel]():
         """
         To performe a kfold cross-validation strategy.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         x_data: the whole dataset
 
         y_data: the whole targets
@@ -478,8 +477,8 @@ class Model[Testimator, Tmodel]():
         used in cross validate. In order to do so, pass a string of the error metric with and
         additional neg_ such as 'neg_mean_absolute_error'.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         x_data: the whole dataset
 
         y_data: the whole targets
@@ -639,7 +638,7 @@ class Model[Testimator, Tmodel]():
 
     def automated_search_cross_validation(self,
                                           search_class: type[GridSearchCV|RandomizedSearchCV],
-                                          hyperparameters: dict[str, list[float|int]],
+                                          hyperparameters: dict[str, list[float|int|None]],
                                           x_data: pd.DataFrame,
                                           y_data: pd.Series,
                                           x_train: pd.DataFrame,
@@ -649,8 +648,8 @@ class Model[Testimator, Tmodel]():
         """
         Perform an automated search to tune hyperparameter.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         search_class: which method to apply for hyperparameter tuning. For now, either a
         grid-search or a randomized-search
 
@@ -662,10 +661,10 @@ class Model[Testimator, Tmodel]():
 
         y_data: the whole targets use for the outer cross-validation
 
-        x_train: training data set use for the inner cross-validation, i.e. the cv used to tune the
+        x_train: training data set use to train the tuned model, i.e. the model using the tuned
         hyperparameters
 
-        y_train: training targets use for the inner cross-validation
+        y_train: training targets use to train the tuned model
 
         path: automated tuning especially for a randomized-search with a large number of iterations
         is costly. Therefore, at the end result are saved as a csv file.
@@ -703,7 +702,7 @@ class Model[Testimator, Tmodel]():
         if path:
             self._save_results_as_dataframe(search_model.cv_results_, path)
 
-        # 5. Compute the generalization performance of the model with the score method preovide a
+        # 5. Compute the generalization performance of the model with the score method provide a
         #    single estimation of the generalization performance. Therefore, it's always preferable
         #    to perform a cross-validation. This pattern is called a nested cross-validation.
         print("Perform an outer cross-validation on the whole dataset to compute the "

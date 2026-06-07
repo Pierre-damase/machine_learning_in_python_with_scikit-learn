@@ -6,7 +6,6 @@ from config import DataPath, TargetColumn
 from model import GradientBoostingClassifierModel
 from scipy.stats import loguniform
 from sklearn.compose import make_column_selector as selector
-from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.preprocessing import OrdinalEncoder
 from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
@@ -126,7 +125,7 @@ def run_analysis():
                                           TargetColumn.ADULT_CENSUS)
 
     # 2. Split data into random train and test subsets
-    x_train, _, y_train, _ = dh.sklearn_train_test_split(*adult_census, test_size=0.8)
+    train_data = dh.get_train_split(dh.sklearn_train_test_split(**adult_census, test_size=0.8))
 
     # 3. Build the classifier model
     model = build_gradient_boosting_classifier()
@@ -137,7 +136,11 @@ def run_analysis():
     # show_parallel_coordinates_for_hyperparameter_tuning(pd.read_csv(path))
 
     path = Path(*DataPath.HYPERPARAMETER_TUNING.value.parts + ("randomized_search.csv",))
-    randomized_search_tuning(model, *adult_census, x_train, y_train, path)
+    randomized_search_tuning(model,
+                             adult_census["x_data"],
+                             adult_census["y_data"],
+                             *train_data,
+                             path)
     show_parallel_coordinates_for_hyperparameter_tuning(pd.read_csv(path))
 
 if __name__ == "__main__":

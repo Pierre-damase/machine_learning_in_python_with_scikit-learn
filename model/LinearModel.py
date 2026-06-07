@@ -82,8 +82,8 @@ class LinearModel(Model[Tlinearestimator, Tlinearmodel]):
         """
         Return the n-largest coefficient for a linear model.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         coef: a dictionary with key as coefficient name and value a list of coefficent values, one
         for each cross-validation step.
 

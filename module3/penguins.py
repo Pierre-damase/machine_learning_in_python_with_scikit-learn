@@ -5,7 +5,6 @@ import pandas as pd
 from config import DataPath, TargetColumn
 from model import KNeighborsClassifierModel
 from sklearn.model_selection import GridSearchCV
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import (MinMaxScaler, PowerTransformer,
                                    QuantileTransformer, StandardScaler)
 from types_config import DataSetType
@@ -20,11 +19,10 @@ PENGUIN_NUMERICAL_FEATURES = [
 ########
 def load_penguins() -> DataSetType:
     """Load penguin dataset,extract numerical features of interest and drop na."""
-    data = dh.load_data_from_file(
-        DataPath.PENGUIN.value
-    )[PENGUIN_NUMERICAL_FEATURES + [TargetColumn.PENGUIN]].dropna()
-    return pd.DataFrame(data.drop(TargetColumn.PENGUIN, axis=1)), \
-        pd.Series(data[TargetColumn.PENGUIN])
+    return dh.load_data_from_file(DataPath.PENGUIN.value,
+                                  target=TargetColumn.PENGUIN,
+                                  columns=PENGUIN_NUMERICAL_FEATURES,
+                                  drop_na=True)
 
 
 #########
@@ -110,21 +108,21 @@ def run_analysis():
     penguins = load_penguins()
 
     # 2. Split data into random train and test subsets
-    x_train, _, y_train, _ = dh.sklearn_train_test_split(*penguins, test_size=0.8)
+    x_train, y_train = dh.get_train_split(dh.sklearn_train_test_split(**penguins, test_size=0.8))
 
     # 3. Build the classifier model
-    model = build_kneighbors_classifier(StandardScaler, penguins[0].columns.to_list())
+    model = build_kneighbors_classifier(StandardScaler, penguins["x_data"].columns.to_list())
 
     # 4. Evaluate the model
-    # cross_validation(model, *penguins)
+    cross_validation(model, **penguins)
 
     # 5. Try out various value for n_neighbors hyperparameter
-    # manually_tune_model(model, *penguins, n_neighbors=51)
-    # manually_tune_model(model, *penguins, n_neighbors=101)
-    # run_cv_without_scaler(*penguins, x_train, y_train)
+    manually_tune_model(model, **penguins, n_neighbors=51)
+    # manually_tune_model(model, **penguins, n_neighbors=101)
+    run_cv_without_scaler(**penguins, x_train=x_train, y_train=y_train)
 
     # 6. Tune KNeighbors classifier
-    tune_model(model, *penguins, x_train, y_train)
+    tune_model(model, **penguins, x_train=x_train, y_train=y_train)
 
 if __name__ == "__main__":
     run_analysis()

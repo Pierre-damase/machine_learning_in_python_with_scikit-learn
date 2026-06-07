@@ -61,7 +61,7 @@ def run_analysis():
     housing = dh.load_california_dataset()
 
     # 2. Split data into random train and test subsets
-    x_train, _, y_train, _ = dh.sklearn_train_test_split(*housing, test_size=0.8)
+    x_train, y_train = dh.get_train_split(dh.sklearn_train_test_split(**housing, test_size=0.8))
 
     # 3. Build the regressor model
     model = build_kneighbors_regressor(x_train.columns.to_list())
@@ -69,7 +69,7 @@ def run_analysis():
     # 4. Tuning using randomized-search
     file_name = "randomized_search_california_housing.csv"
     path = Path(*DataPath.HYPERPARAMETER_TUNING.value.parts + (file_name,))
-    # randomized_search_tuning(model, *housing, x_train, y_train, path)
+    randomized_search_tuning(model, housing["x_data"], housing["y_data"], x_train, y_train, path)
     show_parallel_coordinates_for_hyperparameter_tuning(pd.read_csv(path))
 
 if __name__ == "__main__":

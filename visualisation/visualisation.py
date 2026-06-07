@@ -6,6 +6,7 @@ import plotly.express as px
 import seaborn as sns
 from sklearn.model_selection import (LearningCurveDisplay,
                                      ValidationCurveDisplay)
+from types_config import CvResults, DataSetType
 
 
 def _show():
@@ -16,34 +17,34 @@ def _show():
 ####################
 # DATA OBSERVATION #
 ####################
-def check_data(data: pd.DataFrame, targets: pd.Series) -> None:
+def check_data(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     """Simple workflow to look at the data."""
     display_shape, display_hist, display_count, display_relationship, display_pairplot = \
         True, True, True, True, True
-    str_columns = data.select_dtypes([str]).columns
+    str_columns = x_data.select_dtypes([str]).columns
 
     # Display data shape
     if display_shape:
-        print(f"The dataset contains {data.shape[0]} samples and {data.shape[1]} features with\n"
-              "- numerical features: "
-              f"{', '.join([col for col in data.columns if col not in str_columns])}\n"
+        print(f"The dataset contains {x_data.shape[0]} samples and {x_data.shape[1]} features "
+              "with\n- numerical features: "
+              f"{', '.join([col for col in x_data.columns if col not in str_columns])}\n"
               f"- categorical features: {', '.join(str_columns)}")
 
     # Histogram visualisation of numerical values
     if display_hist:
-        _histogram(data)
+        _histogram(x_data)
 
     # Count categorical values - could be useful to detect class imbalance
     if display_count:
         for col in str_columns:
-            print(data[col].value_counts())
+            print(x_data[col].value_counts())
 
     # Look at the relationship between two variables
     if display_relationship:
-        _crosstab(data, "education", "education-num")
+        _crosstab(x_data, "education", "education-num")
 
     if display_pairplot:
-        _pairplot(data, targets, ["age", "education-num", "hours-per-week"])
+        _pairplot(x_data, y_data, ["age", "education-num", "hours-per-week"])
 
 def _histogram(data: pd.DataFrame) -> None:
     """Simple visualisation of numerical values as histrogram."""
@@ -60,7 +61,7 @@ def _crosstab(data: pd.DataFrame, x: str, y: str) -> None:
     tab = pd.crosstab(index=data[x], columns=data[y])
     print(tab)
 
-def _pairplot(data: pd.DataFrame, target: pd.Series, columns: list[str]) -> None:
+def _pairplot(x_data: pd.DataFrame, y_data: pd.Series, columns: list[str]) -> None:
     """
     Pairplot virusalisation to show how each variable differs according to the target.
 
@@ -70,9 +71,9 @@ def _pairplot(data: pd.DataFrame, target: pd.Series, columns: list[str]) -> None
     n_samples = 5000
 
     _ = sns.pairplot(
-        data=pd.concat([data[:n_samples], target[:n_samples]], sort=False, axis=1),
+        data=pd.concat([x_data[:n_samples], y_data[:n_samples]], sort=False, axis=1),
         vars=columns,
-        hue=target.name, # target is a pandas series and Series.name return his name
+        hue=y_data.name, # target is a pandas series and Series.name return his name
         plot_kws={"alpha": 0.2},
         height=3,
         diag_kind="hist",
@@ -119,7 +120,7 @@ def _jointplot(data: pd.DataFrame, x_axis: str, y_axis: str, title: str) -> None
 ##########################
 # TRAINING/TESTING ERROR #
 ##########################
-def error_distribution(scores: dict[str, npt.NDArray[np.float64]]):
+def error_distribution(scores: CvResults):
     """Display the training and testing error distribution."""
     try:
         errors = pd.DataFrame(
@@ -229,8 +230,8 @@ def plot_coefficients_of_linear_model(coef: dict[str, list[float]]):
     """
     Plot coefficients of linear model.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     coef: dictionary with features as keys and coefficients as values
     """
     # Set up dataframe. Filtered out to keep only the most important features (top 15)
@@ -263,4 +264,46 @@ def plot_cross_validation_scores(test_scores: list[npt.NDArray[np.float64]], lab
     plt.xlabel("Cross-validation iteration")
     plt.ylabel("Accuracy")
     _ = plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    _show()
+
+
+#############
+# BOOTSTRAP #
+#############
+def plot_bootstrap_samples(data: DataSetType,
+                           bootstrap_samples: list[DataSetType],
+                           feature_name: str) -> None:
+    """
+    Plot resampled data with bootstrap strategy.
+
+    Parameter
+    ---------
+    data: original data (features, targets)
+
+    bootstrap_samples: list of (features, target)
+
+    feature_name: display x as a function of y with x the given feature and y the target
+    """
+    nb_samples = len(bootstrap_samples)
+
+    # Plot
+    fig, axs = plt.subplots(ncols=nb_samples, figsize=(14, 10), constrained_layout=True)
+    for i in range(nb_samples):
+        axs[i].scatter(x=bootstrap_samples[i]["x_data"][feature_name],
+                       y=bootstrap_samples[i]["y_data"],
+                       color="tab:blue",
+                       facecolors="none",
+                       alpha=0.5,
+                       label="Resampled data",
+                       s=180,
+                       linewidths=5)
+        axs[i].scatter(data["x_data"][feature_name],
+                       data["y_data"],
+                       color="black",
+                       s=60,
+                       alpha=1,
+                       label="Original data")
+        axs[i].set_title(f"Resampled data #{i}")
+        axs[i].legend()
+    fig.suptitle("Boostrap data resampling")
     _show()

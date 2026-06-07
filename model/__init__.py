@@ -1,3 +1,4 @@
+from .BaggingRegressorModel import BaggingRegressorModel
 from .DecisionTreeClassifierModel import DecisionTreeClassifierModel
 from .DecisionTreeRegressorModel import DecisionTreeRegressorModel
 from .DummyClassifierModel import DummyClassifierModel
@@ -11,6 +12,7 @@ from .RidgeRegressionModelCV import RidgeRegressionModelCV
 from .SupportVectorClassificatioModel import SupportVectorClassificationModel
 
 __all__ = [
+    'BaggingRegressorModel',
     'DecisionTreeClassifierModel',
     'DecisionTreeRegressorModel',
     'DummyClassifierModel',

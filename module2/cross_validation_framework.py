@@ -7,7 +7,7 @@ from sklearn.metrics import mean_absolute_error
 ###########
 # SECTION #
 ###########
-def simple_test_continuous_target_prediction(data: pd.DataFrame, targets: pd.Series):
+def simple_test_continuous_target_prediction(x_data: pd.DataFrame, y_data: pd.Series):
     """
     Test continuous target prediction.
 
@@ -25,42 +25,42 @@ def simple_test_continuous_target_prediction(data: pd.DataFrame, targets: pd.Ser
     regressor = DecisionTreeRegressorModel.build()
 
     # 2. Train the model on the whole dataset
-    regressor.train(data, targets)
+    regressor.train(x_data, y_data)
 
     # 3. Try out model performance
-    predicted_targets = regressor.model.predict(data)
+    y_predicted = regressor.model.predict(x_data)
 
     # 4. The mean absolute error of our regressor is 0
-    score = mean_absolute_error(targets, predicted_targets)
+    score = mean_absolute_error(y_data, y_predicted)
     print(f"On average, our regressor makes an error of {score:.2f} k$")
 
     # 4bis. The accuracy of the model is almost 1 (0.97)
-    regressor.print_training_accuracy(targets, predicted_targets)
+    regressor.print_training_accuracy(y_data, y_predicted)
 
 
-def test_continuous_target_prediction(data: pd.DataFrame, targets: pd.Series):
+def test_continuous_target_prediction(x_data: pd.DataFrame, y_data: pd.Series):
     """
     Instead of the previous metod, use train-test split on the dataset.
 
     Then performe a cross validation.
     """
     # 1. Randomnly split data between train and test set
-    train_test_split = dh.sklearn_train_test_split(data, targets)
+    train_test_split = dh.sklearn_train_test_split(x_data, y_data)
 
     # 2. Build a decision tree regressor model
     regressor = DecisionTreeRegressorModel.build()
 
     # 3. Train the model and calculate its accuracy (training and testing)
-    regressor.start(*train_test_split)
+    regressor.start(**train_test_split)
 
     # 4. Perform a shuffle-split cross validation.
     scores = regressor.shuffle_split_cross_validate(
-        data, targets, 40, "neg_mean_absolute_error"
+        x_data, y_data, 40, "neg_mean_absolute_error"
     )
     regressor.print_shuffle_split_cross_validation_accuracy(scores)
 
     scores = regressor.shuffle_split_cross_validate(
-        data, targets, 40, "neg_mean_absolute_percentage_error"
+        x_data, y_data, 40, "neg_mean_absolute_percentage_error"
     )
     regressor.print_shuffle_split_cross_validation_accuracy(scores)
 
@@ -73,7 +73,7 @@ def run_analysis():
     housing = dh.load_california_dataset()
 
     # simple_test_continuous_target_prediction(*housing)
-    test_continuous_target_prediction(*housing)
+    test_continuous_target_prediction(**housing)
 
 if __name__ == "__main__":
     run_analysis()

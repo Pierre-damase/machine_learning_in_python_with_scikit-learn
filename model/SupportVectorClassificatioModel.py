@@ -36,8 +36,8 @@ class SupportVectorClassificationModel(Model[SVC, Tmodel]):
         """
         Use validation curve to try out hyperparameter gamma.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         **kwargs: for SVM, the gamma hyperparameter is used to control the tradeoff
               between under-fitting and over-fitting.
               Therefore, always use this parameter to find the right tradeoff. Only
@@ -67,8 +67,8 @@ class SupportVectorClassificationModel(Model[SVC, Tmodel]):
         """
         Use learning curve to try out various training set size.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         **kwargs: pass train_sizes to try out various training set sizes
         """
         return super().compute_learning_curve(
