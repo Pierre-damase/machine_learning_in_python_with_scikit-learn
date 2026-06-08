@@ -1,10 +1,10 @@
 from sklearn.ensemble import BaggingRegressor
 from types_config import Tmodel
 
-from .Model import Model
+from .Model import Model, RegressorMixin
 
 
-class BaggingRegressorModel(Model[BaggingRegressor, Tmodel]):
+class BaggingRegressorModel(RegressorMixin, Model[BaggingRegressor, Tmodel]):
     """
     Bagging regressor in order to use bootstrapping algorithm for prediction.
 

@@ -365,7 +365,8 @@ class Model[Testimator, Tmodel]():
                             test_size: float | None = None,
                             **kwargs) -> CvResults:
         """
-        Generic methods to either perform a kfold or shuffle split cross-validation.
+        Generic methods to either perform a kfold or shuffle split cross-validation in order to
+        evaluate the generalization performance of the model.
 
         Parameters
         ----------
@@ -590,7 +591,7 @@ class Model[Testimator, Tmodel]():
                             return_train_score=True)
 
     def _randomized_search_cv(self,
-                             param_distribution: dict[str, list[float|int]],
+                             param_distribution: dict[str, list[float|int|None]],
                              n_iter: int,
                              cv: int,
                              scoring: str | None = None) -> RandomizedSearchCV:

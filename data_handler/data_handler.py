@@ -156,6 +156,10 @@ def load_california_dataset() -> DataSetType:
     housing = fetch_california_housing(as_frame=True)
     return {"x_data": getattr(housing, "data"), "y_data": getattr(housing, "target") * 100}
 
+
+#############
+# MAKE DATA #
+#############
 def make_blobs_dataset(n_samples: int, centers: list[list[int]]) -> DataSetType:
     """Make isotropic gaussian blobs for clustering."""
     x_data, y_data = make_blobs(n_samples=n_samples, centers=centers, random_state=0)
@@ -201,164 +205,11 @@ def make_xor_dataset() -> DataSetType:
 
     return {"x_data": x_data, "y_data": y_data}
 
-
-########################
-# MANIPULATE DATAFRAME #
-########################
-def _extract_target(x_data: pd.DataFrame, y_data: str) -> DataSetType:
-    """Extract target from DataFrame"""
-    return {"x_data": x_data.drop(columns=[y_data]), "y_data": pd.Series(x_data[y_data])}
-
-@overload
-def get_subset(data: pd.DataFrame,
-               columns: list[str],
-               dtypes: list[type] | None = None,
-               to_filter_out: pd.Index | None = None) -> pd.DataFrame:
-    """Get a subset from column names."""
-    get_subset(data, columns=columns)
-
-@overload
-def get_subset(data: pd.DataFrame,
-               columns: list[str] | None = None,
-               dtypes: list[type] = [],
-               to_filter_out: pd.Index | None = None) -> pd.DataFrame:
-    """Get a subset from dtypes."""
-    if not dtypes:
-        raise Exception("To get a subset from dtypes, the list of dtypes must be filled in.")
-    get_subset(data, dtypes=dtypes)
-
-@overload
-def get_subset(data: pd.DataFrame,
-               columns: list[str] | None = None,
-               dtypes: list[type] | None = None,
-               to_filter_out: pd.Index = pd.Index([])) -> pd.DataFrame:
-    """Get a subset from filtering out a peculiar subset."""
-    if to_filter_out.empty:
-        raise Exception("A peculiar subset is required to filter it out from the DataFrame.")
-    get_subset(data, to_filter_out=to_filter_out)
-
-def get_subset(data: pd.DataFrame,
-               columns: list[str] | None = None,
-               dtypes: list[type] | None = None,
-               to_filter_out: pd.Index | None = None) -> pd.DataFrame:
-    """
-    Get a subset either from column names or dtypes and as well from rows that do not have a match
-    with a peculiar subset.
-    """
-    if columns is not None:
-        return pd.DataFrame(data[columns])
-    elif dtypes is not None:
-        return data.select_dtypes(dtypes)
-    elif to_filter_out is not None:
-        return data.loc[:, ~data.columns.isin(to_filter_out)]
-    return data
-
-def manual_train_test_split(x_data: pd.DataFrame,
-                            y_data: pd.Series,
-                            test_size: float = 0.25) -> SplitSetType:
-    """
-    Randomnly split data to build train and test set.
-
-    Returns
-    -------
-    List containing the train-test split of the data.
-    x_train: training data
-
-    x_test: testing data
-
-    y_train: training targets
-
-    y_test: testing targets
-    """
-    # Build training set by using DataFrame.sample() select randomly some rows
-    x_train = x_data.sample(frac=1-test_size)
-    y_train = y_data.loc[y_data.index.isin(x_train.index)]
-
-    if x_train.shape[0] != y_train.shape[0]:
-        raise Exception(f"Error while building train data and targets.")
-
-    # Test set
-    x_test = x_data.loc[~x_data.index.isin(x_train.index)]
-    y_test = y_data.loc[~y_data.index.isin(x_train.index)]
-
-    if x_test.shape[0] != y_test.shape[0]:
-        raise Exception(f"Error while building test data and targets.")
-
-    return {"x_train": x_train, "x_test": x_test, "y_train": y_train, "y_test": y_test}
-
-def sklearn_train_test_split(x_data: pd.DataFrame,
-                             y_data: pd.Series,
-                             test_size: float = 0.25) -> SplitSetType:
-    """
-    Split data to build train and test set using scikit learn.
-
-    In scikit-learn setting the randome-state allows
-    to get deterministic results when we use a random number generator.
-    The randomness comes from shuffling the data,
-    which decides how the dataset is split into a train and test set.
-
-    The data scaling is applied to each feature individually, i.e. each column of the matrix.
-    For each feature, we substract it's mean and divide by its standard deviation.
-
-    Parameter
-    ---------
-    x_data: the whole input data (features)
-
-    y_data: the whole targets
-
-    test_size: how many data will be selected as test data (0.25 means 25%)
-
-    Returns
-    -------
-    List containing the train-test split of the data.
-    x_train: training data
-
-    x_test: testing data
-
-    y_train: training target
-
-    y_test: testing target
-    """
-    assert test_size > 0 and test_size < 1, f"Invalid test_siz value {test_size}. Must be in ]0;1["
-
-    x_train, x_test, y_train, y_test = train_test_split(x_data,
-                                                        y_data,
-                                                        random_state=42,
-                                                        test_size=test_size, shuffle=True)
-    return {
-        "x_train": pd.DataFrame(x_train), "x_test": pd.DataFrame(x_test),
-        "y_train": pd.Series(y_train), "y_test": pd.Series(y_test)
-    }
-
-def get_train_split(split_data: SplitSetType) -> tuple[pd.DataFrame, pd.Series]:
-    """From a train/test split dataset get only the training data/targets."""
-    return split_data["x_train"], split_data["y_train"]
-
-def get_all_categories(data: pd.DataFrame) -> list[str]:
-    """Get all categories available for each categorical feature."""
-    return [sorted(data[col].unique().tolist()) for col in data.columns]
-
-def get_cardinality_features(data: pd.DataFrame,
-                             threshold: int = 10) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Get categorical features with high cardinality.
-
-    Threshold is really low in order to try target encoder with current data.
-
-    Return
-    ------
-    The tuple(high, low) with high the categorical features with high cardinality
-                          low the categorical features with low cardinality
-    """
-    cardinality = {col : data[col].nunique() for col in data.columns}
-    return pd.DataFrame(data[[k for k,v in cardinality.items() if v > threshold]]), \
-           pd.DataFrame(data[[k for k,v in cardinality.items() if v <= threshold]])
-
 def make_bootstrap_samples(x_train: pd.DataFrame,
                            y_train: pd.Series,
                            n_bootstraps: int) -> list[DataSetType]:
     """
-    Bootstraping involves uniformly resampling n data points from a dataset of n points, with
+    Bootstrapping involves uniformly resampling n data points from a dataset of n points, with
     replacement, ensuring each sample has an equal chance of selection.
 
     As a result, the output is another dataset with n data points, likely containing duplicates.
@@ -413,6 +264,204 @@ def analyse_bootstrap_samples(bootstrap_samples: list[DataSetType]) -> None:
         ratio.append((np.unique(sample["x_data"]).size / sample["x_data"].size) * 100)
     print(f"On average, {np.mean(ratio):.2f}% of the original data present in the "
           "bootstrap samples.")
+
+
+########################
+# MANIPULATE DATAFRAME #
+########################
+def _extract_target(x_data: pd.DataFrame, y_data: str) -> DataSetType:
+    """Extract target from DataFrame"""
+    return {"x_data": x_data.drop(columns=[y_data]), "y_data": pd.Series(x_data[y_data])}
+
+@overload
+def get_subset(data: pd.DataFrame,
+               columns: list[str],
+               dtypes: list[type] | None = None,
+               to_filter_out: pd.Index | None = None) -> pd.DataFrame:
+    """Get a subset from column names."""
+    get_subset(data, columns=columns)
+
+@overload
+def get_subset(data: pd.DataFrame,
+               columns: list[str] | None = None,
+               dtypes: list[type] = [],
+               to_filter_out: pd.Index | None = None) -> pd.DataFrame:
+    """Get a subset from dtypes."""
+    if not dtypes:
+        raise Exception("To get a subset from dtypes, the list of dtypes must be filled in.")
+    get_subset(data, dtypes=dtypes)
+
+@overload
+def get_subset(data: pd.DataFrame,
+               columns: list[str] | None = None,
+               dtypes: list[type] | None = None,
+               to_filter_out: pd.Index = pd.Index([])) -> pd.DataFrame:
+    """Get a subset from filtering out a peculiar subset."""
+    if to_filter_out.empty:
+        raise Exception("A peculiar subset is required to filter it out from the DataFrame.")
+    get_subset(data, to_filter_out=to_filter_out)
+
+def get_subset(data: pd.DataFrame,
+               columns: list[str] | None = None,
+               dtypes: list[type] | None = None,
+               to_filter_out: pd.Index | None = None) -> pd.DataFrame:
+    """
+    Get a subset either from column names or dtypes and as well from rows that do not have a match
+    with a peculiar subset.
+    """
+    if columns is not None:
+        return pd.DataFrame(data[columns])
+    elif dtypes is not None:
+        return data.select_dtypes(dtypes)
+    elif to_filter_out is not None:
+        return data.loc[:, ~data.columns.isin(to_filter_out)]
+    return data
+
+def get_all_categories(data: pd.DataFrame) -> list[str]:
+    """Get all categories available for each categorical feature."""
+    return [sorted(data[col].unique().tolist()) for col in data.columns]
+
+def get_cardinality_features(data: pd.DataFrame,
+                             threshold: int = 10) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Get categorical features with high cardinality.
+
+    Threshold is really low in order to try target encoder with current data.
+
+    Return
+    ------
+    The tuple(high, low) with high the categorical features with high cardinality
+                          low the categorical features with low cardinality
+    """
+    cardinality = {col : data[col].nunique() for col in data.columns}
+    return pd.DataFrame(data[[k for k,v in cardinality.items() if v > threshold]]), \
+           pd.DataFrame(data[[k for k,v in cardinality.items() if v <= threshold]])
+
+def dataframe_sample(x_data: pd.DataFrame,
+                     y_data: pd.Series,
+                     size: int) -> tuple[pd.DataFrame, pd.Series]:
+    """
+    Get a random sample of items from the original dataset.
+
+    Parameter
+    ---------
+    x_data: input data
+
+    y_data: targets
+
+    size: represents the absolute number of samples to keep in the subset
+
+    stratify: to split data in a stratified fashion, in order to keep the same percentage of
+    samples of each target class as the complete set.
+    """
+    assert size < len(x_data), "Cannot take a larger sample than population"
+
+    # Build the dataset from the input data and targets
+    df = pd.concat([x_data, y_data], axis=1)
+
+    # In order to split the data in a stratified fashion, discretize continuous variable into
+    # equal-sized buckets. For example, 1000 values for 10 quantiles would produce a categorical
+    # targets with 10 classes. For discret variable, no need to discretize beforehand.
+    if y_data.dtype in [float, int]:
+        df["target_bins"] = pd.qcut(df[y_data.name], q=10, labels=False, duplicates="drop")
+    stratify = df["target_bins"] if "target_bins" in df.columns else df[y_data.name]
+
+    # Determine the proportion of data to keep.
+    proportion = size / len(df)
+
+    # Get the random sample of items using the train_test_split methods of sklearn
+    sample, _ = train_test_split(df, train_size=proportion, stratify=stratify, random_state=42)
+
+    return pd.DataFrame(sample[x_data.columns]), pd.Series(sample[y_data.name])
+
+
+####################
+# TRAIN/TEST SPLIT #
+####################
+def manual_train_test_split(x_data: pd.DataFrame,
+                            y_data: pd.Series,
+                            test_size: float = 0.25) -> SplitSetType:
+    """
+    Randomnly split data to build train and test set.
+
+    Returns
+    -------
+    List containing the train-test split of the data.
+    x_train: training data
+
+    x_test: testing data
+
+    y_train: training targets
+
+    y_test: testing targets
+    """
+    # Build training set by using DataFrame.sample() select randomly some rows
+    x_train = x_data.sample(frac=1-test_size)
+    y_train = y_data.loc[y_data.index.isin(x_train.index)]
+
+    if x_train.shape[0] != y_train.shape[0]:
+        raise Exception(f"Error while building train data and targets.")
+
+    # Test set
+    x_test = x_data.loc[~x_data.index.isin(x_train.index)]
+    y_test = y_data.loc[~y_data.index.isin(x_train.index)]
+
+    if x_test.shape[0] != y_test.shape[0]:
+        raise Exception(f"Error while building test data and targets.")
+
+    return {"x_train": x_train, "x_test": x_test, "y_train": y_train, "y_test": y_test}
+
+def sklearn_train_test_split(x_data: pd.DataFrame,
+                             y_data: pd.Series,
+                             test_size: float = 0.25) -> SplitSetType:
+    """
+    Split data to build train and test set using scikit learn.
+
+    In scikit-learn setting the randome-state allows
+    to get deterministic results when we use a random number generator.
+    The randomness comes from shuffling the data,
+    which decides how the dataset is split into a train and test set.
+
+    The data scaling is applied to each feature individually, i.e. each column of the matrix.
+    For each feature, we substract it's mean and divide by its standard deviation.
+
+    Parameter
+    ---------
+    x_data: the whole input data (features)
+
+    y_data: the whole targets
+
+    test_size: represents the proportion of the dataset to include in the test split
+
+    stratify: to split data in a stratified fashion, in order to keep the same percentage of
+    samples of each target class as the complete set.
+
+    Returns
+    -------
+    List containing the train-test split of the data.
+    x_train: training data
+
+    x_test: testing data
+
+    y_train: training target
+
+    y_test: testing target
+    """
+    assert test_size > 0 and test_size < 1, f"Invalid test_siz value {test_size}. Must be in ]0;1["
+
+    x_train, x_test, y_train, y_test = train_test_split(x_data,
+                                                        y_data,
+                                                        random_state=42,
+                                                        test_size=test_size,
+                                                        shuffle=True)
+    return {
+        "x_train": pd.DataFrame(x_train), "x_test": pd.DataFrame(x_test),
+        "y_train": pd.Series(y_train), "y_test": pd.Series(y_test)
+    }
+
+def get_train_split(split_data: SplitSetType) -> tuple[pd.DataFrame, pd.Series]:
+    """From a train/test split dataset get only the training data/targets."""
+    return split_data["x_train"], split_data["y_train"]
 
 ######################
 # DATA NORMALIZATION #

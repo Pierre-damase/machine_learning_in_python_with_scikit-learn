@@ -4,10 +4,14 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import seaborn as sns
-from model import BaggingRegressorModel, DecisionTreeRegressorModel
-from sklearn.model_selection import GridSearchCV
+from matplotlib.axes import Axes
+from model import (BaggingRegressorModel, DecisionTreeRegressorModel,
+                   RidgeRegressionModel)
+from scipy.stats import randint
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from sklearn.preprocessing import MinMaxScaler, PolynomialFeatures
 from sklearn.tree import DecisionTreeRegressor
-from types_config import DataSetType
+from types_config import DataSetType, Tmodel
 from visualisation import plot_bootstrap_samples
 
 type ClassModelTypes = (BaggingRegressorModel | DecisionTreeRegressorModel)
@@ -61,22 +65,27 @@ def scatterplot(x_train: pd.DataFrame,
                 x_test: pd.DataFrame,
                 y_train: pd.Series,
                 y_predicted: npt.NDArray[np.float64],
-                title: str):
+                title: str | None = None,
+                label: str = "Decision function",
+                column: str = GENERATED_DATASET_FEATURE,
+                ax: Axes | None = None):
     """Scatterplot."""
-    sns.scatterplot(x=x_train[GENERATED_DATASET_FEATURE], y=y_train, color="black", alpha=0.5)
-    plt.plot(x_test[GENERATED_DATASET_FEATURE], y_predicted, label="Decision function")
-    plt.title(title)
-    plt.show()
+    ax = sns.scatterplot(x=x_train[column], y=y_train, color="black", alpha=0.5, ax=ax)
+    ax.plot(x_test[column], y_predicted, label=label)
+    ax.legend()
+    if title is not None:
+        plt.title(title)
+        plt.show()
 
-def scatterplot_for_bootstrap_samples(x_train: pd.DataFrame,
-                                      x_test: pd.DataFrame,
-                                      y_train: pd.Series,
-                                      y_predicted: list[npt.NDArray[np.float64]],
-                                      bag_prediction: npt.NDArray[np.float64],
-                                      title: str):
+def scatterplot_for_manual_bagging(x_train: pd.DataFrame,
+                                   x_test: pd.DataFrame,
+                                   y_train: pd.Series,
+                                   y_predicted: list[npt.NDArray[np.float64]],
+                                   bag_prediction: npt.NDArray[np.float64],
+                                   title: str):
     """
-    Scatterplot for bootstrap samples with the prediction done for each regression model (one
-    regression by bootstrap sample)
+    Scatterplot for manual bagging in order to plot the prediction of each bootstrap sample as well
+    as the final prediction.
     """
     sns.scatterplot(x=x_train[GENERATED_DATASET_FEATURE], y=y_train, color="black", alpha=0.5)
 
@@ -98,6 +107,51 @@ def scatterplot_for_bootstrap_samples(x_train: pd.DataFrame,
     plt.title(title)
     plt.show()
 
+def scatterplot_for_sklearn_bagging(regression: BaggingRegressorModel,
+                                    x_train: pd.DataFrame,
+                                    x_test: pd.DataFrame,
+                                    y_train: pd.Series,
+                                    bag_predictions: npt.NDArray[np.float64],
+                                    title: str):
+    """Scatterplot for bagging using scikit-learn implemenations."""
+    # Convert testing data into numpy array to avoid a warning in scikit-learn
+    x_test_np = x_test.to_numpy()
+
+    # Get estimators
+    estimators = getattr(regression.model, "estimators_")
+
+    # Set up plot
+    nb_features = len(x_train.columns)
+
+    _, axs = plt.subplots(ncols=nb_features, figsize=(20, 12))
+    for i in range(nb_features):
+        column = x_train.columns.values[i]
+        if nb_features == 1:
+            # For generated data, only one features, hence subplots return a single Axes object
+            axs: list[Axes] = [axs]
+
+        # Predict testing target and plot it only for small dataset
+        if len(x_train) < 100:
+            for j in range(len(estimators)):
+                y_predicted = estimators[j].predict(x_test_np)
+                axs[i].plot(x_test[column],
+                            y_predicted,
+                            linestyle="--",
+                            alpha=0.1,
+                            color="tab:gray",
+                            label="Predictions of individual trees" if j == 0 else None)
+
+        # Scatterplot
+        scatterplot(x_train,
+                    x_test,
+                    y_train,
+                    bag_predictions,
+                    label="Prediction of ensemble",
+                    column=column,
+                    ax=axs[i])
+    plt.title(title)
+    plt.show()
+
 
 #########
 # MODEL #
@@ -105,9 +159,10 @@ def scatterplot_for_bootstrap_samples(x_train: pd.DataFrame,
 def cross_validation(model_class: ClassModelTypes,
                      x_data: pd.DataFrame,
                      y_data: pd.Series,
-                     nb_fold: int = 10) -> None:
-    """Perfom cross-validation."""
-    scores = model_class.make_cross_validate(x_data, y_data, nb_fold=nb_fold)
+                     nb_fold: int = 10,
+                     scoring: str | None = None) -> None:
+    """Perfom cross-validation in order to evaluate the generalization performance."""
+    scores = model_class.make_cross_validate(x_data, y_data, nb_fold=nb_fold, scoring=scoring)
     model_class.print_cross_validate(scores)
 
 def predict(model_class: ClassModelTypes,
@@ -154,28 +209,60 @@ def decision_tree(x_data: pd.DataFrame,
 
     return regression
 
-def bagging_regressor(x_data: pd.DataFrame, y_data: pd.Series):
+def bagging_regressor(estimator: type[Tmodel],
+                      x_data: pd.DataFrame,
+                      y_data: pd.Series,
+                      x_test: pd.DataFrame = pd.DataFrame(),
+                      y_test: pd.Series = pd.Series(),
+                      param_distribution: dict[str, list[float|int|None]] | None = None,
+                      n_estimators: int = 20,
+                      scoring: str | None = None) -> BaggingRegressorModel:
     """
-    Build a bagging regressor model using decision tree as estimator.
+    Build a bagging ensemble of decision tree.
 
     Parameters
     ----------
+    estimator: the base estimator of the bagging procedure
+
     x_data: the whole features
 
     y_data: the whole targets
+
+    x_test: testing data, use by the tuning part to test the performance of the best model
+
+    y_test: testing targets, use by the tuning part to test the performance of the nest model
+
+    param_distribution: hyperparameter distribution for tuning
+
+    n_estimators: the number of base estimators in the ensemble
+
+    **kwargs: additional parameters for the base estimator
     """
     # Build model
-    estimator = DecisionTreeRegressor(random_state=0)
     regression: BaggingRegressorModel = BaggingRegressorModel.build(estimator=estimator,
-                                                                    n_estimators=20,
+                                                                    n_estimators=n_estimators,
                                                                     random_state=0)
 
-    # Cross-validation
-    cross_validation(regression, x_data, y_data)
+    if param_distribution is not None and not x_test.empty and not y_test.empty:
+        # Grid-search cv
+        regression.automated_search_cross_validation(RandomizedSearchCV,
+                                                     param_distribution,
+                                                     x_data,
+                                                     y_data,
+                                                     x_test,
+                                                     y_test,
+                                                     cv=10,
+                                                     n_iter=100)
+
+    else:
+        # Cross-validation
+        cross_validation(regression, x_data, y_data, scoring=scoring)
+
+    return regression
 
 def manual_bagging(x_train: pd.DataFrame, x_test: pd.DataFrame, y_train: pd.Series) -> None:
-    """Manually run bagging algorithm."""
-    # 1. Bootstraping part. Generate many variations of the original training set
+    """Manual bagging algorithm implementation."""
+    # 1. Bootstrapping part. Generate many variations of the original training set
     bootstrap_samples = dh.make_bootstrap_samples(x_train, y_train, 3)
     plot_bootstrap_samples({"x_data": x_train, "y_data": y_train},
                            bootstrap_samples,
@@ -190,19 +277,85 @@ def manual_bagging(x_train: pd.DataFrame, x_test: pd.DataFrame, y_train: pd.Seri
 
     # 3. Aggregation part. The final prediction will consider the aggregated prediction of each
     # "bootstrap" model, which is an average prediction of each bootstrap sample in regression.
-    bag_prediction = np.mean(y_predicted, axis=0)
+    bag_predictions = np.mean(y_predicted, axis=0)
 
     # 4. Display the final prediction as well as the prediction of each model
-    scatterplot_for_bootstrap_samples(x_train,
-                                      x_test,
-                                      y_train,
-                                      y_predicted,
-                                      bag_prediction,
-                                      title="Prediction by trees trained on various bootstraps")
+    scatterplot_for_manual_bagging(x_train,
+                                   x_test,
+                                   y_train,
+                                   y_predicted,
+                                   bag_predictions,
+                                   title="Prediction by trees trained on various bootstraps")
 
-def sklearn_bagging(x_train: pd.DataFrame, x_test: pd.DataFrame, y_train: pd.Series) -> None:
-    """Bagging in scikit-learn."""
-    pass
+def sklearn_bagging(estimator: type[Tmodel],
+                    x_data: pd.DataFrame,
+                    y_data: pd.Series,
+                    x_train: pd.DataFrame = pd.DataFrame(),
+                    x_test: pd.DataFrame = pd.DataFrame(),
+                    y_train: pd.Series = pd.Series(),
+                    y_test: pd.Series = pd.Series(),
+                    n_estimators: int = 100,
+                    param_distribution: dict[str, list[float|int|None]] | None = None,
+                    scoring: str | None = None) -> None:
+    """
+    Bagging in scikit-learn.
+
+    The bagging procedure is implements as a meta-estimator: it takes a base model (estimator) that
+    is cloned several times and trained independently on each bootstrap sample.
+
+    Parameter
+    ---------
+    estimator: the base estimator of the bagging procedure. In this case either a decision tree or
+    a polynomial pipeline
+
+    x_data: the whole features
+
+    y_data: the whole targets
+
+    x_train: training data
+
+    x_test: testing data, use by the tuning part to test the performance of the best model
+
+    y_train: training target
+
+    y_test: testing targets, use by the tuning part to test the performance of the nest model
+
+    param_distribution: to tune bagging regressor hyperparameters by randomized-search cv
+
+    scoring: the scoring function use either by the cv or the randomized-search cv
+    """
+    # For generated data, use the whole dataset as the training and ploting data.
+    x_train = x_train if not x_train.empty else x_data
+    y_train = y_train if not y_train.empty else y_data
+
+    # 1. Bootstrapping part. Build a bagging ensemble with n_estimators=100 to get a stronger
+    # smoothing effect. x_test and y_test only use by the tuning part.
+    regression = bagging_regressor(estimator,
+                                   x_data,
+                                   y_data,
+                                   x_test,
+                                   y_test,
+                                   n_estimators=n_estimators,
+                                   param_distribution=param_distribution,
+                                   scoring=scoring)
+
+    # 2. Fitting part.
+    regression.start(x_train, x_test, y_train, y_test)
+
+    # 3. Aggregation part.
+    x_test_ = x_test
+    if len(x_test) > 100 and not y_test.empty:
+        x_test_, _ = dh.dataframe_sample(x_test, y_test, size=100)
+    bag_predictions = regression.model.predict(x_test_)
+
+    # Visualisation
+    if len(x_train) < 100:
+        scatterplot_for_sklearn_bagging(regression,
+                                        x_train ,
+                                        x_test_,
+                                        y_train,
+                                        bag_predictions,
+                                        "Prediction by bagging regressor")
 
 
 ############
@@ -220,17 +373,41 @@ def run_ensemble_models_example():
     # Use a grid-search cv to find the optimal set of paramaters. In this case,
     # {"max_depth": None, "min_samples_leaf": 1, "min_samples_split": 50} and the generalization
     # performance of the tuned model is much better but still low (~0.51)
-    decision_tree(**housing, param_grid={
+    param_grid = {
         "max_depth": [5, 8, None],
         "min_samples_split": [2, 10, 30, 50],
         "min_samples_leaf": [0.01, 0.05, 0.1, 1]
-    })
+    }
+    decision_tree(**housing, param_grid=param_grid)
 
     # Bagging regressor with decision tree. Without tunin hyperparameter, the model is already
     # better than the tuned decision tree (~0.6)
-    bagging_regressor(**housing)
+    bagging_regressor(DecisionTreeRegressor(random_state=0, max_depth=3), **housing)
 
-def run_bagging():
+def run_sklearn_bagging_on_generated_data(x_train: pd.DataFrame,
+                                          x_test: pd.DataFrame,
+                                          y_train: pd.Series) -> None:
+    """Bagging in scikit-learn with generated data."""
+    # Scikit-learn implementation of the bagging procedure with a simple decision tree as base
+    # estimator
+    estimator = DecisionTreeRegressor(random_state=0, max_depth=3)
+    sklearn_bagging(estimator, x_data=x_train, y_data=y_train, x_test=x_test)
+
+    # Scikit-learn implementation of the bagging procedure with a complex pipelines as base
+    # estimator. Data are (i) scale to the 0-1 range, (ii) then some data engineering with a
+    # PolynomialFeatures and (iii) the pipeline feeds tge resulting non-linear features to a
+    # regularized linear regression model for the final prediction of the target.
+    estimator = RidgeRegressionModel.build_pipeline(
+        transformers=[
+            MinMaxScaler(),
+            PolynomialFeatures(degree=4, include_bias=False)
+        ],
+        alpha=1e-10
+    )
+    sklearn_bagging(estimator.model, x_data=x_train, y_data=y_train, x_test=x_test)
+
+
+def run_bagging_on_generated_data():
     """
     Use generated data to better understand bagging, which stand for Bootstrap aggregating. Bagging
     uses bootstrap resampling (random sampling with replacement) to learn several models on random
@@ -244,10 +421,41 @@ def run_bagging():
     #scatterplot(x_train, x_test, y_train, predict(regression, x_test),
     #            title="Prediction by a single decision tree")
 
-    # Manually perform bootstrapping
-    manual_bagging(x_train, x_test, y_train)
+    # Manual implementation of the bagging algorithm
+    #manual_bagging(x_train, x_test, y_train)
+
+    # Scikit-learn implementation of the bagging procedure
+    run_sklearn_bagging_on_generated_data(x_train, x_test, y_train)
+
+def run_bagging():
+    """Use real data this time, the californian dataset, to run run bagging procedure."""
+    # Load data
+    housing = load_californian_housing()
+    split_data = dh.sklearn_train_test_split(**housing, test_size=0.5)
+
+    # Evaluate the generalization performance of the model using the mean absolute error (~45 k$)
+    estimator = DecisionTreeRegressor()
+    sklearn_bagging(estimator, **housing, **split_data, scoring="neg_mean_absolute_error")
+
+    # Use a randomized-search cv in order to tune the bagging regressor hyperparameters (~35 k$)
+    #param_distribution = {
+    #    "n_estimators": randint(10, 30), # 26
+    #    "max_samples": [0.5, 0.8, 1.0], # 1.0
+    #    "max_features": [0.5, 0.8, 1.0], # 0.8
+    #    "estimator__max_depth": randint(3, 10) # 9
+    #}
+    #sklearn_bagging(estimator,
+    #                **housing,
+    #                **split_data,
+    #                param_distribution=param_distribution,
+    #                scoring="neg_mean_absolute_error")
 
 def run_random_forest():
+    """
+    Base estimator of random forest is always a decision tree. Morever, when training a tree, the
+    search for the best split is only done on a subset of the original features, which is taken
+    randomly and differs for each split node.
+    """
     pass
 
 def run_analysis():
@@ -256,7 +464,10 @@ def run_analysis():
     # run_ensemble_models_example()
 
     # Use generated data to better understand bagging
-    run_bagging()
+    # run_bagging_on_generated_data()
+
+    # Use californian housing as an example for bagging and hyperparameter tuning
+    # run_bagging()
 
     run_random_forest()
 
