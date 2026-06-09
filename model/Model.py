@@ -162,9 +162,14 @@ class Model[Testimator, Tmodel]():
             print("Start a simple pipeline with the given steps: "
                   f"{self.model.named_steps}.")
             start = time.time()
+
+            # Train the model
             self.train(x_train, y_train)
-            print(f"Pipeline over: {self.model[-1].n_iter_[0]} iterations "
-                  f"in {time.time() - start:.3f}s.")
+
+            # Pipeline over
+            n_iter = f"{getattr(self.model[-1], 'n_iter_')[0]} iterations " \
+                if "n_iter_" in self.model[-1].__dict__ else " "
+            print(f"Pipeline over: {n_iter}in {time.time() - start:.3f}s")
         else:
             # Simply train the model
             self.train(x_train, y_train)
@@ -177,9 +182,23 @@ class Model[Testimator, Tmodel]():
     ###################
     # TRAIN & PREDICT #
     ###################
-    def train(self, x_train: pd.DataFrame, y_train: pd.Series) -> None:
-        """Train the model using training data."""
-        self.model.fit(x_train, y_train)
+    def train(self,
+              x_train: pd.DataFrame,
+              y_train: pd.Series,
+              sample_weight: npt.NDArray[np.int8] | None = None) -> None:
+        """
+        Train the model using training data.
+
+        Parameters
+        ----------
+        x_train: training data
+
+        y_train: training targets
+
+        sample_weight: If None samples are equally  weighted, else give more importance to samples
+        with higher weight.
+        """
+        self.model.fit(x_train, y_train, sample_weight=sample_weight)
 
     def predict(self,
                 x_train: pd.DataFrame,
@@ -200,13 +219,16 @@ class Model[Testimator, Tmodel]():
         y_test: testing target
         """
         # Predict target
-        y_train_predicted = self.model.predict(x_train)
+        y_predicted = getattr(self.model, "predict")(x_train)
 
         if self.is_regressor:
-            self._predict_regressor(y_train, y_train_predicted, y_test, self.model.predict(x_test))
+            self._predict_regressor(y_train,
+                                    y_predicted,
+                                    y_test,
+                                    getattr(self.model, "predict")(x_test))
         else:
             # Check model performance with training data
-            self.print_training_accuracy(y_train, y_train_predicted)
+            self.print_training_accuracy(y_train, y_predicted)
 
             # Check model performance with testing data
             self.print_testing_accuracy(x_test, y_test)
@@ -220,20 +242,87 @@ class Model[Testimator, Tmodel]():
         """Specific prediction for regressor, check RegressorMix for the implementation."""
         pass
 
+    def get_misclassified(self,
+                           x_data: pd.DataFrame,
+                           y_data: pd.Series) -> pd.DataFrame:
+        """
+        For classifier, get misclassified samples.
+
+        Parameters
+        ----------
+        x_data: input data use for the prediction
+
+        y_data: target, i.e. the actual class for each sample and use to compare the prediction
+        """
+        if self.is_regressor:
+            raise Exception("Get misclassified only work for classifier.")
+
+        # Predict target
+        y_predicted = getattr(self.model, "predict")(x_data)
+
+        # Get misclassified
+        return x_data.iloc[np.flatnonzero(y_data != y_predicted)]
+
+    def get_sample_weight(self,
+                          y_data: pd.Series,
+                          misclassified: pd.DataFrame) -> npt.NDArray[np.int8]:
+        """
+        Set a higher weight to misclassified samples to give them more importance at the training.
+
+        The strategy is quite simple, misclassified samples have a weight of 1 and any other
+        samples have a weight of 0.
+
+        Parameters
+        ----------
+        y_data: targets
+
+        misclassified: misclassified samples at the prediction
+        """
+        # Create an array of zeros with the same shape than the targets
+        sample_weight = np.zeros_like(y_data, dtype=int)
+
+        # Set the weight of misclassified samples to 1
+        sample_weight[misclassified.index] = 1
+
+        return sample_weight
+
+    def get_ensemble_weight(self,
+                            y_data: pd.Series,
+                            l_misclassified: list[pd.DataFrame]) -> list[float]:
+        """
+        The idea is that several classifier won't have the same accuracy depending of the weight
+        given to the samples. Therefore, when predicting a class, we should trust the best
+        classifier slightly more than the others.
+
+        This methods return the weight given to each classifier.
+
+        Parameters
+        ----------
+        y_data: targets
+
+        misclassified: misclassified samples at the prediction of the first model
+
+        newly_misclassified: the model was trained again with samples reweighting to give more
+        importance to misclassified samples
+        """
+        y_size = len(y_data)
+        return [(y_size - len(misclassified)) / y_size for misclassified in l_misclassified]
+
+
     #############
     # PARAMETER #
     #############
     def get_hyperparameters(self) -> dict[str, any]:
         """Get model hyperparameters."""
-        return self.model.get_params()
+        return getattr(self.model, "get_params")()
 
     def set_hyperparameters(self, **parameters) -> None:
         """Set model hyperparameters."""
-        self.model.set_params(**parameters)
+        getattr(self.model, "set_params")(**parameters)
 
     def set_output(self, transform: str = "pandas") -> None:
         """To configure  all steps of the pipeline to output DataFrame."""
-        self.model.set_output(transform=transform)
+        getattr(self.model, "set_output")(transform=transform)
 
     @property
     def pipeline(self) -> Pipeline:

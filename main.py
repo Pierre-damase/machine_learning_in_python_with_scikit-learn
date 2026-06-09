@@ -51,7 +51,7 @@ def run_module_5():
 
 def run_module_6():
     """Run methods of the 6th module named Ensemble of models."""
-    run_bootstrapping()
+    # run_bootstrapping()
     run_boosting()
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
+from typing import Literal
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -5,19 +7,12 @@ from matplotlib import cm
 from matplotlib.axes import Axes
 from sklearn.inspection import DecisionBoundaryDisplay
 
-RESPONSE_METHODS = ["predict", "predict_proba"]
-
-CMAP = ["Blues", "RdBu", "RdBu_r", "tab10"]
-
 
 class DecisionBoundaryMixin:
-    def _assert(self, x_data: pd.DataFrame, response_method: str, cmap: str, **kwargs):
+    def _assert(self, x_data: pd.DataFrame, cmap: str, **kwargs):
         """Check some parameters value."""
         assert len(x_data.columns) == 2, \
             "To be able to plot a decision boundary, two features are expected"
-        assert response_method in RESPONSE_METHODS, \
-            f"Expected response method are {RESPONSE_METHODS}"
-        assert cmap in CMAP, f"Expected cmap are {CMAP}"
         if cmap == "tab10":
             assert "norm" in kwargs.keys(), f"For tab10 cmap, additional param norm is required"
 
@@ -25,15 +20,17 @@ class DecisionBoundaryMixin:
     def decision_boundary_display(self,
                                   data: pd.DataFrame,
                                   x_data: pd.DataFrame,
-                                  response_method: str,
+                                  response_method: Literal["predict", "predict_proba"],
                                   hue: str,
-                                  cmap: str = "RdBu",
+                                  cmap: Literal["Blues", "RdBu", "RdBu_r", "tab10"] = "RdBu",
                                   multiclass_colors: list[str] | None = None,
                                   plot_method="contourf",
                                   draw_contour_lines: bool = False,
                                   ax: Axes | None = None,
                                   title: str | None = None,
                                   palette: list[str] | None = None,
+                                  misclassified: pd.DataFrame | None = None,
+                                  previously_misclassified: pd.DataFrame | None = None,
                                   **kwargs) -> None:
         """
         Display the decision function boundary. For 2-classes problem, we expect a straight line
@@ -48,7 +45,7 @@ class DecisionBoundaryMixin:
 
         Parameters
         ----------
-        data: the whole test dataset, i.e. data and targets together. Either the train or the test
+        data: the whole dataset, i.e. data and targets together. Either the train or the test
         dataset
 
         x_data: the features
@@ -74,11 +71,16 @@ class DecisionBoundaryMixin:
 
         class_of_interest: the class to be plotted, mostly for multi-classes problem
 
+        misclassidied: for classifier, plot the misclassified samples from the prediction
+
+        previously_misclassified: for classifier, plot previously misclassified samples. Use after
+        training a new model by adding more weight to the misclassified samples.
+
         **kwargs: additional keyword arguments to be passed to the `plot_method` such as alpha,
         vmin, vmax, norm if cmap is tab10
         """
         # Assert
-        self._assert(x_data, response_method, cmap, **kwargs)
+        self._assert(x_data, cmap, **kwargs)
 
         # Get model
         model = getattr(self, "model")
@@ -114,6 +116,19 @@ class DecisionBoundaryMixin:
                         palette=palette if palette else ["tab:red", "tab:blue"],
                         edgecolor="white",
                         ax=plot.ax_)
+
+        if misclassified is not None or previously_misclassified is not None:
+            miss_data = misclassified if misclassified is not None else previously_misclassified
+            miss_title = f"{'Previously ' if previously_misclassified is not None else ''}" \
+                "Misclassified Samples"
+            sns.scatterplot(data=miss_data,
+                            x=x_data.columns[0], # 1st feature,
+                            y=x_data.columns[1], # 2nd feature
+                            label=miss_title,
+                            marker="+",
+                            s=150,
+                            color="k")
+
         plt.title(title if title else "Decision boundary of the trained model")
 
         if not ax:
@@ -139,7 +154,7 @@ class DecisionBoundaryMixin:
 
         """
         # Assert
-        self._assert(x_data, response_method, cmap)
+        self._assert(x_data, response_method)
 
         # Get model & class
         model = getattr(self, "model")

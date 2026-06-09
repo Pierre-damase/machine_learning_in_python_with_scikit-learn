@@ -154,7 +154,7 @@ def load_california_dataset() -> DataSetType:
         the 100 range to the thousand dollars range for visualization
     """
     housing = fetch_california_housing(as_frame=True)
-    return {"x_data": getattr(housing, "data"), "y_data": getattr(housing, "target") * 100}
+    return make_dataset(x_data=getattr(housing, "data"), y_data=getattr(housing, "target") * 100)
 
 
 #############
@@ -163,20 +163,16 @@ def load_california_dataset() -> DataSetType:
 def make_blobs_dataset(n_samples: int, centers: list[list[int]]) -> DataSetType:
     """Make isotropic gaussian blobs for clustering."""
     x_data, y_data = make_blobs(n_samples=n_samples, centers=centers, random_state=0)
-    return {
-        "x_data": pd.DataFrame(x_data, columns=GENERATED_DATASET_FEATURES),
-        "y_data": pd.Series(y_data, name=TargetColumn.GENERATED_DATASET.value)
-    }
+    return make_dataset(x_data=pd.DataFrame(x_data, columns=GENERATED_DATASET_FEATURES),
+                        y_data=pd.Series(y_data, name=TargetColumn.GENERATED_DATASET.value))
 
 def make_gaussian_quantiles_dataset() -> DataSetType:
     """Make gaussian quantiles dataset. a non-linear dataset."""
     x_data, y_data = make_gaussian_quantiles(
         n_samples=100, n_features=2, n_classes=2, random_state=42
     )
-    return {
-        "x_data": pd.DataFrame(x_data, columns=GENERATED_DATASET_FEATURES),
-        "y_data": pd.Series(y_data, name=TargetColumn.GENERATED_DATASET.value)
-    }
+    return make_dataset(x_data=pd.DataFrame(x_data, columns=GENERATED_DATASET_FEATURES),
+                        y_data=pd.Series(y_data, name=TargetColumn.GENERATED_DATASET.value))
 
 def make_moons_dataset() -> DataSetType:
     """
@@ -184,10 +180,8 @@ def make_moons_dataset() -> DataSetType:
     algorithm. A non-linear dataset.
     """
     x_data, y_data = make_moons(n_samples=100, noise=0.13, random_state=42)
-    return {
-        "x_data": pd.DataFrame(x_data, columns=GENERATED_DATASET_FEATURES),
-        "y_data": pd.Series(y_data, name=TargetColumn.GENERATED_DATASET.value)
-    }
+    return make_dataset(x_data=pd.DataFrame(x_data, columns=GENERATED_DATASET_FEATURES),
+                        y_data=pd.Series(y_data, name=TargetColumn.GENERATED_DATASET.value))
 
 def make_xor_dataset() -> DataSetType:
     """
@@ -203,7 +197,7 @@ def make_xor_dataset() -> DataSetType:
         x_data[GENERATED_DATASET_FEATURES[1]] > 0
     ), name=TargetColumn.GENERATED_DATASET.value)
 
-    return {"x_data": x_data, "y_data": y_data}
+    return make_dataset(x_data=x_data, y_data=y_data)
 
 def make_bootstrap_samples(x_train: pd.DataFrame,
                            y_train: pd.Series,
@@ -247,10 +241,9 @@ def make_bootstrap_samples(x_train: pd.DataFrame,
                                     replace=True)
 
         # Only keep data points with the selected index
-        x_data.append({
-            "x_data": x_train.iloc[boostrap_index],
-            "y_data": y_train.iloc[boostrap_index]
-        })
+        x_data.append(
+            make_dataset(x_data=x_train.iloc[boostrap_index], y_data=y_train.iloc[boostrap_index])
+        )
 
     return x_data
 
@@ -269,9 +262,13 @@ def analyse_bootstrap_samples(bootstrap_samples: list[DataSetType]) -> None:
 ########################
 # MANIPULATE DATAFRAME #
 ########################
+def make_dataset(x_data: pd.DataFrame, y_data: pd.Series) -> DataSetType:
+    """Return a dataset that contains both the input data and the target."""
+    return {"x_data": x_data, "y_data": y_data}
+
 def _extract_target(x_data: pd.DataFrame, y_data: str) -> DataSetType:
     """Extract target from DataFrame"""
-    return {"x_data": x_data.drop(columns=[y_data]), "y_data": pd.Series(x_data[y_data])}
+    return make_dataset(x_data=x_data.drop(columns=[y_data]), y_data=pd.Series(x_data[y_data]))
 
 @overload
 def get_subset(data: pd.DataFrame,
@@ -337,34 +334,30 @@ def get_cardinality_features(data: pd.DataFrame,
     return pd.DataFrame(data[[k for k,v in cardinality.items() if v > threshold]]), \
            pd.DataFrame(data[[k for k,v in cardinality.items() if v <= threshold]])
 
-def dataframe_sample(x_data: pd.DataFrame,
-                     y_data: pd.Series,
-                     size: int) -> tuple[pd.DataFrame, pd.Series]:
+def get_sample(data: DataSetType, size: int) -> DataSetType:
     """
     Get a random sample of items from the original dataset.
 
     Parameter
     ---------
-    x_data: input data
-
-    y_data: targets
+    data: input data and target
 
     size: represents the absolute number of samples to keep in the subset
 
     stratify: to split data in a stratified fashion, in order to keep the same percentage of
     samples of each target class as the complete set.
     """
-    assert size < len(x_data), "Cannot take a larger sample than population"
+    assert size < len(data["x_data"]), "Cannot take a larger sample than population"
 
     # Build the dataset from the input data and targets
-    df = pd.concat([x_data, y_data], axis=1)
+    df = pd.concat([data["x_data"], data["y_data"]], axis=1)
 
     # In order to split the data in a stratified fashion, discretize continuous variable into
     # equal-sized buckets. For example, 1000 values for 10 quantiles would produce a categorical
     # targets with 10 classes. For discret variable, no need to discretize beforehand.
-    if y_data.dtype in [float, int]:
-        df["target_bins"] = pd.qcut(df[y_data.name], q=10, labels=False, duplicates="drop")
-    stratify = df["target_bins"] if "target_bins" in df.columns else df[y_data.name]
+    if data["y_data"].dtype in [float, int]:
+        df["target_bins"] = pd.qcut(df[data["y_data"].name], q=10, labels=False, duplicates="drop")
+    stratify = df["target_bins"] if "target_bins" in df.columns else df[data["y_data"].name]
 
     # Determine the proportion of data to keep.
     proportion = size / len(df)
@@ -374,6 +367,23 @@ def dataframe_sample(x_data: pd.DataFrame,
 
     return pd.DataFrame(sample[x_data.columns]), pd.Series(sample[y_data.name])
 
+def get_between(data: DataSetType, feature: str, left: int, right: int) -> DataSetType:
+    """
+    Return a new dataset where feature values lie between lef t and right.
+
+    Parameter
+    ---------
+    data: input data and target
+
+    feature: which feature value that must lie between left and right
+
+    left: left boundary
+
+    right: right boundary
+    """
+    mask = data["x_data"][feature].between(left, right)
+    return make_dataset(x_data=pd.DataFrame(data["x_data"][mask]),
+                        y_data=pd.Series(data["y_data"][mask]))
 
 ####################
 # TRAIN/TEST SPLIT #

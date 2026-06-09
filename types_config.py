@@ -5,7 +5,9 @@ import numpy.typing as npt
 import pandas as pd
 from sklearn.compose import make_column_selector as selector
 from sklearn.dummy import DummyClassifier
-from sklearn.ensemble import BaggingRegressor, HistGradientBoostingClassifier
+from sklearn.ensemble import (BaggingClassifier, BaggingRegressor,
+                              HistGradientBoostingClassifier,
+                              RandomForestClassifier, RandomForestRegressor)
 from sklearn.kernel_approximation import Nystroem
 from sklearn.linear_model import (LinearRegression, LogisticRegression, Ridge,
                                   RidgeCV)
@@ -18,7 +20,7 @@ from sklearn.preprocessing import (KBinsDiscretizer, MinMaxScaler,
                                    QuantileTransformer, SplineTransformer,
                                    StandardScaler)
 from sklearn.svm import SVC, SVR
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 
 ########
@@ -62,22 +64,25 @@ Tlinearestimator = TypeVar('Tlinearestimator', bound=AcceptLinearEstimatorType)
 
 Tlinearmodel = TypeVar('Tlinearmodel', bound=AcceptLinearEstimatorType | Pipeline)
 
-# Classifier
-type AcceptClassifierType = (DecisionTreeRegressor
+# Classifier for classification task
+type AcceptClassifierType = (BaggingClassifier
+                             | DecisionTreeClassifier
                              | DummyClassifier
                              | HistGradientBoostingClassifier
                              | KNeighborsClassifier
                              | LogisticRegression
+                             | RandomForestClassifier
                              | Ridge
                              | RidgeCV
                              | SVC)
 Tclassifier = TypeVar('Tclassifier', bound=AcceptClassifierType)
 
-# Regressor
+# Regressor for regression task
 type AcceptRegressorType = (BaggingRegressor
                             | DecisionTreeRegressor
                             | KNeighborsRegressor
                             | LinearRegression
+                            | RandomForestRegressor
                             | SVR)
 Tregressor = TypeVar('Tregressor', bound=AcceptRegressorType)
 

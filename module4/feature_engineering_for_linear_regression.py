@@ -94,8 +94,8 @@ def run_model(model_class: type[DecisionTreeRegressor
     """
     Build and train a model.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     generated_data: the whole dataset use for the plot
 
     x_data: the whole feature use to train the model and predict
@@ -119,8 +119,8 @@ def run_model_with_pipeline(model: Pipeline,
     """
     Build and train a model within a pipeline.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     data: the whole dataset use for the plot
 
     x_data: the whole feature use to train the model and predict
