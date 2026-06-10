@@ -63,11 +63,12 @@ def validation_curve(x_data: pd.DataFrame, y_data: pd.Series):
     # 2. Compute validation curve
     curve = regressor.compute_validation_curve(x_data,
                                                y_data,
+                                               param_name="max_depth",
+                                               param_range=[1, 5, 10, 15, 20, 25],
                                                scoring="neg_mean_absolute_error",
                                                score_name="Mean absolute error",
                                                negate_score=True,
-                                               cv=regressor.shuffle_split_cv_generator(30),
-                                               param_range=[1, 5, 10, 15, 20, 25])
+                                               cv=regressor.shuffle_split_cv_generator(30))
     show_validation_curve(curve, xlabel="Maximum depth of decision tree")
 
 
@@ -83,16 +84,14 @@ def learning_curve(x_data: pd.DataFrame, y_data: pd.Series):
     regressor = DecisionTreeRegressorModel.build()
 
     # 2. Compute validation curve
+    train_sizes = np.linspace(0.1, 1.0, num=5, endpoint=True)
     curve = regressor.compute_learning_curve(x_data,
                                              y_data,
+                                             train_sizes=train_sizes,
                                              cv=regressor.shuffle_split_cv_generator(30),
                                              scoring="neg_mean_absolute_error",
                                              score_name="Mean absolute error",
-                                             negate_score=True,
-                                             train_sizes=np.linspace(0.1,
-                                                                     1.0,
-                                                                     num=5,
-                                                                     endpoint=True))
+                                             negate_score=True)
     show_learning_curve(curve)
 
 

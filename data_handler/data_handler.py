@@ -4,7 +4,8 @@ from typing import overload
 
 import numpy as np
 import pandas as pd
-from config import GENERATED_DATASET_FEATURES, TargetColumn
+from config import (GENERATED_DATASET_FEATURES, SYNTHETIC_DATASET_FEATURE,
+                    SYNTHETIC_DATASET_TARGET, TargetColumn)
 from scipy.io import arff
 from sklearn.datasets import (fetch_california_housing, make_blobs,
                               make_gaussian_quantiles, make_moons)
@@ -257,6 +258,53 @@ def analyse_bootstrap_samples(bootstrap_samples: list[DataSetType]) -> None:
         ratio.append((np.unique(sample["x_data"]).size / sample["x_data"].size) * 100)
     print(f"On average, {np.mean(ratio):.2f}% of the original data present in the "
           "bootstrap samples.")
+
+def make_synthetic_dataset(x_min: float,
+                           x_max: float,
+                           seed: int,
+                           noise_shift: float,
+                           y_train_shift: int = 0,
+                           n_samples:int = 50) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
+    """
+    Generate simple synthetic dataset to better understand bootstraping / grandient-boosting.
+
+    Parameters
+    ----------
+    x_min: lower boundary of the features
+
+    x_max: higher boundary of the features
+
+    seed: a seed to initialize the generator
+
+    noise_shift: add some shift to the noise
+
+    y_train_shift: add some shift to the target
+
+    n_samples: how many samples to generate
+
+    Returns
+    -------
+    x_train: training data
+
+    x_test: testing data, i.e. generated data not use to train the model
+
+    y_train: targets
+    """
+    # Create a random number generator
+    rng = np.random.default_rng(seed)
+
+    # Features
+    x_train = rng.uniform(x_min, x_max, size=n_samples)
+    x_test = np.linspace(x_max, x_min, num=300)
+
+    # Target
+    noise = noise_shift * rng.normal(size=(n_samples,))
+    y_train = x_train**3 - 0.5 * (x_train + y_train_shift) ** 2 + noise
+    y_train /= y_train.std()
+
+    return pd.DataFrame(x_train, columns=[SYNTHETIC_DATASET_FEATURE]), \
+        pd.DataFrame(x_test, columns=[SYNTHETIC_DATASET_FEATURE]), \
+        pd.Series(y_train, name=SYNTHETIC_DATASET_TARGET)
 
 
 ########################

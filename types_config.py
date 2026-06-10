@@ -5,7 +5,9 @@ import numpy.typing as npt
 import pandas as pd
 from sklearn.compose import make_column_selector as selector
 from sklearn.dummy import DummyClassifier
-from sklearn.ensemble import (BaggingClassifier, BaggingRegressor,
+from sklearn.ensemble import (AdaBoostClassifier, BaggingClassifier,
+                              BaggingRegressor, GradientBoostingClassifier,
+                              GradientBoostingRegressor,
                               HistGradientBoostingClassifier,
                               RandomForestClassifier, RandomForestRegressor)
 from sklearn.kernel_approximation import Nystroem
@@ -65,9 +67,11 @@ Tlinearestimator = TypeVar('Tlinearestimator', bound=AcceptLinearEstimatorType)
 Tlinearmodel = TypeVar('Tlinearmodel', bound=AcceptLinearEstimatorType | Pipeline)
 
 # Classifier for classification task
-type AcceptClassifierType = (BaggingClassifier
+type AcceptClassifierType = (AdaBoostClassifier
+                             | BaggingClassifier
                              | DecisionTreeClassifier
                              | DummyClassifier
+                             | GradientBoostingClassifier
                              | HistGradientBoostingClassifier
                              | KNeighborsClassifier
                              | LogisticRegression
@@ -80,6 +84,7 @@ Tclassifier = TypeVar('Tclassifier', bound=AcceptClassifierType)
 # Regressor for regression task
 type AcceptRegressorType = (BaggingRegressor
                             | DecisionTreeRegressor
+                            | GradientBoostingRegressor
                             | KNeighborsRegressor
                             | LinearRegression
                             | RandomForestRegressor

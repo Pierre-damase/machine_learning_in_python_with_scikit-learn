@@ -3,14 +3,14 @@ from typing import TypeVar
 import data_handler as dh
 import pandas as pd
 from config import DataPath, TargetColumn
-from model import (GradientBoostingClassifierModel, LinearRegressionModel,
+from model import (HistGradientBoostingClassifierModel, LinearRegressionModel,
                    LogisticRegressionModel)
 from sklearn.compose import make_column_selector as selector
 from sklearn.preprocessing import (OneHotEncoder, OrdinalEncoder,
                                    StandardScaler, TargetEncoder)
 
 Tmodel = TypeVar('Tmodel',
-                 GradientBoostingClassifierModel,
+                 HistGradientBoostingClassifierModel,
                  LogisticRegressionModel,
                  LinearRegressionModel)
 
@@ -152,7 +152,7 @@ def treebased_model_with_heterogeneously_data_type(x_data: pd.DataFrame,
     # Build a pipeline with a column transformer in order to deal with
     # numerical and categorical variables
     print("\nReference pipeline with no numerical scaling and integer-coded categories")
-    model = GradientBoostingClassifierModel.build_pipeline(
+    model = HistGradientBoostingClassifierModel.build_pipeline(
         transformers=[
             (
                 OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
@@ -166,7 +166,7 @@ def treebased_model_with_heterogeneously_data_type(x_data: pd.DataFrame,
     # Just to prove that perform numerical scaling with based-tree model is not required
     # Do not improve the accuracy and time difference is not significant
     print("\nPipeline with numerical scaling and integer-coded categories")
-    model = GradientBoostingClassifierModel.build_pipeline(
+    model = HistGradientBoostingClassifierModel.build_pipeline(
         transformers=[
             (
                 OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
@@ -182,7 +182,7 @@ def treebased_model_with_heterogeneously_data_type(x_data: pd.DataFrame,
     # sparce_output=False as a workaround because HistGradientBoostingClassifier does not yet
     # support sparse input data
     print("\nPipeline with no numerical scaling and one-hot encoded categories")
-    model = GradientBoostingClassifierModel.build_pipeline(
+    model = HistGradientBoostingClassifierModel.build_pipeline(
         transformers=[
             (
                 OneHotEncoder(handle_unknown="ignore", sparse_output=False),
@@ -210,7 +210,7 @@ def treebased_model_with_mix_encoder(x_data: pd.DataFrame, y_data: pd.Series) ->
     # Build a pipeline with a column transformer in order to deal with
     # numerical and categorical variables (use different encoder depending
     # of data cardinality)
-    model = GradientBoostingClassifierModel.build_pipeline(
+    model = HistGradientBoostingClassifierModel.build_pipeline(
         transformers=[
             (TargetEncoder(target_type="auto"), high_cardinality.columns.to_list()),
             (

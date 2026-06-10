@@ -6,9 +6,11 @@ import seaborn as sns
 from matplotlib import cm
 from matplotlib.axes import Axes
 from sklearn.inspection import DecisionBoundaryDisplay
+from types_config import Tmodel
 
 
 class DecisionBoundaryMixin:
+    """Mixin class to define decision boundary display."""
     def _assert(self, x_data: pd.DataFrame, cmap: str, **kwargs):
         """Check some parameters value."""
         assert len(x_data.columns) == 2, \
@@ -16,7 +18,6 @@ class DecisionBoundaryMixin:
         if cmap == "tab10":
             assert "norm" in kwargs.keys(), f"For tab10 cmap, additional param norm is required"
 
-    """Mixin class to define decision boundary display."""
     def decision_boundary_display(self,
                                   data: pd.DataFrame,
                                   x_data: pd.DataFrame,
@@ -31,6 +32,7 @@ class DecisionBoundaryMixin:
                                   palette: list[str] | None = None,
                                   misclassified: pd.DataFrame | None = None,
                                   previously_misclassified: pd.DataFrame | None = None,
+                                  estimator: Tmodel | None = None,
                                   **kwargs) -> None:
         """
         Display the decision function boundary. For 2-classes problem, we expect a straight line
@@ -76,14 +78,18 @@ class DecisionBoundaryMixin:
         previously_misclassified: for classifier, plot previously misclassified samples. Use after
         training a new model by adding more weight to the misclassified samples.
 
+        estimator: for ensemble model, it's possible to plot the decision boundary of each fitted
+        sub-estimator. c.f. EnsembleMixin.
+
         **kwargs: additional keyword arguments to be passed to the `plot_method` such as alpha,
         vmin, vmax, norm if cmap is tab10
         """
         # Assert
         self._assert(x_data, cmap, **kwargs)
 
-        # Get model
-        model = getattr(self, "model")
+        # Get model. Either the fitted estimator or a fitted sub-estimator from an ensemble
+        # procedure
+        model = estimator if estimator is not None else getattr(self, "model")
 
         # Plot decision boundary
         plot = DecisionBoundaryDisplay.from_estimator(model,

@@ -59,10 +59,11 @@ def validation_curve(svm: SupportVectorClassificationModel,
     """
     curve = svm.compute_validation_curve(x_data,
                                          y_data,
-                                         cv=svm.shuffle_split_cv_generator(10),
+                                         param_name="svc_gamma",
+                                         param_range=np.logspace(-3, 2, num=30),
                                          scoring="accuracy",
                                          score_name="Accuracy",
-                                         param_range=np.logspace(-3, 2, num=30))
+                                         cv=svm.shuffle_split_cv_generator(10))
     show_validation_curve(curve, xlabel="Hyperparameter gamma")
 
 
@@ -87,15 +88,13 @@ def learning_curve(svm: SupportVectorClassificationModel,
         training set size is sub-optimal
       - An, it's also possible that SVC is sub-optimal to solve this problem
     """
+    train_sizes = np.linspace(0.1, 1.0, num=10, endpoint=True)
     curve = svm.compute_learning_curve(x_data,
                                        y_data,
+                                       train_sizes=train_sizes,
                                        cv=svm.shuffle_split_cv_generator(10),
                                        scoring="accuracy",
-                                       score_name="Accuracy",
-                                       train_sizes=np.linspace(0.1,
-                                                               1.0,
-                                                               num=10,
-                                                               endpoint=True))
+                                       score_name="Accuracy")
     show_learning_curve(curve)
 
 
@@ -205,10 +204,10 @@ def tune_knearest_classifier(x_data: pd.DataFrame, y_data: pd.Series):
     param_range = np.array([1, 2, 5, 10, 20, 50, 100, 200, 500])
     curve = model.compute_validation_curve(x_data,
                                            y_data,
-                                           scoring="balanced_accuracy",
-                                           score_name="Balanced accuracy",
                                            param_name="kneighborsclassifier__n_neighbors",
-                                           param_range=param_range)
+                                           param_range=param_range,
+                                           scoring="balanced_accuracy",
+                                           score_name="Balanced accuracy")
     show_validation_curve(curve, xlabel="Hyperparameter gamma")
 
 

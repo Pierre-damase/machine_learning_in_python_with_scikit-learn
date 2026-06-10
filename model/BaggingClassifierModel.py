@@ -6,7 +6,7 @@ from .Model import Model
 
 class BaggingClassifierModel(Model[BaggingClassifier, Tmodel]):
     """
-    Bagging classifier in order to use bootstrapping algorithm for prediction.
+    Bagging classifier in order to use bootstrapping algorithm.
 
     [To predict discrete target]
     """

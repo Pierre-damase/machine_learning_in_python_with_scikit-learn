@@ -353,12 +353,12 @@ def validation_curve(linear_regression: LinearRegressionModel,
     param_name = "columntransformer__nystroem__n_components"
     curve = linear_regression.compute_validation_curve(x_data,
                                                        y_data,
-                                                       cv=10,
+                                                       param_range=np.array([5, 10, 50, 100]),
+                                                       param_name=param_name,
                                                        scoring="neg_mean_absolute_error",
                                                        score_name="Mean absolute error",
                                                        negate_score=True,
-                                                       param_range=np.array([5, 10, 50, 100]),
-                                                       param_name=param_name)
+                                                       cv=10)
     show_validation_curve(curve, xlabel="Validation curve for Nystroem regression")
 
 def data_engineering_on_penguins():

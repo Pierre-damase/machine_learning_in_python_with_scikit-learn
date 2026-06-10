@@ -8,6 +8,9 @@ from sklearn.tree import plot_tree
 
 
 class TreeMixin:
+    #################
+    # DECISION TREE #
+    #################
     """
     Mixin class to define some methods specific to tree models such as plot the corresponding
     decision tree.
@@ -83,4 +86,3 @@ class TreeMixin:
             ax.legend()
         plt.title(title)
         plt.show()
-

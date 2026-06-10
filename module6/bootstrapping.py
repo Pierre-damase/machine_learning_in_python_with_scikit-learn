@@ -4,7 +4,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import seaborn as sns
-from config import DataPath, TargetColumn
+from config import SYNTHETIC_DATASET_FEATURE, DataPath, TargetColumn
 from matplotlib.axes import Axes
 from model import (BaggingClassifierModel, BaggingRegressorModel,
                    DecisionTreeClassifierModel, DecisionTreeRegressorModel,
@@ -25,9 +25,6 @@ type ClassModelTypes = (BaggingClassifierModel
                         | DecisionTreeRegressorModel
                         | RandomForestClassifierModel
                         | RandomForestRegressorModel)
-
-GENERATED_DATASET_FEATURE = "Feature"
-GENERATED_DATASET_TARGET = "Target"
 
 PENGUIN_FEATURE = "Flipper Length (mm)"
 PENGUIN_TARGET = "Body Mass (g)"
@@ -50,36 +47,6 @@ def load_penguins() -> DataSetType:
                                   columns=[PENGUIN_FEATURE],
                                   drop_na=True)
 
-def load_generated_data(n_samples=30) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
-    """
-    Generate simple synthetic dataset to better understand bagging. The target is a non-linear
-    function.
-
-    Return
-    ------
-    x_train: training features
-
-    x_test: testing features, i.e. generated data not use to train the model
-
-    y_train: training targets
-    """
-    x_min, x_max = -3, 3
-
-    # Create a random number generator
-    rng = np.random.default_rng(1)
-
-    # Features
-    x_train = rng.uniform(x_min, x_max, size=n_samples)
-    x_test = np.linspace(x_max, x_min, num=300)
-
-    # Target
-    noise = 4.0 * rng.normal(size=(n_samples,))
-    y_train = x_train**3 - 0.5 * (x_train + 1) ** 2 + noise
-    y_train /= y_train.std()
-
-    return pd.DataFrame(x_train, columns=[GENERATED_DATASET_FEATURE]), \
-        pd.DataFrame(x_test, columns=[GENERATED_DATASET_FEATURE]), \
-        pd.Series(y_train, name=GENERATED_DATASET_TARGET)
 
 #################
 # VISUALISATION #
@@ -90,7 +57,7 @@ def scatterplot(x_train: pd.DataFrame,
                 y_predicted: npt.NDArray[np.float64],
                 title: str | None = None,
                 label: str = "Decision function",
-                column: str = GENERATED_DATASET_FEATURE,
+                column: str = SYNTHETIC_DATASET_FEATURE,
                 ax: Axes | None = None):
     """Scatterplot."""
     ax = sns.scatterplot(x=x_train[column], y=y_train, color="black", alpha=0.5, ax=ax)
@@ -110,18 +77,18 @@ def scatterplot_for_manual_bagging(x_train: pd.DataFrame,
     Scatterplot for manual bagging in order to plot the prediction of each bootstrap sample as well
     as the final prediction.
     """
-    sns.scatterplot(x=x_train[GENERATED_DATASET_FEATURE], y=y_train, color="black", alpha=0.5)
+    sns.scatterplot(x=x_train[SYNTHETIC_DATASET_FEATURE], y=y_train, color="black", alpha=0.5)
 
     # Prediction of each decision tree model
     for i in range(len(y_predicted)):
-        plt.plot(x_test[GENERATED_DATASET_FEATURE],
+        plt.plot(x_test[SYNTHETIC_DATASET_FEATURE],
                  y_predicted[i],
                  linestyle="--",
                  alpha=0.8,
                  label=f"Decision function #{i}")
 
     # Final prediction
-    plt.plot(x_test[GENERATED_DATASET_FEATURE],
+    plt.plot(x_test[SYNTHETIC_DATASET_FEATURE],
              bag_prediction,
              label="Average prediction",
              linestyle="-")
@@ -300,7 +267,7 @@ def manual_bagging_regressor(x_train: pd.DataFrame,
     bootstrap_samples = dh.make_bootstrap_samples(x_train, y_train, 3)
     plot_bootstrap_samples({"x_data": x_train, "y_data": y_train},
                            bootstrap_samples,
-                           GENERATED_DATASET_FEATURE)
+                           SYNTHETIC_DATASET_FEATURE)
     dh.analyse_bootstrap_samples(bootstrap_samples)
 
     # 2. Fitting part. Each bootstrap sample is fit using a decision tree model for example
@@ -483,7 +450,11 @@ def run_bagging_on_generated_data() -> None:
     variations of the training set
     """
     # Load data
-    x_train, x_test, y_train = load_generated_data()
+    x_train, x_test, y_train = dh.make_synthetic_dataset(x_min=-3,
+                                                         x_max=3,
+                                                         seed=1,
+                                                         noise_shift=4.0,
+                                                         y_train_shift=1)
 
     # Decision tree
     regression = decision_tree(DecisionTreeRegressorModel, x_train, y_train, max_depth=3)

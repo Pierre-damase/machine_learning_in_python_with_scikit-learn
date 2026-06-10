@@ -1,7 +1,7 @@
 import data_handler as dh
 import pandas as pd
 from config import DataPath, TargetColumn
-from model import GradientBoostingClassifierModel, LogisticRegressionModel
+from model import HistGradientBoostingClassifierModel, LogisticRegressionModel
 from sklearn.compose import make_column_selector as selector
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 from visualisation import show_errorbars_for_hyperparameter_tuning
@@ -38,12 +38,12 @@ def manual_logistic_regression_tuning(x_data: pd.DataFrame,
 # GRADIENT BOOSTING CLASSIFIER #
 ################################
 def _build_gradient_boosting(learning_rate:float = 0.1,
-                             max_leaf_nodes: int = 31) -> GradientBoostingClassifierModel:
+                             max_leaf_nodes: int = 31) -> HistGradientBoostingClassifierModel:
     """
     Build a gradient boosting classifier with a transformer to deal with numerical and
     categorical features.
     """
-    return GradientBoostingClassifierModel.build_pipeline(
+    return HistGradientBoostingClassifierModel.build_pipeline(
         transformers=[
             (
                 OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),

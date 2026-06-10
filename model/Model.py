@@ -809,16 +809,25 @@ class Model[Testimator, Tmodel]():
     def compute_validation_curve(self,
                                  x_data: pd.DataFrame,
                                  y_data: pd.Series,
+                                 param_name: str,
+                                 param_range: list[int] | npt.NDArray[np.float64|np.int64],
                                  scoring: str,
                                  score_name: str,
                                  negate_score: bool = False,
-                                 cv: Tcv | None = None,
-                                 **kwargs) -> ValidationCurveDisplay:
+                                 cv: Tcv | None = None) -> ValidationCurveDisplay:
         """
-        Use validation curve to try out hyperparameters.
+        Use validation curve to try out various values of the given hyperparameter.
 
-        Pass either a classifier or a pipeline (parameter self.model) to
-        ValidationCurveDisplay.from_estimator
+        Important parameters to tune for various type of model (there is other parameter as well):
+        - for tree-based model, the max_depth hyperparameter is used to control the tradeoff
+        between under-fitting and over-fitting.
+
+        - for ensemble model, the n_estimators hyperparameter is used to control the number of
+        individual estimator. For gradient-boosting it's represent the number of boosting stage and
+        for random-forest the number of tree in the forest.
+
+        - for SVM model, the svc__gamma hyperparameter is used to control the tradeoff between
+        under-fitting and over-fitting
         """
         return ValidationCurveDisplay.from_estimator(self.model,
                                                      x_data,
@@ -826,8 +835,8 @@ class Model[Testimator, Tmodel]():
                                                      cv=cv,
                                                      scoring=scoring,
                                                      score_name=score_name,
-                                                     param_name=kwargs["param_name"],
-                                                     param_range=kwargs["param_range"],
+                                                     param_name=param_name,
+                                                     param_range=param_range,
                                                      negate_score=negate_score,
                                                      std_display_style="fill_between",
                                                      n_jobs=2)
@@ -839,21 +848,16 @@ class Model[Testimator, Tmodel]():
     def compute_learning_curve(self,
                                x_data: pd.DataFrame,
                                y_data: pd.Series,
+                               train_sizes: npt.NDArray[np.float64],
                                cv: Tcv,
                                scoring: str,
                                score_name: str,
-                               negate_score: bool = False,
-                               **kwargs) -> LearningCurveDisplay:
-        """
-        Use learning curve to try out various training set size.
-
-        Pass either a classifier or a pipeline (parameter self.model)
-        to ValidationCurveDisplay.from_estimator
-        """
+                               negate_score: bool = False) -> LearningCurveDisplay:
+        """Use learning curve to try out various training set size."""
         return LearningCurveDisplay.from_estimator(self.model,
                                                    x_data,
                                                    y_data,
-                                                   train_sizes=kwargs["train_sizes"],
+                                                   train_sizes=train_sizes,
                                                    cv=cv,
                                                    score_type="both", # both train and test errors
                                                    scoring=scoring,

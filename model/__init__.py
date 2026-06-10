@@ -1,9 +1,13 @@
+from .AdaBoostClassifierModel import AdaBoostClassifierModel
 from .BaggingClassifierModel import BaggingClassifierModel
 from .BaggingRegressorModel import BaggingRegressorModel
 from .DecisionTreeClassifierModel import DecisionTreeClassifierModel
 from .DecisionTreeRegressorModel import DecisionTreeRegressorModel
 from .DummyClassifierModel import DummyClassifierModel
 from .GradientBoostingClassifierModel import GradientBoostingClassifierModel
+from .GradientBoostingRegressorModel import GradientBoostingRegressorModel
+from .HistGradientBoostingClassifierModel import \
+    HistGradientBoostingClassifierModel
 from .KNeighborsClassifierModel import KNeighborsClassifierModel
 from .KNeighborsRegressorModel import KNeighborsRegressorModel
 from .LinearRegressionModel import LinearRegressionModel
@@ -15,12 +19,15 @@ from .RidgeRegressionModelCV import RidgeRegressionModelCV
 from .SupportVectorClassificatioModel import SupportVectorClassificationModel
 
 __all__ = [
+    'AdaBoostClassifierModel',
     'BaggingClassifierModel',
     'BaggingRegressorModel',
     'DecisionTreeClassifierModel',
     'DecisionTreeRegressorModel',
     'DummyClassifierModel',
     'GradientBoostingClassifierModel',
+    'GradientBoostingRegressorModel',
+    'HistGradientBoostingClassifierModel',
     'KNeighborsClassifierModel',
     'KNeighborsRegressorModel',
     'LinearRegressionModel',
