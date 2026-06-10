@@ -10,21 +10,26 @@ from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 from model import (AdaBoostClassifierModel, DecisionTreeClassifierModel,
                    DecisionTreeRegressorModel, GradientBoostingRegressorModel,
+                   HistGradientBoostingRegressorModel,
                    RandomForestRegressorModel)
+from sklearn.preprocessing import KBinsDiscretizer
 from sklearn.tree import DecisionTreeClassifier
-from types_config import DataSetType
+from types_config import DataSetType, Tpreprocessor
 from visualisation.visualisation import show_validation_curve
 
 type ClassModelTypes = (AdaBoostClassifierModel
                         | DecisionTreeClassifierModel
                         | DecisionTreeRegressorModel
                         | GradientBoostingRegressorModel
+                        | HistGradientBoostingRegressorModel
                         | RandomForestRegressorModel)
 
 SYNTHETIC_DATASET_FEATURE = "Feature"
 SYNTHETIC_DATASET_TARGET = "Target"
 
 PENGUIN_FEATURES = ["Culmen Length (mm)", "Culmen Depth (mm)"]
+
+SCORING = "neg_mean_absolute_error"
 
 ########
 # DATA #
@@ -161,6 +166,7 @@ def plot_decision_boundary_for_estimators(model: AdaBoostClassifierModel,
 def build_model(model_class: type[ClassModelTypes],
                 x_data: pd.DataFrame,
                 y_data: pd.Series,
+                transformers: list[Tpreprocessor] |None = None,
                 scoring: str | None = None,
                 skip_cv: bool = False,
                 **kwargs) -> ClassModelTypes:
@@ -178,7 +184,10 @@ def build_model(model_class: type[ClassModelTypes],
     **kwargs: additional parameters of the model
     """
     # Build model
-    model: ClassModelTypes = model_class.build(**kwargs)
+    if transformers is None:
+        model: ClassModelTypes = model_class.build(**kwargs)
+    else:
+        model: ClassModelTypes = model_class.build_pipeline(transformers=transformers, **kwargs)
 
     # Cross-validation
     if not skip_cv:
@@ -344,23 +353,21 @@ def sample_analysis(trees: list[DecisionTreeRegressorModel],
     print(f"\nThe ensemble prediction of x={x_sample:.3f} is y={y_ensemble_predicted:.3f}")
     print(f"The ensemble error is {y_sample - y_ensemble_predicted:.3f}")
 
-def gradient_boosting():
+def gradient_boosting(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     """
     Run gradient-boosting procedure and perform a comparison with a random-forest.
 
     Both algorithms lead to very good and close results. However the graient boosting is overall
     faster than the random forest.
     """
-    housing = load_californian_housing()
-
-    scoring = "neg_mean_absolute_error"
-
     # Gradient-boosting (testing error of 44±9k$) and random-forest (testing error of 45±10k$)
-    build_model(GradientBoostingRegressorModel, **housing, scoring=scoring, n_estimators=200)
-    build_model(RandomForestRegressorModel, **housing, scoring=scoring, n_estimators=200, n_jobs=2)
+    build_model(GradientBoostingRegressorModel, x_data, y_data, scoring=SCORING, n_estimators=200)
+    build_model(
+        RandomForestRegressorModel, x_data, y_data, scoring=SCORING, n_estimators=200, n_jobs=2
+    )
 
     # Split data
-    split_data = dh.sklearn_train_test_split(**housing, test_size=0.5)
+    split_data = dh.sklearn_train_test_split(x_data, y_data, test_size=0.5)
     x_train, y_train = split_data["x_train"], split_data["y_train"]
 
     # Gradient-boosting. When the number of trees is too large, gradient-boosting model tends to
@@ -370,7 +377,7 @@ def gradient_boosting():
     model = build_model(GradientBoostingRegressorModel,
                         x_train,
                         y_train,
-                        scoring=scoring,
+                        scoring=SCORING,
                         skip_cv=True,
                         max_depth=5,
                         learning_rate=0.5)
@@ -379,50 +386,74 @@ def gradient_boosting():
     # Random-forest. The model improve when increasing the number of tress in the ensemble.
     # However, the scores reach a plateau where adding new tress just make fitting and scoring
     # slower.
-    model = build_model(RandomForestRegressorModel,
-                        x_train,
-                        y_train,
-                        scoring=scoring,
-                        skip_cv=True,
-                        max_depth=None)
+    model = build_model(
+        RandomForestRegressorModel, x_train, y_train, scoring=SCORING, skip_cv=True, max_depth=None
+    )
     validation_curve(model, x_train, y_train, "Number of trees in the forest")
 
     # Gradient-boosting using the early stopping. The average testing error is quite good (44±9k$).
-    tree: GradientBoostingRegressorModel = build_model(GradientBoostingRegressorModel,
-                                                       **housing,
-                                                       scoring=scoring,
-                                                       n_estimators=1000,
-                                                       n_iter_no_change=5)
+    tree = build_model(GradientBoostingRegressorModel,
+                       x_data,
+                       y_data,
+                       scoring=SCORING,
+                       n_estimators=1000,
+                       n_iter_no_change=5)
 
     # Fit the model. The testing error of the final model is really good (37k$).
     tree.train(x_train, y_train)
     print(f"{getattr(tree.model, 'n_estimators_')} boosting stages.")
     tree.print_testing_error(split_data["y_test"], tree.model.predict(split_data["x_test"]))
 
-def hist_boosting_gradient():
+def hist_boosting_gradient(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     """
     Histogram boosting-gradient is a modified version of the gradient-boosting that uses a reduced
     number of splits when building the different trees. Resulting in a faster algorithm that is
     highly recommended for large datasets.
     """
-    pass
+    # Quick benchmark of the original gradient boosting. Quite good testing error (44±9k$) and the
+    # average fitting time is 5.6s
+    build_model(GradientBoostingRegressorModel, x_data, y_data, scoring=SCORING, n_estimators=200)
+
+    # It's possible to accelerate the gradient-boosting by reducing the number of split considered
+    # within the tree building. One way is to bin the data, which consists of replacing the
+    # original data values that fall into a given small interval, a bin, by a value representative
+    # of that interval. The testing error is equivalent (44±9k$) and the average fitting time is
+    # faster (3.4s) than a simple gradient-boosting.
+    transformers = [KBinsDiscretizer(n_bins=256, encode="ordinal", strategy="quantile")]
+    build_model(GradientBoostingRegressorModel,
+                x_data,
+                y_data,
+                transformers=transformers, # use to have at most 256 unique values per features
+                scoring=SCORING,
+                n_estimators=200)
+
+    # Histogram gradient-boosting. The testing error is better (42±9k$) and the average fitting
+    # time (0.4s) is much faster than the gradient-boosting with binned features.
+    build_model(HistGradientBoostingRegressorModel,
+                x_data,
+                y_data,
+                scoring=SCORING,
+                max_iter=200,
+                random_state=0)
+
 
 ############
 # ANALYSIS #
 ############
 def run_analysis() -> None:
     """Boosting with adaptative boosting (AdaBoost) and grandient-boosting decision tree."""
-    # Load data
-    penguins = load_penguins()
-
     # Decision tree and AdaBoost
+    #penguins = load_penguins()
     #decision_tree(penguins)
     #ada_boost(penguins)
 
-    # Gradient-boosting
+    # Manual gradient-boosting
     #manual_gradient_boosting()
-    #gradient_boosting()
-    hist_boosting_gradient()
+
+    # Gradient-boosting
+    housing = load_californian_housing()
+    #gradient_boosting(**housing)
+    hist_boosting_gradient(**housing)
 
 
 if __name__ == "__main__":

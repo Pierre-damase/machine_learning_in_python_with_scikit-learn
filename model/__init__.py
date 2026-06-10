@@ -8,6 +8,8 @@ from .GradientBoostingClassifierModel import GradientBoostingClassifierModel
 from .GradientBoostingRegressorModel import GradientBoostingRegressorModel
 from .HistGradientBoostingClassifierModel import \
     HistGradientBoostingClassifierModel
+from .HistGradientBoostingRegressorModel import \
+    HistGradientBoostingRegressorModel
 from .KNeighborsClassifierModel import KNeighborsClassifierModel
 from .KNeighborsRegressorModel import KNeighborsRegressorModel
 from .LinearRegressionModel import LinearRegressionModel
@@ -28,6 +30,7 @@ __all__ = [
     'GradientBoostingClassifierModel',
     'GradientBoostingRegressorModel',
     'HistGradientBoostingClassifierModel',
+    'HistGradientBoostingRegressorModel',
     'KNeighborsClassifierModel',
     'KNeighborsRegressorModel',
     'LinearRegressionModel',
