@@ -52,10 +52,14 @@ def run_module_5():
 
 def run_module_6():
     """Run methods of the 6th module named Ensemble of models."""
-    # run_bootstrapping()
-    # run_boosting()
-    # run_ensemble_tuning()
+    run_bootstrapping()
+    run_boosting()
+    run_ensemble_tuning()
     run_ensemble_penguins()
+
+def run_module_7():
+    """Run methods of the 7th module named Evaluating model performance."""
+    pass
 
 if __name__ == "__main__":
     # run_module_1()
@@ -63,4 +67,5 @@ if __name__ == "__main__":
     # run_module_3()
     # run_module_4()
     # run_module_5()
-    run_module_6()
+    # run_module_6()
+    run_module_7()
