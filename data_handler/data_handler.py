@@ -21,7 +21,8 @@ from types_config import DataSetType, SplitSetType
 def load_data_from_file(path: Path,
                         target: None = None,
                         columns: list[str] | None = None,
-                        drop_na: bool | None = None) -> pd.DataFrame:
+                        drop_na: bool = False,
+                        shuffle: bool = False) -> pd.DataFrame:
     """
     Load data from a file without extracting the target.
 
@@ -31,17 +32,22 @@ def load_data_from_file(path: Path,
 
     target: is None to not extract the target from the dataset
 
-    columns: to filter out some columns
+    columns: to filter out some columns of interest
 
     drop_na: remove missing values
+
+    shuffle: to randomly shuffle the rows of the dataset
     """
-    return load_data_from_file(path, target=target, columns=columns, drop_na=drop_na)
+    return load_data_from_file(
+        path, target=target, columns=columns, drop_na=drop_na, shuffle=shuffle
+    )
 
 @overload
 def load_data_from_file(path: Path,
                         target: str,
                         columns: list[str] | None = None,
-                        drop_na: bool | None = None) -> DataSetType:
+                        drop_na: bool = False,
+                        shuffle: bool = False) -> DataSetType:
     """
     Load data from a file with extracting a target.
 
@@ -51,16 +57,21 @@ def load_data_from_file(path: Path,
 
     target: extract the specified target from the dataset
 
-    columns: to filter out some columns
+    columns: to filter out some columns of interest
 
     drop_na: remove missing values
+
+    shuffle: to randomly shuffle the rows of the dataset
     """
-    return load_data_from_file(path, target=target, columns=columns, drop_na=drop_na)
+    return load_data_from_file(
+        path, target=target, columns=columns, drop_na=drop_na, shuffle=shuffle
+    )
 
 def load_data_from_file(path: Path,
                         target: str | None = None,
                         columns: list[str] | None = None,
-                        drop_na: bool | None = None) -> pd.DataFrame | DataSetType:
+                        drop_na: bool = False,
+                        shuffle: bool = False) -> pd.DataFrame | DataSetType:
     """
     Load data as a DataFrame.
 
@@ -70,13 +81,17 @@ def load_data_from_file(path: Path,
 
     target: if specify, extract the target from the dataset
 
-    columns: to filter out some columns
+    columns: to filter out some columns of interest
 
-    drop_na: remove missing values
+    drop_na: to remove missing values
+
+    shuffle: to randomly shuffle the rows of the dataset
     """
     # .csv file
     if str(path).endswith(".csv"):
-        return _load_data_from_csv(path, target=target, columns=columns, drop_na=drop_na)
+        return _load_data_from_csv(
+            path, target=target, columns=columns, drop_na=drop_na, shuffle=shuffle
+        )
 
     # .arff file
     if target is None:
@@ -108,23 +123,42 @@ def _load_data_from_arff(path: Path, target: str) -> DataSetType:
 def _load_data_from_csv(path: Path,
                         target: None = None,
                         columns: list[str] | None = None,
-                        drop_na: bool | None = None) -> pd.DataFrame:
+                        drop_na: bool = False,
+                        shuffle: bool = False) -> pd.DataFrame:
     """Load .csv file as DataFrame without extracting a target."""
-    return _load_data_from_csv(path, columns=columns, drop_na=drop_na)
+    return _load_data_from_csv(path, columns=columns, drop_na=drop_na, shuffle=shuffle)
 
 @overload
 def _load_data_from_csv(path: Path,
                         target: str,
                         columns: list[str] | None = None,
-                        drop_na: bool | None = None) -> DataSetType:
+                        drop_na: bool = False,
+                        shuffle: bool = False) -> DataSetType:
     """Load .csv file as DataFrame with extracting a target."""
-    return _load_data_from_csv(path, target=target, columns=columns, drop_na=drop_na)
+    return _load_data_from_csv(
+        path, target=target, columns=columns, drop_na=drop_na, shuffle=shuffle
+    )
 
 def _load_data_from_csv(path: Path,
                         target: str | None = None,
                         columns: list[str] | None = None,
-                        drop_na: bool | None = None) -> pd.DataFrame | DataSetType:
-    """Load .csv file as DataFrame."""
+                        drop_na: bool = False,
+                        shuffle: bool = False) -> pd.DataFrame | DataSetType:
+    """
+    Load .csv file as DataFrame.
+
+    Parameters
+    ----------
+    path: path of the file, either a .csv or .arff file
+
+    target: if specify, extract the target from the dataset
+
+    columns: to filter out some columns of interest
+
+    drop_na: to remove missing values
+
+    shuffle: to randomly shuffle the rows of the dataset
+    """
     data = pd.read_csv(path)
 
     # Filter the data
@@ -133,9 +167,13 @@ def _load_data_from_csv(path: Path,
         tmp = columns + [target] if target is not None and target not in columns else columns
         data = get_subset(data, columns=tmp)
 
-    # Drop missing valuese
+    # Drop missing values
     if drop_na:
         data.dropna(inplace=True)
+
+    # Randomnly shuffle the rows of the dataset
+    if shuffle:
+        data = data.sample(frac=1, random_state=0, ignore_index=True)
 
     # Extrat the target
     if target is not None:

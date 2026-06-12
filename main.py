@@ -12,7 +12,8 @@ from module4 import (run_ames_housing_linear_model,
                      run_regularized_regression)
 from module5 import (run_ames_housing_with_decision_tree,
                      run_classification_tree, run_regression_tree)
-from module6 import run_boosting, run_bootstrapping
+from module6 import (run_boosting, run_bootstrapping, run_ensemble_penguins,
+                     run_ensemble_tuning)
 
 
 def run_module_1():
@@ -52,7 +53,9 @@ def run_module_5():
 def run_module_6():
     """Run methods of the 6th module named Ensemble of models."""
     # run_bootstrapping()
-    run_boosting()
+    # run_boosting()
+    # run_ensemble_tuning()
+    run_ensemble_penguins()
 
 if __name__ == "__main__":
     # run_module_1()

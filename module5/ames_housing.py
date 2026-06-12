@@ -6,7 +6,8 @@ from model import DecisionTreeRegressorModel, LinearRegressionModel
 from sklearn.compose import make_column_selector as selector
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
-from types_config import DataSetType, Tpreprocessor
+from types_config import (CvParameters, DataSetType, SearchCvParameters,
+                          SearchOuterCv, Tpreprocessor)
 
 type ClassModelTypes = (DecisionTreeRegressorModel | LinearRegressionModel)
 
@@ -46,7 +47,7 @@ def linear_regression(x_data: pd.DataFrame,
     regression: LinearRegressionModel = LinearRegressionModel.build_pipeline(transformers)
 
     # Cross-validation
-    scores = regression.make_cross_validate(x_data, y_data, nb_fold=10)
+    scores = regression.make_cross_validate(x_data, y_data, cv_params=CvParameters(10))
     regression.print_cross_validate(scores, verbose=True)
 
 def decision_tree(x_data: pd.DataFrame,
@@ -75,7 +76,7 @@ def decision_tree(x_data: pd.DataFrame,
         )
 
     # Default cross-validation
-    scores = regression.make_cross_validate(x_data, y_data, nb_fold=10)
+    scores = regression.make_cross_validate(x_data, y_data, cv_params=CvParameters(10))
     regression.print_cross_validate(scores, verbose=True)
 
     if tune_maxdepth:
@@ -83,13 +84,12 @@ def decision_tree(x_data: pd.DataFrame,
         split_data = dh.sklearn_train_test_split(x_data, y_data)
 
         # Grid-search cv to tune max_depth parameter
-        regression.automated_search_cross_validation(GridSearchCV,
-                                                     {"max_depth": np.arange(1, 15, 1)},
-                                                     x_data,
-                                                     y_data,
-                                                     split_data["x_train"],
-                                                     split_data["y_train"],
-                                                     cv=10)
+        regression.automated_search_cv(search_class=GridSearchCV,
+                                       search_params=SearchCvParameters(10),
+                                       parameters={"max_depth": np.arange(1, 15, 1)},
+                                       x_train=split_data["x_train"],
+                                       y_train=split_data["y_train"],
+                                       search_outer_cv=SearchOuterCv(x_data, y_data))
 
 
 ############

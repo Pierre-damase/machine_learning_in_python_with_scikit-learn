@@ -38,7 +38,7 @@ def first_model_with_scikit_learn(x_data: pd.DataFrame,
 def working_with_numerical_data(x_data: pd.DataFrame,
                                 y_data: pd.Series) -> None:
     """
-    Performe moreadvanced operation:
+    Perform moreadvanced operation:
 
     - identifying numerical data in a heterogeneous dataset;
     - selecting the subset of columns corresponding to numerical data;

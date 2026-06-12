@@ -42,7 +42,7 @@ def test_continuous_target_prediction(x_data: pd.DataFrame, y_data: pd.Series):
     """
     Instead of the previous metod, use train-test split on the dataset.
 
-    Then performe a cross validation.
+    Then perform a cross validation.
     """
     # 1. Randomnly split data between train and test set
     train_test_split = dh.sklearn_train_test_split(x_data, y_data)

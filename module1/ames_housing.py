@@ -27,8 +27,8 @@ def predictive_model(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     """
     Predictive model using both numerical and categorical features. Therefore, it's required to
     apply a specific transformer for each data type:
-      - Performe a one-hot encoding of categorical variables
-      - Performe a scaling of numerical variables
+      - Perform a one-hot encoding of categorical variables
+      - Perform a scaling of numerical variables
     """
     # 1. Machine learning pipeline with column transformer to
     initialized_model = LogisticRegressionModel.build_pipeline(

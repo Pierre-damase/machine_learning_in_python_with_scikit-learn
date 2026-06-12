@@ -6,7 +6,8 @@ from config import DataPath, TargetColumn
 from model import DecisionTreeClassifierModel, LogisticRegressionModel
 from sklearn.model_selection import GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
-from types_config import DataSetType
+from types_config import (CvParameters, DataSetType, SearchCvHyperparamType,
+                          SearchCvParameters, SearchOuterCv)
 
 PENGUIN_FEATURES = ["Culmen Length (mm)", "Culmen Depth (mm)"]
 
@@ -62,7 +63,7 @@ def prediction(model: DecisionTreeClassifier, culmen_length: float, culmen_depth
 def classifier_model(model_class: type[ClassModelTypes],
                      penguins: DataSetType,
                      test_size: float = 0.25,
-                     param_grid: dict[str, list[int]] | None = None,
+                     param_grid: SearchCvHyperparamType | None = None,
                      **kwargs) -> ClassModelTypes:
     """
     Perform either a logistic regression or a classification tree.
@@ -101,13 +102,13 @@ def classifier_model(model_class: type[ClassModelTypes],
                                                    response_method="predict_proba",
                                                    cmap="Blues")
     else:
-        regression.automated_search_cross_validation(GridSearchCV,
-                                                     param_grid,
-                                                     penguins["x_data"],
-                                                     penguins["y_data"],
-                                                     split_data["x_train"],
-                                                     split_data["y_train"],
-                                                     cv=10)
+        regression.automated_search_cv(search_class=GridSearchCV,
+                                       search_params=SearchCvParameters(10),
+                                       parameters=param_grid,
+                                       x_train=split_data["x_train"],
+                                       y_train=split_data["y_train"],
+                                       search_outer_cv=SearchOuterCv(**penguins,
+                                                                     cv_params=CvParameters(10)))
 
     return regression
 

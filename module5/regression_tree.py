@@ -7,7 +7,8 @@ import seaborn as sns
 from config import GENERATED_DATASET_FEATURES, DataPath, TargetColumn
 from model import DecisionTreeRegressorModel, LinearRegressionModel
 from sklearn.model_selection import GridSearchCV
-from types_config import DataSetType
+from types_config import (DataSetType, SearchCvHyperparamType,
+                          SearchCvParameters, SearchOuterCv)
 
 PENGUIN_FEATURE = "Flipper Length (mm)"
 PENGUIN_TARGET = "Body Mass (g)"
@@ -96,7 +97,7 @@ def regressor_model(model_class: type[ClassModelTypes],
                     x_train: pd.DataFrame,
                     x_test: pd.DataFrame,
                     y_train: pd.Series,
-                    param_grid: dict[str, list[int]] | None = None,
+                    param_grid: SearchCvHyperparamType | None = None,
                     **kwargs) -> None:
     """
     Perform either a linear regression or a regression tree.
@@ -139,13 +140,14 @@ def regressor_model(model_class: type[ClassModelTypes],
         if model_name == "DecisionTreeRegressor" and kwargs["max_depth"] < 10:
             regression.plot_decision_tree([PENGUIN_FEATURE])
     else:
-        regression.automated_search_cross_validation(GridSearchCV,
-                                                     param_grid,
-                                                     pd.DataFrame(data[PENGUIN_FEATURE]),
-                                                     pd.Series(data[PENGUIN_TARGET]),
-                                                     x_train,
-                                                     y_train,
-                                                     cv=10)
+        search_outer_cv = SearchOuterCv(pd.DataFrame(data[PENGUIN_FEATURE]),
+                                        pd.Series(data[PENGUIN_TARGET]))
+        regression.automated_search_cv(search_class=GridSearchCV,
+                                       search_params=SearchCvParameters(10),
+                                       parameters=param_grid,
+                                       x_train=x_train,
+                                       y_train=y_train,
+                                       search_outer_cv=search_outer_cv)
 
 
 ############

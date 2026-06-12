@@ -164,9 +164,7 @@ def cross_validation(model: LinearRegressionModel,
                      x_data: pd.DataFrame,
                      y_data: pd.Series):
     """Perform a cross-validation and display the testing error."""
-    scores = model.kfold_cross_validate(
-        x_data, y_data, nb_fold=10, scoring="neg_mean_absolute_error"
-    )
+    scores = model.kfold_cross_validate(x_data, y_data, cv=10, scoring="neg_mean_absolute_error")
     model.print_cross_validate(scores)
 
 ############################

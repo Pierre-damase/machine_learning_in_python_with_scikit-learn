@@ -252,7 +252,7 @@ def logistic_regression_with_cv(x_data: pd.DataFrame,
     # 2. Cross validation
     scores = regression.kfold_cross_validate(x_data,
                                              y_data,
-                                             nb_fold=10,
+                                             cv=10,
                                              return_estimator=return_estimator)
     regression.print_kfold_cross_validation_accuracy(scores)
 

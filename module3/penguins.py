@@ -7,7 +7,7 @@ from model import KNeighborsClassifierModel
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import (MinMaxScaler, PowerTransformer,
                                    QuantileTransformer, StandardScaler)
-from types_config import DataSetType
+from types_config import DataSetType, SearchCvParameters, SearchOuterCv
 
 PENGUIN_NUMERICAL_FEATURES = [
     "Body Mass (g)", "Flipper Length (mm)", "Culmen Length (mm)"
@@ -45,7 +45,7 @@ def build_kneighbors_classifier_without_scaler() -> KNeighborsClassifierModel:
 def cross_validation(model: KNeighborsClassifierModel, x_data: pd.DataFrame, y_data: pd.Series):
     """Cross-validation to evaluate the model performance without any tuning."""
     scores = model.kfold_cross_validate(
-        x_data, y_data, nb_fold=10, scoring="balanced_accuracy", return_train_score=True
+        x_data, y_data, cv=10, scoring="balanced_accuracy", return_train_score=True
     )
     model.print_cross_validate(scores)
 
@@ -95,9 +95,13 @@ def tune_model(model: KNeighborsClassifierModel,
 
     # 2. Tune hyperparameters
     path = Path(*DataPath.HYPERPARAMETER_TUNING.value.parts + ("penguins.csv",))
-    model.automated_search_cross_validation(
-        GridSearchCV, param_grid, x_data, y_data, x_train, y_train, path, cv=10
-    )
+    model.automated_search_cv(search_class=GridSearchCV,
+                              search_params=SearchCvParameters(10),
+                              parameters=param_grid,
+                              x_train=x_train,
+                              y_train=y_train,
+                              path=path,
+                              search_outer_cv=SearchOuterCv(x_data, y_data))
 
 
 ############

@@ -16,7 +16,9 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.preprocessing import (MinMaxScaler, OrdinalEncoder,
                                    PolynomialFeatures)
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from types_config import DataSetType, Tmodel, Tpreprocessor
+from types_config import (CvParameters, DataSetType, SearchCvHyperparamType,
+                          SearchCvParameters, SearchOuterCv, Tmodel,
+                          Tpreprocessor)
 from visualisation import plot_bootstrap_samples
 
 type ClassModelTypes = (BaggingClassifierModel
@@ -152,7 +154,10 @@ def cross_validation(model_class: ClassModelTypes,
                      nb_fold: int = 10,
                      scoring: str | None = None) -> None:
     """Perfom cross-validation in order to evaluate the generalization performance."""
-    scores = model_class.make_cross_validate(x_data, y_data, nb_fold=nb_fold, scoring=scoring)
+    scores = model_class.make_cross_validate(x_data,
+                                             y_data,
+                                             cv_params=CvParameters(nb_fold),
+                                             scoring=scoring)
     model_class.print_cross_validate(scores)
 
 def predict(model_class: ClassModelTypes,
@@ -162,7 +167,7 @@ def predict(model_class: ClassModelTypes,
 def decision_tree(model_class: type[DecisionTreeClassifierModel | DecisionTreeRegressorModel],
                   x_data: pd.DataFrame,
                   y_data: pd.Series,
-                  param_grid: dict[str, list[float|int|None]] | None = None,
+                  param_grid: SearchCvHyperparamType | None = None,
                   transformers: list[Tpreprocessor] | None = None,
                   **kwargs) -> DecisionTreeRegressorModel:
     """
@@ -192,13 +197,12 @@ def decision_tree(model_class: type[DecisionTreeClassifierModel | DecisionTreeRe
         split_data = dh.sklearn_train_test_split(x_data, y_data)
 
         # Grid-search cv
-        regression.automated_search_cross_validation(GridSearchCV,
-                                                     param_grid,
-                                                     x_data,
-                                                     y_data,
-                                                     split_data["x_train"],
-                                                     split_data["y_train"],
-                                                     cv=10)
+        regression.automated_search_cv(search_class=GridSearchCV,
+                                       search_params=SearchCvParameters(10),
+                                       parameters=param_grid,
+                                       x_train=split_data["x_train"],
+                                       y_train=split_data["y_train"],
+                                       search_outer_cv=SearchOuterCv(x_data, y_data))
     else:
         # Cross-validation
         cross_validation(regression, x_data, y_data)
@@ -213,7 +217,7 @@ def bagging_regressor(estimator: type[Tmodel],
                       y_data: pd.Series,
                       x_test: pd.DataFrame = pd.DataFrame(),
                       y_test: pd.Series = pd.Series(),
-                      param_distribution: dict[str, list[float|int|None]] | None = None,
+                      param_distribution: SearchCvHyperparamType | None = None,
                       n_estimators: int = 20,
                       scoring: str | None = None) -> BaggingRegressorModel:
     """
@@ -244,15 +248,12 @@ def bagging_regressor(estimator: type[Tmodel],
 
     if param_distribution is not None and not x_test.empty and not y_test.empty:
         # Grid-search cv
-        regression.automated_search_cross_validation(RandomizedSearchCV,
-                                                     param_distribution,
-                                                     x_data,
-                                                     y_data,
-                                                     x_test,
-                                                     y_test,
-                                                     cv=10,
-                                                     n_iter=100)
-
+        regression.automated_search_cv(search_class=RandomizedSearchCV,
+                                       search_params=SearchCvParameters(10, n_iter=100),
+                                       parameters=param_distribution,
+                                       x_train=x_test,
+                                       y_train=y_test,
+                                       search_outer_cv=SearchOuterCv(x_data, y_data))
     else:
         # Cross-validation
         cross_validation(regression, x_data, y_data, scoring=scoring)

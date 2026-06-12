@@ -8,6 +8,7 @@ from scipy.stats import loguniform
 from sklearn.compose import make_column_selector as selector
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.preprocessing import OrdinalEncoder
+from types_config import SearchCvParameters, SearchOuterCv
 from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
 
 
@@ -73,9 +74,13 @@ def grid_search_tuning(model: HistGradientBoostingClassifierModel,
     }
 
     # 2. Tune hyperparameters
-    model.automated_search_cross_validation(
-        GridSearchCV, param_grid, x_data, y_data, x_train, y_train, path=path, cv=2
-    )
+    model.automated_search_cv(search_class=GridSearchCV,
+                              search_params=SearchCvParameters(2),
+                              parameters=param_grid,
+                              x_train=x_train,
+                              y_train=y_train,
+                              path=path,
+                              search_outer_cv=SearchOuterCv(x_data, y_data))
 
 def randomized_search_tuning(model: HistGradientBoostingClassifierModel,
                              x_data: pd.DataFrame,
@@ -105,15 +110,13 @@ def randomized_search_tuning(model: HistGradientBoostingClassifierModel,
 
     # 2. Tune hyperparameters. For performance issue only run 10 iterations.
     #    In order to make a decent analysis, at least 500 iterations would be best.
-    model.automated_search_cross_validation(RandomizedSearchCV,
-                                            param_dist,
-                                            x_data,
-                                            y_data,
-                                            x_train,
-                                            y_train,
-                                            path=path,
-                                            cv=5,
-                                            n_iter=20)
+    model.automated_search_cv(search_class=RandomizedSearchCV,
+                              search_params=SearchCvParameters(5, n_iter=20),
+                              parameters=param_dist,
+                              x_train=x_train,
+                              y_train=y_train,
+                              path=path,
+                              search_outer_cv=SearchOuterCv(x_data, y_data))
 
 
 ############

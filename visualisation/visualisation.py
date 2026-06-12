@@ -137,12 +137,23 @@ def error_distribution(scores: CvResults):
 ####################
 # VALIDATION CURVE #
 ####################
-def show_validation_curve(curve: ValidationCurveDisplay, xlabel: str) -> None:
+def show_validation_curve(curve: ValidationCurveDisplay,
+                          xlabel: str,
+                          point_of_interests: list[float|int] | None = None) -> None:
     """Show validation curve."""
-    curve.ax_.set(
-        xlabel=xlabel,
-        title="Validation curve"
-    )
+    # Ax
+    curve.ax_.set(xlabel=xlabel, title="Validation curve")
+
+    # Figure
+    curve.figure_.set_size_inches((20, 12))
+
+    # Add vline
+    if point_of_interests is not None:
+        for x in point_of_interests:
+            plt.axvline(x=x, color="red", linestyle="--", alpha=0.5, label=x)
+        plt.legend()
+
+    # Display
     _show()
 
 

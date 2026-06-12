@@ -7,7 +7,7 @@ from sklearn.compose import make_column_selector as selector
 from sklearn.kernel_approximation import Nystroem
 from sklearn.preprocessing import (OneHotEncoder, SplineTransformer,
                                    StandardScaler)
-from types_config import DataSetType, Tpreprocessor
+from types_config import CvParameters, DataSetType, Tpreprocessor
 from visualisation import plot_coefficients_of_linear_model
 
 NUMERICAL_FEATURES = [
@@ -42,7 +42,10 @@ def ridge_regression(x_data: pd.DataFrame, y_data: pd.Series, alpha: float):
                                                                            alpha=alpha)
 
     # Cross-validation
-    scores = regression.make_cross_validate(x_data, y_data, nb_fold=10, return_estimator=True)
+    scores = regression.make_cross_validate(x_data,
+                                            y_data,
+                                            cv_params=CvParameters(10),
+                                            return_estimator=True)
     regression.print_cross_validate(scores)
 
     # Largest absolute value of coefficient
@@ -64,8 +67,8 @@ def ridge_cv_regression(x_data: pd.DataFrame,
     # Cross-validation
     scores = regression.make_cross_validate(x_data,
                                             y_data,
-                                            n_splits=50,
-                                            test_size=0.2,
+                                            cv_strategy="ShuffleSplit",
+                                            cv_params=CvParameters(50, test_size=0.2),
                                             return_estimator=True)
     regression.print_cross_validate(scores)
 

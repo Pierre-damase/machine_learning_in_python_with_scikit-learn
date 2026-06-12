@@ -10,7 +10,7 @@ from model import (LinearRegressionModel, LogisticRegressionModel,
 from sklearn.kernel_approximation import Nystroem
 from sklearn.preprocessing import (MinMaxScaler, PolynomialFeatures,
                                    StandardScaler)
-from types_config import CvResults, DataSetType, Tpreprocessor
+from types_config import CvParameters, CvResults, DataSetType, Tpreprocessor
 from visualisation import (plot_coefficients_of_linear_model,
                            show_errorbars_for_hyperparameter_tuning)
 
@@ -44,14 +44,15 @@ def load_penguins() -> DataSetType:
 def cross_validation(model: ClassModelTypes,
                      x_data: pd.DataFrame,
                      y_data: pd.Series,
-                     nb_fold: int | None = None,
-                     n_splits: int | None = None,
+                     n_splits: int,
                      test_size: float | None = None) -> CvResults:
+    cv_strategy = "KFold" if test_size is None else "ShuffleSplit"
+    cv_params = CvParameters(n_splits, test_size=test_size)
+    #= {"n_splits": n_splits, "test_size": test_size}
     scores = model.make_cross_validate(x_data,
                                        y_data,
-                                       nb_fold=nb_fold,
-                                       n_splits=n_splits,
-                                       test_size=test_size,
+                                       cv_strategy=cv_strategy,
+                                       cv_params=cv_params,
                                        scoring="neg_mean_squared_error",
                                        return_estimator=True,
                                        return_train_score=True)
@@ -87,7 +88,7 @@ def run_simple_linear_regression(data: pd.DataFrame, targets: pd.Series) -> None
     regression = LinearRegressionModel.build_pipeline(
         [PolynomialFeatures(degree=2, include_bias=False)]
     )
-    scores = cross_validation(regression, data, targets, nb_fold=10)
+    scores = cross_validation(regression, data, targets, n_splits=10)
     plot_coefficients_of_linear_model(regression.get_coefficients(scores))
 
 def run_simple_ridge_regression(data: pd.DataFrame, targets: pd.Series, solver: str) -> None:
@@ -109,7 +110,7 @@ def run_simple_ridge_regression(data: pd.DataFrame, targets: pd.Series, solver: 
     ridge = RidgeRegressionModel.build_pipeline([PolynomialFeatures(degree=2, include_bias=False)],
                                                 alpha=100,
                                                 solver=solver)
-    scores = cross_validation(ridge, data, targets, nb_fold=10)
+    scores = cross_validation(ridge, data, targets, n_splits=10)
     plot_coefficients_of_linear_model(ridge.get_coefficients(scores))
 
 def run_ridge_regression_with_scaling(data: pd.DataFrame, targets: pd.Series, solver: str) -> None:
@@ -129,7 +130,7 @@ def run_ridge_regression_with_scaling(data: pd.DataFrame, targets: pd.Series, so
         alpha=10,
         solver=solver
     )
-    scores = cross_validation(ridge, data, targets, nb_fold=20)
+    scores = cross_validation(ridge, data, targets, n_splits=20)
     plot_coefficients_of_linear_model(ridge.get_coefficients(scores))
 
 def run_ridge_regression_with_tuning(data: pd.DataFrame, targets: pd.Series) -> None:

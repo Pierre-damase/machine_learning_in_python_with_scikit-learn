@@ -14,7 +14,7 @@ from model import (AdaBoostClassifierModel, DecisionTreeClassifierModel,
                    RandomForestRegressorModel)
 from sklearn.preprocessing import KBinsDiscretizer
 from sklearn.tree import DecisionTreeClassifier
-from types_config import DataSetType, Tpreprocessor
+from types_config import CvParameters, DataSetType, Tpreprocessor
 from visualisation.visualisation import show_validation_curve
 
 type ClassModelTypes = (AdaBoostClassifierModel
@@ -161,6 +161,8 @@ def plot_decision_boundary_for_estimators(model: AdaBoostClassifierModel,
                                                    cmap="tab10",
                                                    norm=getattr(mpl, "colors").Normalize(vmin=-0.5,
                                                                                          vmax=8.5),
+                                                   multiclass_colors=["blue", "orange", "green"],
+                                                   palette=["tab:blue", "tab:orange", "tab:green"],
                                                    alpha=0.5)
 
 def build_model(model_class: type[ClassModelTypes],
@@ -191,7 +193,10 @@ def build_model(model_class: type[ClassModelTypes],
 
     # Cross-validation
     if not skip_cv:
-        scores = model.make_cross_validate(x_data, y_data, nb_fold=10, scoring=scoring)
+        scores = model.make_cross_validate(x_data,
+                                           y_data,
+                                           cv_params=CvParameters(10),
+                                           scoring=scoring)
         model.print_cross_validate(scores)
 
     return model
@@ -383,8 +388,8 @@ def gradient_boosting(x_data: pd.DataFrame, y_data: pd.Series) -> None:
                         learning_rate=0.5)
     validation_curve(model, x_train, y_train, "Number of boosting stages")
 
-    # Random-forest. The model improve when increasing the number of tress in the ensemble.
-    # However, the scores reach a plateau where adding new tress just make fitting and scoring
+    # Random-forest. The model improve when increasing the number of trees in the ensemble.
+    # However, the scores reach a plateau where adding new trees just make fitting and scoring
     # slower.
     model = build_model(
         RandomForestRegressorModel, x_train, y_train, scoring=SCORING, skip_cv=True, max_depth=None
@@ -443,18 +448,17 @@ def hist_boosting_gradient(x_data: pd.DataFrame, y_data: pd.Series) -> None:
 def run_analysis() -> None:
     """Boosting with adaptative boosting (AdaBoost) and grandient-boosting decision tree."""
     # Decision tree and AdaBoost
-    #penguins = load_penguins()
-    #decision_tree(penguins)
-    #ada_boost(penguins)
+    penguins = load_penguins()
+    decision_tree(penguins)
+    ada_boost(penguins)
 
     # Manual gradient-boosting
-    #manual_gradient_boosting()
+    manual_gradient_boosting()
 
     # Gradient-boosting
     housing = load_californian_housing()
-    #gradient_boosting(**housing)
+    gradient_boosting(**housing)
     hist_boosting_gradient(**housing)
-
 
 if __name__ == "__main__":
     run_analysis()
