@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as sns
 from config import DataPath
 from model import LinearRegressionModel
+from types_config import DataSetType
 
 # Data
 FEATURE = "Flipper Length (mm)"
@@ -17,10 +18,12 @@ TARGET = "Body Mass (g)"
 ########
 # DATA #
 ########
-def load_penguins() -> pd.DataFrame:
+def load_penguins() -> DataSetType:
     """Load penguin dataset, extract features of interest and drop na."""
-    data, targets = dh.load_data_from_file(DataPath.PENGUIN.value, TARGET)
-    return pd.concat([data[FEATURE], targets], axis=1).dropna()
+    return dh.load_data_from_file(DataPath.PENGUIN.value,
+                                  target=TARGET,
+                                  columns=[FEATURE],
+                                  drop_na=True)
 
 
 #############################
@@ -69,9 +72,8 @@ def goodness_fit_measure(expected_values: npt.NDArray[np.int64],
     return [np.mean(np.abs(expected_values - ele)) for ele in predicted_values]
 
 
-def manual_linear_regression(penguins: pd.DataFrame,
-                             data: pd.DataFrame,
-                             targets: pd.Series) -> None:
+def manual_linear_regression(x_data: pd.DataFrame,
+                             y_data: pd.Series) -> None:
     """
     Perform manually a linear regression.
 
@@ -80,15 +82,16 @@ def manual_linear_regression(penguins: pd.DataFrame,
     compute the body mass using a linear relationship of the form y = ax + b where a and b are the
     2 parameters of the model.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     penguins: the whole dataset with data and target concatenated
 
-    data: dataset with the features
+    x_data: dataset with the features
 
-    targets: dataset witht the targets
+    y_data: dataset witht the targets
     """
-    x_range = np.linspace(data.min(), data.max(), num=300)
+    penguins = pd.concat([x_data, y_data], axis = 1)
+    x_range = np.linspace(x_data.min(), x_data.max(), num=300)
 
     # Linear relationship
     y_predicted = manual_linear_model_definition(x_range, 45, -5000)
@@ -106,7 +109,7 @@ def manual_linear_regression(penguins: pd.DataFrame,
     scatterplot(penguins, x_range, list_y_predicted, weights=weights, intercepts=intercepts)
 
     # Compute scores
-    scores = goodness_fit_measure(targets.to_numpy(), list_y_predicted)
+    scores = goodness_fit_measure(y_data.to_numpy(), list_y_predicted)
     for i in range(len(weights)):
         print(f"For linear model {weights[i]:.2f} (g/mm) * flipper length + {intercepts[i]:.2f} "
               f"(g) the mean error is {scores[i]}")
@@ -115,10 +118,11 @@ def manual_linear_regression(penguins: pd.DataFrame,
 ###############################
 # AUTOMATIC LINEAR REGRESSION #
 ###############################
-def automatic_linear_regression(penguins: pd.DataFrame,
-                                x_data: pd.DataFrame,
+def automatic_linear_regression(x_data: pd.DataFrame,
                                 y_data: pd.Series) -> None:
     """Perform a linear regression using scikit-learn"""
+    penguins = pd.concat([x_data, y_data], axis = 1)
+
     x_range = np.linspace(x_data.min(), x_data.max(), num=342)
 
     # Build Model
@@ -149,10 +153,9 @@ def automatic_linear_regression(penguins: pd.DataFrame,
 def run_analysis():
     # Load data
     penguins = load_penguins()
-    data, targets = penguins.drop(columns=TARGET), pd.Series(penguins[TARGET])
 
-    # manual_linear_regression(penguins, data, targets)
-    automatic_linear_regression(penguins, data, targets)
+    manual_linear_regression(**penguins)
+    automatic_linear_regression(**penguins)
 
 if __name__ == "__main__":
     run_analysis()

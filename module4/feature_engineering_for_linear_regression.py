@@ -17,14 +17,16 @@ from sklearn.tree import DecisionTreeRegressor
 from types_config import DataSetType
 from visualisation import show_validation_curve
 
+GENERATED_DATASET_FEATURE = "Feature"
+GENERATED_DATASET_TARGET = "Target"
+
 PENGUIN_FEATURES = ["Flipper Length (mm)", "Culmen Length (mm)", "Culmen Depth (mm)"]
 PENGUIN_TARGET = "Body Mass (g)"
-
 
 ########
 # DATA #
 ########
-def generate_data(n_sample: int = 100, min: float = -1.4, max: float = 1.4) -> pd.DataFrame:
+def generate_data(n_sample: int = 100, min: float = -1.4, max: float = 1.4) -> DataSetType:
     """
     Build a custom dataset consisting of a single feature. The target is built as a cubic
     polynomial on said feature. Some random fluctuations are added to the the target.
@@ -34,30 +36,33 @@ def generate_data(n_sample: int = 100, min: float = -1.4, max: float = 1.4) -> p
 
     data = np.sort(random.rand(n_sample) * len_data - len_data / 2)
 
-    return pd.DataFrame({
-        "feature": data,
-        "target": data**3 - 0.5 * data**2 + random.randn(n_sample) * 0.3
-    })
+    return {
+        "x_data": pd.DataFrame(data, columns=[GENERATED_DATASET_FEATURE]),
+        "y_data": pd.Series(data**3 - 0.5 * data**2 + random.randn(n_sample) * 0.3,
+                            name=GENERATED_DATASET_TARGET)
+    }
 
 def load_penguins() -> DataSetType:
     """Load penguin dataset, extract numerical features of interest and drop na."""
-    data = dh.load_data_from_file(
-        DataPath.PENGUIN.value
-    )[PENGUIN_FEATURES + [PENGUIN_TARGET]].dropna()
-    return pd.DataFrame(data.drop(PENGUIN_TARGET, axis=1)), pd.Series(data[PENGUIN_TARGET])
+    return dh.load_data_from_file(DataPath.PENGUIN.value,
+                                  target=PENGUIN_TARGET,
+                                  columns=PENGUIN_FEATURES,
+                                  drop_na=True)
 
 
 #################
 # VISUALISATION #
 #################
-def scatterplot(data: pd.DataFrame,
+def scatterplot(data: DataSetType,
                 x_data: npt.NDArray[np.float64] | None = None,
                 y_predicted: npt.NDArray[np.float64] | None = None,
                 title: str = "") -> None:
     """Plot scatterplot."""
-    ax = sns.scatterplot(
-        data=data, x="feature", y="target", color="black", alpha=0.5
-    )
+    ax = sns.scatterplot(data=pd.concat([data["x_data"], data["y_data"]], axis=1),
+                         x=GENERATED_DATASET_FEATURE,
+                         y=GENERATED_DATASET_TARGET,
+                         color="black",
+                         alpha=0.5)
     if x_data is not None and y_predicted is not None:
         ax.plot(x_data, y_predicted)
         ax.set_title(title)
@@ -74,13 +79,13 @@ def build_pipeline(transformer: type[KBinsDiscretizer
                    columns: list[str],
                    **kwargs):
     """Transform the input features."""
-    return LinearRegressionModel.build_pipeline([(transformer(**kwargs), columns)])
+    return LinearRegressionModel.build_pipeline(transformers = [(transformer(**kwargs), columns)])
 
 def run_model(model_class: type[DecisionTreeRegressor
                                 | LinearRegression
                                 | Pipeline
                                 | SVR],
-              data: pd.DataFrame,
+              data: DataSetType,
               x_data: npt.NDArray[np.float64],
               y_data: pd.Series,
               title: str,
@@ -89,9 +94,9 @@ def run_model(model_class: type[DecisionTreeRegressor
     """
     Build and train a model.
 
-    Parameter
-    ---------
-    data: the whole dataset use for the plot
+    Parameters
+    ----------
+    generated_data: the whole dataset use for the plot
 
     x_data: the whole feature use to train the model and predict
 
@@ -107,15 +112,15 @@ def run_model(model_class: type[DecisionTreeRegressor
     fit_score_plot_regression(model, data, x_data, y_data, y_predicted, title, print_coef)
 
 def run_model_with_pipeline(model: Pipeline,
-                            data: pd.DataFrame,
+                            data: DataSetType,
                             x_data: npt.NDArray[np.float64],
                             y_data: pd.Series,
                             title: str) -> None:
     """
     Build and train a model within a pipeline.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     data: the whole dataset use for the plot
 
     x_data: the whole feature use to train the model and predict
@@ -136,9 +141,8 @@ def run_model_with_pipeline(model: Pipeline,
 
 def fit_score_plot_regression(model: DecisionTreeRegressor
                               | LinearRegression
-                              | Pipeline
                               | SVR,
-                              data: pd.DataFrame,
+                              data: DataSetType,
                               x_data: npt.NDArray[np.float64],
                               y_data: pd.Series,
                               y_predicted: npt.NDArray[np.float64],
@@ -149,7 +153,8 @@ def fit_score_plot_regression(model: DecisionTreeRegressor
     """
     # Coefficient to display for linear model
     if print_coef:
-        print(f"Weight {model.coef_[0]:.3f} and intercept {model.intercept_:.3f}")
+        print(f"Weight {getattr(model, 'coef_')[0]:.3f} and "
+              f"intercept {getattr(model, 'intercept_'):.3f}")
 
     # Training error
     mse = mean_squared_error(y_data, y_predicted)
@@ -159,17 +164,15 @@ def cross_validation(model: LinearRegressionModel,
                      x_data: pd.DataFrame,
                      y_data: pd.Series):
     """Perform a cross-validation and display the testing error."""
-    scores = model.kfold_cross_validate(
-        x_data, y_data, nb_fold=10, scoring="neg_mean_absolute_error"
-    )
+    scores = model.kfold_cross_validate(x_data, y_data, cv=10, scoring="neg_mean_absolute_error")
     model.print_cross_validate(scores)
 
 ############################
 # SIMPLE LINEAR REGRESSION #
 ############################
-def run_linear_regression(data: pd.DataFrame,
-                            x_data: npt.NDArray[np.float64],
-                            y_data: pd.Series) -> None:
+def run_linear_regression(data: DataSetType,
+                          x_data: npt.NDArray[np.float64],
+                          y_data: pd.Series) -> None:
     """
     Build linear regression.
 
@@ -183,7 +186,7 @@ def run_linear_regression(data: pd.DataFrame,
 ############################
 # DECISION TREE REGRESSION #
 ############################
-def run_decision_tree_regression(data: pd.DataFrame,
+def run_decision_tree_regression(data: DataSetType,
                                  x_data: npt.NDArray[np.float64],
                                  y_data: pd.Series) -> None:
     """
@@ -209,7 +212,7 @@ def exploration(x_data: npt.NDArray[np.float64]):
     # Just to demonstrate that the features generated by both methods are equivalent
     print(np.abs(polynomial_extension.fit_transform(x_data) - x_data_expanded).max())
 
-def run_linear_regression_with_data_engineering(data: pd.DataFrame,
+def run_linear_regression_with_data_engineering(data: DataSetType,
                                                 x_data: npt.NDArray[np.float64],
                                                 y_data: pd.Series) -> None:
     """
@@ -223,7 +226,10 @@ def run_linear_regression_with_data_engineering(data: pd.DataFrame,
 
     # Transform the input features by feature expansion using Polynomial regression
     title = "Polynomial regression"
-    linear_regression = build_pipeline(PolynomialFeatures, ["feature"], degree=3, include_bias=False)
+    linear_regression = build_pipeline(PolynomialFeatures,
+                                       ["feature"],
+                                       degree=3,
+                                       include_bias=False)
     run_model_with_pipeline(linear_regression.model, data, x_data, y_data, title)
 
     # k-bins discretizer
@@ -233,21 +239,27 @@ def run_linear_regression_with_data_engineering(data: pd.DataFrame,
 
     # Spline transformer
     title = "Spline regression"
-    linear_regression = build_pipeline(SplineTransformer, ["feature"], degree=3, include_bias=False)
+    linear_regression = build_pipeline(SplineTransformer,
+                                       ["feature"],
+                                       degree=3,
+                                       include_bias=False)
     run_model_with_pipeline(linear_regression.model, data, x_data, y_data, title)
 
     # Nystroem
     title = "Polynomial Nystroem regression"
-    linear_regression = build_pipeline(
-        Nystroem, ["feature"], kernel="poly", degree=3, n_components=5, random_state=0
-    )
+    linear_regression = build_pipeline(Nystroem,
+                                       ["feature"],
+                                       kernel="poly",
+                                       degree=3,
+                                       n_components=5,
+                                       random_state=0)
     run_model_with_pipeline(linear_regression.model, data, x_data, y_data, title)
 
 
 ##########
 # KERNEL #
 ##########
-def run_svr(data: pd.DataFrame,
+def run_svr(data: DataSetType,
             x_data: npt.NDArray[np.float64],
             y_data: pd.Series) -> None:
     """
@@ -276,19 +288,19 @@ def data_engineering_on_generated_data():
     non-linear generated data. To keep it simple, we only work with one feature.
     """
     # Generate some non-linear data
-    data = generate_data()
+    generated_data = generate_data()
 
     # Reshape input data
-    x_data, y_data = data["feature"].values.reshape((-1, 1)), data["target"]
+    x_data, y_data = generated_data["x_data"].values.reshape((-1, 1)), generated_data["y_data"]
 
     # Some visualisation
-    # scatterplot(data)
+    scatterplot(generated_data)
 
     # Run model
-    run_linear_regression(data, x_data, y_data)
-    run_decision_tree_regression(data, x_data, y_data)
-    run_linear_regression_with_data_engineering(data, x_data, y_data)
-    run_svr(data, x_data, y_data)
+    run_linear_regression(generated_data, x_data, y_data)
+    run_decision_tree_regression(generated_data, x_data, y_data)
+    run_linear_regression_with_data_engineering(generated_data, x_data, y_data)
+    run_svr(generated_data, x_data, y_data)
 
 
 ################################
@@ -339,12 +351,12 @@ def validation_curve(linear_regression: LinearRegressionModel,
     param_name = "columntransformer__nystroem__n_components"
     curve = linear_regression.compute_validation_curve(x_data,
                                                        y_data,
-                                                       cv=10,
+                                                       param_range=np.array([5, 10, 50, 100]),
+                                                       param_name=param_name,
                                                        scoring="neg_mean_absolute_error",
                                                        score_name="Mean absolute error",
                                                        negate_score=True,
-                                                       param_range=np.array([5, 10, 50, 100]),
-                                                       param_name=param_name)
+                                                       cv=10)
     show_validation_curve(curve, xlabel="Validation curve for Nystroem regression")
 
 def data_engineering_on_penguins():
@@ -362,7 +374,7 @@ def data_engineering_on_penguins():
     # Build model without any data engineering
     print("\nLinear model without any data engineering.")
     model = LinearRegressionModel.build()
-    cross_validation(model, *penguins)
+    cross_validation(model, **penguins)
 
     # Build model with the preprocessing step PolynomialFeatures. The MAE is lower and less spread,
     # with the enriched feeatures. In this case, the additional features are indeed predictive and
@@ -371,8 +383,8 @@ def data_engineering_on_penguins():
     model = build_pipeline(
         PolynomialFeatures, PENGUIN_FEATURES, degree=2, include_bias=False, interaction_only=True
     )
-    get_features_generated_by_transformer(model, *penguins)
-    cross_validation(model, *penguins)
+    get_features_generated_by_transformer(model, **penguins)
+    cross_validation(model, **penguins)
 
     # Build model with the preprocessing step Nystroem. The optimal value for n_components already
     # tuned.
@@ -381,14 +393,14 @@ def data_engineering_on_penguins():
         Nystroem, PENGUIN_FEATURES, kernel="poly", degree=2, n_components=10, random_state=0
     )
     # validation_curve(model, *penguins)
-    cross_validation(model, *penguins)
+    cross_validation(model, **penguins)
 
 
 ############
 # ANALYSIS #
 ############
 def run_analysis():
-    # data_engineering_on_generated_data()
+    data_engineering_on_generated_data()
     data_engineering_on_penguins()
 
 if __name__ == "__main__":

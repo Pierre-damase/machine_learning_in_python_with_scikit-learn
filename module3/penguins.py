@@ -5,10 +5,9 @@ import pandas as pd
 from config import DataPath, TargetColumn
 from model import KNeighborsClassifierModel
 from sklearn.model_selection import GridSearchCV
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import (MinMaxScaler, PowerTransformer,
                                    QuantileTransformer, StandardScaler)
-from types_config import DataSetType
+from types_config import DataSetType, SearchCvParameters, SearchOuterCv
 
 PENGUIN_NUMERICAL_FEATURES = [
     "Body Mass (g)", "Flipper Length (mm)", "Culmen Length (mm)"
@@ -20,11 +19,10 @@ PENGUIN_NUMERICAL_FEATURES = [
 ########
 def load_penguins() -> DataSetType:
     """Load penguin dataset,extract numerical features of interest and drop na."""
-    data = dh.load_data_from_file(
-        DataPath.PENGUIN.value
-    )[PENGUIN_NUMERICAL_FEATURES + [TargetColumn.PENGUIN]].dropna()
-    return pd.DataFrame(data.drop(TargetColumn.PENGUIN, axis=1)), \
-        pd.Series(data[TargetColumn.PENGUIN])
+    return dh.load_data_from_file(DataPath.PENGUIN.value,
+                                  target=TargetColumn.PENGUIN,
+                                  columns=PENGUIN_NUMERICAL_FEATURES,
+                                  drop_na=True)
 
 
 #########
@@ -47,7 +45,7 @@ def build_kneighbors_classifier_without_scaler() -> KNeighborsClassifierModel:
 def cross_validation(model: KNeighborsClassifierModel, x_data: pd.DataFrame, y_data: pd.Series):
     """Cross-validation to evaluate the model performance without any tuning."""
     scores = model.kfold_cross_validate(
-        x_data, y_data, nb_fold=10, scoring="balanced_accuracy", return_train_score=True
+        x_data, y_data, cv=10, scoring="balanced_accuracy", return_train_score=True
     )
     model.print_cross_validate(scores)
 
@@ -97,9 +95,13 @@ def tune_model(model: KNeighborsClassifierModel,
 
     # 2. Tune hyperparameters
     path = Path(*DataPath.HYPERPARAMETER_TUNING.value.parts + ("penguins.csv",))
-    model.automated_search_cross_validation(
-        GridSearchCV, param_grid, x_data, y_data, x_train, y_train, path, cv=10
-    )
+    model.automated_search_cv(search_class=GridSearchCV,
+                              search_params=SearchCvParameters(10),
+                              parameters=param_grid,
+                              x_train=x_train,
+                              y_train=y_train,
+                              path=path,
+                              search_outer_cv=SearchOuterCv(x_data, y_data))
 
 
 ############
@@ -110,21 +112,21 @@ def run_analysis():
     penguins = load_penguins()
 
     # 2. Split data into random train and test subsets
-    x_train, _, y_train, _ = dh.sklearn_train_test_split(*penguins, test_size=0.8)
+    x_train, y_train = dh.get_train_split(dh.sklearn_train_test_split(**penguins, test_size=0.8))
 
     # 3. Build the classifier model
-    model = build_kneighbors_classifier(StandardScaler, penguins[0].columns.to_list())
+    model = build_kneighbors_classifier(StandardScaler, penguins["x_data"].columns.to_list())
 
     # 4. Evaluate the model
-    # cross_validation(model, *penguins)
+    cross_validation(model, **penguins)
 
     # 5. Try out various value for n_neighbors hyperparameter
-    # manually_tune_model(model, *penguins, n_neighbors=51)
-    # manually_tune_model(model, *penguins, n_neighbors=101)
-    # run_cv_without_scaler(*penguins, x_train, y_train)
+    manually_tune_model(model, **penguins, n_neighbors=51)
+    # manually_tune_model(model, **penguins, n_neighbors=101)
+    run_cv_without_scaler(**penguins, x_train=x_train, y_train=y_train)
 
     # 6. Tune KNeighbors classifier
-    tune_model(model, *penguins, x_train, y_train)
+    tune_model(model, **penguins, x_train=x_train, y_train=y_train)
 
 if __name__ == "__main__":
     run_analysis()

@@ -7,10 +7,10 @@ from sklearn.compose import make_column_selector as selector
 from sklearn.kernel_approximation import Nystroem
 from sklearn.preprocessing import (OneHotEncoder, SplineTransformer,
                                    StandardScaler)
-from types_config import Tpreprocessor
+from types_config import CvParameters, DataSetType, Tpreprocessor
 from visualisation import plot_coefficients_of_linear_model
 
-numerical_features = [
+NUMERICAL_FEATURES = [
     "LotFrontage", "LotArea", "MasVnrArea", "BsmtFinSF1", "BsmtFinSF2",
     "BsmtUnfSF", "TotalBsmtSF", "1stFlrSF", "2ndFlrSF", "LowQualFinSF",
     "GrLivArea", "BedroomAbvGr", "KitchenAbvGr", "TotRmsAbvGrd", "Fireplaces",
@@ -22,11 +22,11 @@ numerical_features = [
 ########
 # DATA #
 ########
-def load_numerical_data():
+def load_numerical_data() -> DataSetType:
     """Load ames housing dataset with numerical features only."""
-    data = dh.load_data_from_file(DataPath.AMES_HOUSING.value)
-    return dh.get_subset(data, columns=numerical_features), \
-        pd.Series(data[TargetColumn.AMES_HOUSING])
+    return dh.load_data_from_file(DataPath.AMES_HOUSING.value,
+                                  target=TargetColumn.AMES_HOUSING,
+                                  columns=NUMERICAL_FEATURES)
 
 def load_data():
     """Load ames housing dataset."""
@@ -42,7 +42,10 @@ def ridge_regression(x_data: pd.DataFrame, y_data: pd.Series, alpha: float):
                                                                            alpha=alpha)
 
     # Cross-validation
-    scores = regression.make_cross_validate(x_data, y_data, nb_fold=10, return_estimator=True)
+    scores = regression.make_cross_validate(x_data,
+                                            y_data,
+                                            cv_params=CvParameters(10),
+                                            return_estimator=True)
     regression.print_cross_validate(scores)
 
     # Largest absolute value of coefficient
@@ -64,8 +67,8 @@ def ridge_cv_regression(x_data: pd.DataFrame,
     # Cross-validation
     scores = regression.make_cross_validate(x_data,
                                             y_data,
-                                            n_splits=50,
-                                            test_size=0.2,
+                                            cv_strategy="ShuffleSplit",
+                                            cv_params=CvParameters(50, test_size=0.2),
                                             return_estimator=True)
     regression.print_cross_validate(scores)
 
@@ -82,32 +85,31 @@ def ridge_cv_regression(x_data: pd.DataFrame,
 def run_analysis_with_numerical_data():
     """Perform ridge regression using only numerical data."""
     # Load data
-    data, targets = load_numerical_data()
+    housing = load_numerical_data()
 
     # Ridge regression
-    ridge_regression(data, targets, alpha=0)
-    ridge_regression(data, targets, alpha=1)
+    ridge_regression(**housing, alpha=0)
+    ridge_regression(**housing, alpha=1)
 
     # Ridge regression with removing GarageArea features, which help to reduce the standard
     # deviation of GarageCars coefficient. Because, GarageArea and GarageCars are strongly
     # correlated and this kind of features typically cause unstable estimation of the matching
     # linear model coefficient. Correlation between two features could be checked by computing a
     # correlation coefficent such as the Pearson, Spearman or Kendall correlation.
-    data = data.drop("GarageArea", axis=1)
-    ridge_regression(data, targets, alpha=1)
+    housing["x_data"] = housing["x_data"].drop("GarageArea", axis=1)
+    ridge_regression(**housing, alpha=1)
 
     # RidgeCV regression
-    ridge_cv_regression(data, targets, transformers=[StandardScaler()])
+    ridge_cv_regression(**housing, transformers=[StandardScaler()])
 
 def run_analysis_with_all_data():
     """Use linear model with all data."""
     # Load data
-    data, targets = load_data()
+    housing = load_data()
 
     # RidgeCV regression with StandardScaler. Using both numerical and categorical features lead to
     # a lower error than using only numerical and therefore a better model.
-    ridge_cv_regression(data,
-                        targets,
+    ridge_cv_regression(**housing,
                         transformers=[
                             (StandardScaler(), selector(dtype_exclude=str)),
                             (OneHotEncoder(handle_unknown="ignore"), selector(dtype_include=str))
@@ -115,8 +117,7 @@ def run_analysis_with_all_data():
 
     # RidgeCV with SplineTransformer and feature engineering. Using a non-linear pipeline lead to a
     # lower error than omitting feature engineering and therefore to a better model.
-    ridge_cv_regression(data,
-                        targets,
+    ridge_cv_regression(**housing,
                         transformers=[
                             (SplineTransformer(), selector(dtype_exclude=str)),
                             (OneHotEncoder(handle_unknown="ignore"), selector(dtype_include=str)),
@@ -124,7 +125,7 @@ def run_analysis_with_all_data():
                         ])
 
 def run_analysis():
-    # run_analysis_with_numerical_data()
+    run_analysis_with_numerical_data()
     run_analysis_with_all_data()
 
 if __name__ == "__main__":

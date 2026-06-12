@@ -7,6 +7,7 @@ from config import DataPath
 from model import KNeighborsRegressorModel
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.preprocessing import StandardScaler
+from types_config import SearchCvParameters, SearchOuterCv
 from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
 
 
@@ -41,16 +42,14 @@ def randomized_search_tuning(model: KNeighborsRegressorModel,
     }
 
     # Tune hyperparameter
-    model.automated_search_cross_validation(RandomizedSearchCV,
-                                            param_dist,
-                                            x_data,
-                                            y_data,
-                                            x_train,
-                                            y_train,
-                                            path=path,
-                                            cv=5,
-                                            n_iter=20,
-                                            scoring="neg_mean_absolute_error")
+    model.automated_search_cv(search_class=RandomizedSearchCV,
+                              search_params=SearchCvParameters(5, n_iter=20),
+                              parameters=param_dist,
+                              x_train=x_train,
+                              y_train=y_train,
+                              scoring="neg_mean_absolute_error",
+                              path=path,
+                              search_outer_cv=SearchOuterCv(x_data, y_data))
 
 
 ############
@@ -61,7 +60,7 @@ def run_analysis():
     housing = dh.load_california_dataset()
 
     # 2. Split data into random train and test subsets
-    x_train, _, y_train, _ = dh.sklearn_train_test_split(*housing, test_size=0.8)
+    x_train, y_train = dh.get_train_split(dh.sklearn_train_test_split(**housing, test_size=0.8))
 
     # 3. Build the regressor model
     model = build_kneighbors_regressor(x_train.columns.to_list())
@@ -69,7 +68,7 @@ def run_analysis():
     # 4. Tuning using randomized-search
     file_name = "randomized_search_california_housing.csv"
     path = Path(*DataPath.HYPERPARAMETER_TUNING.value.parts + (file_name,))
-    # randomized_search_tuning(model, *housing, x_train, y_train, path)
+    randomized_search_tuning(model, housing["x_data"], housing["y_data"], x_train, y_train, path)
     show_parallel_coordinates_for_hyperparameter_tuning(pd.read_csv(path))
 
 if __name__ == "__main__":

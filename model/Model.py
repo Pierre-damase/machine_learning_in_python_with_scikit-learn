@@ -7,12 +7,14 @@ import numpy.typing as npt
 import pandas as pd
 from sklearn.compose import ColumnTransformer, make_column_transformer
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from sklearn.model_selection import (GridSearchCV, LearningCurveDisplay,
+from sklearn.model_selection import (GridSearchCV, KFold, LearningCurveDisplay,
                                      RandomizedSearchCV, ShuffleSplit,
                                      ValidationCurveDisplay, cross_validate)
 from sklearn.pipeline import Pipeline, make_pipeline
 from types_config import (AcceptEstimatorType, AcceptPreprocessorType,
-                          CvResults, Tcv, Tpreprocessor)
+                          CvParameters, CvResults, CvStrategy,
+                          SearchCvHyperparamType, SearchCvParameters,
+                          SearchCvType, SearchOuterCv, Tcv, Tpreprocessor)
 
 from .RegressorMixin import RegressorMixin
 
@@ -39,8 +41,8 @@ class Model[Testimator, Tmodel]():
         """
         To instanciate an estimator with the given parameter or default.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         model_params: model parameters
         """
         # Get class attribute
@@ -64,8 +66,8 @@ class Model[Testimator, Tmodel]():
         In this case, model is necessarily an estimator and not a pipeline. This is why we use the
         syntax Model[Testimator, Testimator].
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         **model_params: model parameters
         """
         return cls(model_instance=cls._create_estimator(model_params))
@@ -84,8 +86,8 @@ class Model[Testimator, Tmodel]():
         In this case, model is necessarily a pipeline. This is why we use the syntax
         Model[Testimator, Pipeline].
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         transformers: a list that is either made of transformers which are applied on the whole
         data or tuples of the form (transformer, columns) with transformer the given transformation
         to apply and columns the data to transform.
@@ -162,9 +164,14 @@ class Model[Testimator, Tmodel]():
             print("Start a simple pipeline with the given steps: "
                   f"{self.model.named_steps}.")
             start = time.time()
+
+            # Train the model
             self.train(x_train, y_train)
-            print(f"Pipeline over: {self.model[-1].n_iter_[0]} iterations "
-                  f"in {time.time() - start:.3f}s.")
+
+            # Pipeline over
+            n_iter = f"{getattr(self.model[-1], 'n_iter_')[0]} iterations " \
+                if "n_iter_" in self.model[-1].__dict__ else " "
+            print(f"Pipeline over: {n_iter}in {time.time() - start:.3f}s")
         else:
             # Simply train the model
             self.train(x_train, y_train)
@@ -177,9 +184,23 @@ class Model[Testimator, Tmodel]():
     ###################
     # TRAIN & PREDICT #
     ###################
-    def train(self, x_train: pd.DataFrame, y_train: pd.Series) -> None:
-        """Train the model using training data."""
-        self.model.fit(x_train, y_train)
+    def train(self,
+              x_train: pd.DataFrame,
+              y_train: pd.Series,
+              sample_weight: npt.NDArray[np.int8] | None = None) -> None:
+        """
+        Train the model using training data.
+
+        Parameters
+        ----------
+        x_train: training data
+
+        y_train: training targets
+
+        sample_weight: If None samples are equally  weighted, else give more importance to samples
+        with higher weight.
+        """
+        self.model.fit(x_train, y_train, sample_weight=sample_weight)
 
     def predict(self,
                 x_train: pd.DataFrame,
@@ -200,13 +221,16 @@ class Model[Testimator, Tmodel]():
         y_test: testing target
         """
         # Predict target
-        y_train_predicted = self.model.predict(x_train)
+        y_predicted = getattr(self.model, "predict")(x_train)
 
         if self.is_regressor:
-            self._predict_regressor(y_train, y_train_predicted, y_test, self.model.predict(x_test))
+            self._predict_regressor(y_train,
+                                    y_predicted,
+                                    y_test,
+                                    getattr(self.model, "predict")(x_test))
         else:
             # Check model performance with training data
-            self.print_training_accuracy(y_train, y_train_predicted)
+            self.print_training_accuracy(y_train, y_predicted)
 
             # Check model performance with testing data
             self.print_testing_accuracy(x_test, y_test)
@@ -220,20 +244,87 @@ class Model[Testimator, Tmodel]():
         """Specific prediction for regressor, check RegressorMix for the implementation."""
         pass
 
+    def get_misclassified(self,
+                           x_data: pd.DataFrame,
+                           y_data: pd.Series) -> pd.DataFrame:
+        """
+        For classifier, get misclassified samples.
+
+        Parameters
+        ----------
+        x_data: input data use for the prediction
+
+        y_data: target, i.e. the actual class for each sample and use to compare the prediction
+        """
+        if self.is_regressor:
+            raise Exception("Get misclassified only work for classifier.")
+
+        # Predict target
+        y_predicted = getattr(self.model, "predict")(x_data)
+
+        # Get misclassified
+        return x_data.iloc[np.flatnonzero(y_data != y_predicted)]
+
+    def get_sample_weight(self,
+                          y_data: pd.Series,
+                          misclassified: pd.DataFrame) -> npt.NDArray[np.int8]:
+        """
+        Set a higher weight to misclassified samples to give them more importance at the training.
+
+        The strategy is quite simple, misclassified samples have a weight of 1 and any other
+        samples have a weight of 0.
+
+        Parameters
+        ----------
+        y_data: targets
+
+        misclassified: misclassified samples at the prediction
+        """
+        # Create an array of zeros with the same shape than the targets
+        sample_weight = np.zeros_like(y_data, dtype=int)
+
+        # Set the weight of misclassified samples to 1
+        sample_weight[misclassified.index] = 1
+
+        return sample_weight
+
+    def get_ensemble_weight(self,
+                            y_data: pd.Series,
+                            l_misclassified: list[pd.DataFrame]) -> list[float]:
+        """
+        The idea is that several classifier won't have the same accuracy depending of the weight
+        given to the samples. Therefore, when predicting a class, we should trust the best
+        classifier slightly more than the others.
+
+        This methods return the weight given to each classifier.
+
+        Parameters
+        ----------
+        y_data: targets
+
+        misclassified: misclassified samples at the prediction of the first model
+
+        newly_misclassified: the model was trained again with samples reweighting to give more
+        importance to misclassified samples
+        """
+        y_size = len(y_data)
+        return [(y_size - len(misclassified)) / y_size for misclassified in l_misclassified]
+
+
     #############
     # PARAMETER #
     #############
     def get_hyperparameters(self) -> dict[str, any]:
         """Get model hyperparameters."""
-        return self.model.get_params()
+        return getattr(self.model, "get_params")()
 
     def set_hyperparameters(self, **parameters) -> None:
         """Set model hyperparameters."""
-        self.model.set_params(**parameters)
+        getattr(self.model, "set_params")(**parameters)
 
     def set_output(self, transform: str = "pandas") -> None:
         """To configure  all steps of the pipeline to output DataFrame."""
-        self.model.set_output(transform=transform)
+        getattr(self.model, "set_output")(transform=transform)
 
     @property
     def pipeline(self) -> Pipeline:
@@ -275,7 +366,7 @@ class Model[Testimator, Tmodel]():
 
     def get_testing_accuracy(self, x_test: pd.DataFrame, y_test: pd.Series) -> float:
         """Get model performance with testing data."""
-        return self.model.score(x_test, y_test)
+        return getattr(self.model, "score")(x_test, y_test)
 
     def print_mean_absolute_error(self, x_data: pd.DataFrame, targets: pd.Series) -> None:
         """Print model mean absolute error."""
@@ -284,7 +375,7 @@ class Model[Testimator, Tmodel]():
 
     def get_mean_absolute_error(self, x_data: pd.DataFrame, targets: pd.Series) -> float:
         """Get model mean absolute error."""
-        return mean_absolute_error(targets, self.model.predict(x_data))
+        return mean_absolute_error(targets, getattr(self.model, "predict")(x_data))
 
     def print_mean_squared_error(self, x_data: pd.DataFrame, targets: pd.Series) -> None:
         """Print model mean absolute error."""
@@ -293,12 +384,34 @@ class Model[Testimator, Tmodel]():
 
     def get_mean_squared_error(self, x_data: pd.DataFrame, targets: pd.Series) -> float:
         """Get model mean squared error."""
-        return mean_squared_error(targets, self.model.predict(x_data))
+        return mean_squared_error(targets, getattr(self.model, "predict")(x_data))
 
 
     ####################
     # CROSS VALIDATION #
     ####################
+    def _assert_cv_parameters(self,
+                             expected_parameters: list[str],
+                             params: CvParameters | SearchCvParameters,
+                             cv_name: str) -> None:
+        """
+        For cross-validation (check generalization performance) and search cross-validation (tune
+        hyperparameters) some parameters depending of the cv strategy are required.
+        """
+        assert None not in [
+            getattr(params, field) for field in params._fields if field in expected_parameters
+        ], f"Parameters {', '.join(expected_parameters)} are required to perform a {cv_name}."
+
+    def _revert_negation(self,
+                        results: CvResults,
+                        scoring: str | None) -> CvResults:
+        """Revert the negation apply to the error metric to get the actual error."""
+        if scoring and scoring.startswith("neg_"):
+            results["test_score"] = -results["test_score"]
+            if "train_score" in (res := results):
+                results["train_score"] = -res["train_score"]
+        return results
+
     def print_cross_validate(self, scores: CvResults, verbose: bool = False) -> None:
         """Print cross validation result."""
         # Testing error
@@ -317,6 +430,10 @@ class Model[Testimator, Tmodel]():
                 self.get_cross_validate_mean_and_std(res['train_score'])
             print("The mean cross-validated training error is "
                   f"{mean_score:.3f} ± {std_score:.3f}")
+
+            if verbose:
+                print(f"\nTrain scores accross the various step of the cv: "
+                      f"{res['train_score']}\n")
 
     def get_cv_estimator(self, scores: CvResults) -> list[AcceptEstimatorType
                                                           | AcceptPreprocessorType]:
@@ -344,82 +461,101 @@ class Model[Testimator, Tmodel]():
 
         return pd.DataFrame(cv_results, columns=columns).aggregate(["mean", "std"]).T
 
-    def revert_negation(self,
-                        results: CvResults,
-                        scoring: str | None) -> CvResults:
-        """Revert the negation apply to the error metric to get the actual error."""
-        if scoring and scoring.startswith("neg_"):
-            results["test_score"] = -results["test_score"]
-            if "train_score" in (res := results):
-                results["train_score"] = -res["train_score"]
-        return results
-
     def make_cross_validate(self,
                             x_data: pd.DataFrame,
                             y_data: pd.Series,
+                            cv_strategy: CvStrategy = "KFold",
+                            cv_params: CvParameters = CvParameters(n_splits=5),
                             scoring: str | None = None,
                             return_train_score: bool = False,
                             return_estimator: bool = False,
-                            nb_fold: int | None = None,
-                            n_splits: int | None = None,
-                            test_size: float | None = None,
                             **kwargs) -> CvResults:
         """
-        Generic methods to either perform a kfold or shuffle split cross-validation.
+        Generic methods to either perform a kfold or shuffle split cross-validation in order to
+        evaluate the generalization performance of the model.
 
-        Parameter
-        ---------
-        * k-fold cv *
-        nb_fold: the number of fold
+        Parameters
+        ----------
+        x_data: the input data use to fit the model
 
-        * Suffle split cv *
+        y_data: the target variable to try to predict
 
-        n_splits: the number of re-shuffling & splitting iterations
+        cv_strategy: which cross-validation strategy to use
 
-        test_size: represent the proportion of the dataset to include in the test split
+        cv_params: additional parameter of the the cross-validation strategy, use the default
+        5-fold strategy
+
+        scoring: strategy to evaluate the perfomance of the estimator across cv splits
+
+        return_train_score: whether to include train scores
+
+        return estimator: whether to return the estimators fitted on each split
         """
-        if nb_fold:
-            return self.kfold_cross_validate(x_data,
-                                             y_data,
-                                             nb_fold= nb_fold,
-                                             scoring=scoring,
-                                             return_train_score=return_train_score,
-                                             return_estimator=return_estimator,
-                                             **kwargs)
-        elif n_splits and test_size:
-            return self.shuffle_split_cross_validate(x_data,
-                                                     y_data,
-                                                     n_splits,
-                                                     test_size=test_size,
-                                                     scoring=scoring,
-                                                     return_train_score=return_train_score,
-                                                     return_estimator=return_estimator)
-        else:
-            raise Exception("To perform a kfold cv, nb_fold is required. For shuffle split cv, "
-                            "n_splits and test_size are required.")
+        match cv_strategy:
+            case "KFold":
+                return self.kfold_cross_validate(x_data,
+                                                 y_data,
+                                                 n_splits=cv_params.n_splits,
+                                                 shuffle=cv_params.shuffle,
+                                                 random_state=cv_params.random_state,
+                                                 scoring=scoring,
+                                                 return_train_score=return_train_score,
+                                                 return_estimator=return_estimator,
+                                                 **kwargs)
+            case "ShuffleSplit":
+                self._assert_cv_parameters(["test_size"], cv_params, cv_strategy)
+                return self.shuffle_split_cross_validate(
+                    x_data,
+                    y_data,
+                    n_splits=cv_params.n_splits,
+                    test_size=getattr(cv_params, "test_size", 10),
+                    scoring=scoring,
+                    return_train_score=return_train_score,
+                    return_estimator=return_estimator
+                )
 
 
     ##########################
     # KFLOD CROSS VALIDATION #
     ##########################
+    def kfold_cv_generator(self,
+                           n_splits: int,
+                           shuffle: bool= False,
+                           random_state: int | None = None) -> KFold:
+        """
+        Set up a kfold cross-validation strategy.
+
+        Parameters
+        ----------
+        n_splits: number of folds
+
+        shuffle: whether to shuffle the data before splitting into batches
+
+        random_state: when shuffle is True, random-state affects the ordering of the indices, which
+        controls the randomness of each fold.
+        """
+        return KFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
+
     def kfold_cross_validate(self,
                              x_data: pd.DataFrame,
                              y_data: pd.Series,
-                             nb_fold: int = 5,
+                             n_splits: int = 5,
+                             shuffle: bool = False,
+                             random_state: int | None = None,
                              scoring: str | None = None,
                              return_train_score: bool = False,
                              return_estimator: bool = False,
                              **kwargs) -> CvResults:
         """
-        To performe a kfold cross-validation strategy.
+        To perform a kfold cross-validation strategy.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         x_data: the whole dataset
 
         y_data: the whole targets
 
-        nb_fold: the cross-validation splitting strategy
+        cv: the cross-validation splitting strategy, eitehr an int or a cv generator
 
         scoring: strategy to evaluate the performance of the estimator across cross-validation
         splits.
@@ -432,14 +568,16 @@ class Model[Testimator, Tmodel]():
             self.model if "model" not in kwargs.keys() else kwargs["model"],
             x_data,
             y_data,
-            cv=nb_fold,
+            cv=self.kfold_cv_generator(
+                n_splits=n_splits, shuffle=shuffle, random_state=random_state
+            ),
             scoring=scoring,
             return_train_score=return_train_score,
             error_score="raise",
             n_jobs=2,
             return_estimator=return_estimator)
 
-        return self.revert_negation(results, scoring)
+        return self._revert_negation(results, scoring)
 
     def print_kfold_cross_validation_accuracy(self, scores: CvResults) -> None:
         """Print the result (accuracy and fitting time) of a kfold cross-validation strategy."""
@@ -457,11 +595,9 @@ class Model[Testimator, Tmodel]():
     ##################################
     # SHUFFLE SPLIT CROSS VALIDATION #
     ##################################
-    def shuffle_split_cv_generator(self, n_splits: int, test_size: float = 0.2):
+    def shuffle_split_cv_generator(self, n_splits: int, test_size: float = 0.2) -> ShuffleSplit:
         """Set up a shuffle split cross-validation strategy."""
-        return ShuffleSplit(
-            n_splits=n_splits, test_size=test_size, random_state=0
-        )
+        return ShuffleSplit(n_splits=n_splits, test_size=test_size, random_state=0)
 
     def shuffle_split_cross_validate(self,
                                      x_data: pd.DataFrame,
@@ -472,21 +608,21 @@ class Model[Testimator, Tmodel]():
                                      return_train_score: bool = False,
                                      return_estimator: bool = False) -> CvResults:
         """
-        To performe a shuffle split cross-validation strategy.
+        To perform a shuffle split cross-validation strategy.
 
         Scikit-learn allow the use of any metric, like 'mean_absolute_error' into a score to be
         used in cross validate. In order to do so, pass a string of the error metric with and
         additional neg_ such as 'neg_mean_absolute_error'.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         x_data: the whole dataset
 
         y_data: the whole targets
 
         n_splits: number of re-shuffling & splitting iterations.
         """
-        # Set the cross-validation strategy and performe it
+        # Set the cross-validation strategy and perform it
         results: CvResults = cross_validate(self.model,
                                             x_data,
                                             y_data,
@@ -498,7 +634,7 @@ class Model[Testimator, Tmodel]():
                                             n_jobs=2,
                                             return_estimator=return_estimator)
 
-        return self.revert_negation(results, scoring)
+        return self._revert_negation(results, scoring)
 
     def print_shuffle_split_cross_validation_accuracy(self, scores: CvResults) -> None:
         """Print the result (accuracy and fitting time) of a shuffle split cv strategy."""
@@ -573,8 +709,9 @@ class Model[Testimator, Tmodel]():
     # AUTOMATED HYPERPARAMETER TUNING #
     ###################################
     def _grid_search_cv(self,
-                       param_grid: dict[str, list[float|int]],
-                       cv: int) -> GridSearchCV:
+                        param_grid: SearchCvHyperparamType,
+                        cv: int,
+                        scoring: str | None = None) -> GridSearchCV:
         """
         Hyperparameter tuning by grid-search on the training set.
 
@@ -588,10 +725,11 @@ class Model[Testimator, Tmodel]():
                             param_grid=param_grid,
                             cv=cv,
                             n_jobs=2,
-                            return_train_score=True)
+                            return_train_score=True,
+                            scoring=scoring)
 
     def _randomized_search_cv(self,
-                             param_distribution: dict[str, list[float|int]],
+                              param_distribution: SearchCvHyperparamType,
                              n_iter: int,
                              cv: int,
                              scoring: str | None = None) -> RandomizedSearchCV:
@@ -625,93 +763,104 @@ class Model[Testimator, Tmodel]():
         # Save the DataFrame as a csv
         cv_results.to_csv(path, index=False)
 
-    def _no_missing_parameters(self,
-                               search_class: str,
-                               expected_param: list[str],
-                               **kwargs) -> None:
-        """
-        In order to perform an automated search to tune hyperparameter some additional paramaters
-        are required and are specific to the search class.
-        """
-        if not set(expected_param).issubset(kwargs.keys()):
-            raise Exception(f"In order to perform a {search_class} parameters "
-                            f"{', '.join(expected_param)} are expected")
-
-    def automated_search_cross_validation(self,
-                                          search_class: type[GridSearchCV|RandomizedSearchCV],
-                                          hyperparameters: dict[str, list[float|int]],
-                                          x_data: pd.DataFrame,
-                                          y_data: pd.Series,
-                                          x_train: pd.DataFrame,
-                                          y_train: pd.Series,
-                                          path: Path | None = None,
-                                          **kwargs):
+    def automated_search_cv(self,
+                            search_class: type[SearchCvType],
+                            search_params: SearchCvParameters,
+                            parameters: SearchCvHyperparamType,
+                            x_train: pd.DataFrame,
+                            y_train: pd.Series,
+                            scoring: str | None = None,
+                            path: Path | None = None,
+                            search_outer_cv: SearchOuterCv | None = None) -> SearchCvType:
         """
         Perform an automated search to tune hyperparameter.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         search_class: which method to apply for hyperparameter tuning. For now, either a
         grid-search or a randomized-search
 
-        hyperparameters: hyperparameter values to try out for model tuning. Either fix values for
-        the grid-search or a range of values for the randomized-search.
+        search_params: additional parameter required to perform the search method
 
-        x_data: the whole dataset use for the outer cross-validation, i.e. the cv used to evaluate
-        the generalization performance of the tuned model
+        parameters: hyperparameter values to try out for model tuning. Either fix values for the
+        grid-search or a range of values for the randomized-search.
 
-        y_data: the whole targets use for the outer cross-validation
-
-        x_train: training data set use for the inner cross-validation, i.e. the cv used to tune the
+        x_train: training data set use to train the tuned model, i.e. the model using the tuned
         hyperparameters
 
-        y_train: training targets use for the inner cross-validation
+        y_train: training targets use to train the tuned model
+
+        scoring: strategy to evaluate the performance of the search cv. The same scoring method
+        will be used by the outer cv if not None.
 
         path: automated tuning especially for a randomized-search with a large number of iterations
         is costly. Therefore, at the end result are saved as a csv file.
 
-        kwargs: list of parameters specific to the search class
+        search_outer_cv: the parameter of the outer cross-validation in order to evaluate the
+        generalization performance of the tuned model. If None no outer cross-validation is done.
         """
-        scoring: str | None = kwargs["scoring"] if "scoring" in kwargs.keys() else None
-
         # 1. Build an automated-search cross-validation
-        self._no_missing_parameters(
-            search_class.__name__, SEARCH_EXPECTED_PARAM[search_class.__name__], **kwargs
-        )
-        if search_class is GridSearchCV:
-            search_model = self._grid_search_cv(hyperparameters, cv=kwargs["cv"])
-        elif search_class is RandomizedSearchCV:
-            search_model = self._randomized_search_cv(hyperparameters,
-                                                      cv=kwargs["cv"],
-                                                      n_iter=kwargs["n_iter"],
-                                                      scoring=scoring)
-        else:
-            raise Exception(f"Unsupported search methods to tune hyperparameters.")
+        match search_class:
+            case cls if cls is GridSearchCV:
+                search_model = self._grid_search_cv(parameters,
+                                                    cv=search_params.cv,
+                                                    scoring=scoring)
+            case cls if cls is RandomizedSearchCV:
+                self._assert_cv_parameters(["n_iter"], search_params, RandomizedSearchCV.__name__)
+                search_model = self._randomized_search_cv(parameters,
+                                                          cv=search_params.cv,
+                                                          n_iter=getattr(search_params,
+                                                                         "n_iter",
+                                                                         10),
+                                                          scoring=scoring)
+            case _:
+                raise Exception(f"Unsupported search methods to tune hyperparameters.")
 
         # 2. Train the model with the best set of hyperparameters
         search_model.fit(x_train, y_train)
-
-        # Revert the negation apply by the error metric to get the actual error
-        if scoring and scoring.startswith("neg_"):
-            search_model.cv_results_["mean_test_score"] *= -1
-            search_model.cv_results_["mean_train_score"] *= -1
 
         # 3. Display the optimum hyperparameters
         print(f"The optimum set of hyperparameters is {search_model.best_params_}")
 
         # 4. Save the tuning result into a dataframe
         if path:
+            # Revert the negation apply by the error metric to get the actual error
+            if scoring and scoring.startswith("neg_"):
+                search_model.cv_results_["mean_test_score"] *= -1
+                search_model.cv_results_["mean_train_score"] *= -1
             self._save_results_as_dataframe(search_model.cv_results_, path)
 
-        # 5. Compute the generalization performance of the model with the score method preovide a
+        # 5. Compute the generalization performance of the model with the score method provide a
         #    single estimation of the generalization performance. Therefore, it's always preferable
         #    to perform a cross-validation. This pattern is called a nested cross-validation.
-        print("Perform an outer cross-validation on the whole dataset to compute the "
-              "generalization performance of the model with tuned hyperparameters.")
-        scores = self.kfold_cross_validate(
-            x_data, y_data, nb_fold=5, scoring=scoring, return_train_score=True, model=search_model
-        )
-        self.print_kfold_cross_validation_accuracy(scores)
+        if search_outer_cv is not None:
+            print("Perform an outer cross-validation on the whole dataset to compute the "
+                  "generalization performance of the model with tuned hyperparameters.")
+            scores = self.make_cross_validate(search_outer_cv.x_data,
+                                              search_outer_cv.y_data,
+                                              search_outer_cv.cv_strategy,
+                                              search_outer_cv.cv_params,
+                                              scoring=scoring,
+                                              return_train_score=True,
+                                              model=search_model)
+            self.print_kfold_cross_validation_accuracy(scores)
+
+        return search_model
+
+    def predict_tuned_model(self,
+                            search_model: SearchCvType,
+                            x_test: pd.DataFrame,
+                            y_test: pd.Series,
+                            scoring: str | None = None) -> None:
+        """Estimate the generalization performance of the tuned model."""
+        # Get the testing error
+        error: float = search_model.score(x_test, y_test)
+
+        # Revert the negation apply by the error metric
+        error = -error if scoring is not None and scoring.startswith("neg_") else error
+
+        # Print the error
+        print(f"The testing error of the tuned model is {error:.3f}")
 
 
     ####################
@@ -720,16 +869,25 @@ class Model[Testimator, Tmodel]():
     def compute_validation_curve(self,
                                  x_data: pd.DataFrame,
                                  y_data: pd.Series,
+                                 param_name: str,
+                                 param_range: list[int] | npt.NDArray[np.float64|np.int64],
                                  scoring: str,
                                  score_name: str,
                                  negate_score: bool = False,
-                                 cv: Tcv | None = None,
-                                 **kwargs) -> ValidationCurveDisplay:
+                                 cv: Tcv | None = None) -> ValidationCurveDisplay:
         """
-        Use validation curve to try out hyperparameters.
+        Use validation curve to try out various values of the given hyperparameter.
 
-        Pass either a classifier or a pipeline (parameter self.model) to
-        ValidationCurveDisplay.from_estimator
+        Important parameters to tune for various type of model (there is other parameter as well):
+        - for tree-based model, the max_depth hyperparameter is used to control the tradeoff
+        between under-fitting and over-fitting.
+
+        - for ensemble model, the n_estimators hyperparameter is used to control the number of
+        individual estimator. For gradient-boosting it's represent the number of boosting stage and
+        for random-forest the number of tree in the forest.
+
+        - for SVM model, the svc__gamma hyperparameter is used to control the tradeoff between
+        under-fitting and over-fitting
         """
         return ValidationCurveDisplay.from_estimator(self.model,
                                                      x_data,
@@ -737,8 +895,8 @@ class Model[Testimator, Tmodel]():
                                                      cv=cv,
                                                      scoring=scoring,
                                                      score_name=score_name,
-                                                     param_name=kwargs["param_name"],
-                                                     param_range=kwargs["param_range"],
+                                                     param_name=param_name,
+                                                     param_range=param_range,
                                                      negate_score=negate_score,
                                                      std_display_style="fill_between",
                                                      n_jobs=2)
@@ -750,21 +908,16 @@ class Model[Testimator, Tmodel]():
     def compute_learning_curve(self,
                                x_data: pd.DataFrame,
                                y_data: pd.Series,
+                               train_sizes: npt.NDArray[np.float64],
                                cv: Tcv,
                                scoring: str,
                                score_name: str,
-                               negate_score: bool = False,
-                               **kwargs) -> LearningCurveDisplay:
-        """
-        Use learning curve to try out various training set size.
-
-        Pass either a classifier or a pipeline (parameter self.model)
-        to ValidationCurveDisplay.from_estimator
-        """
+                               negate_score: bool = False) -> LearningCurveDisplay:
+        """Use learning curve to try out various training set size."""
         return LearningCurveDisplay.from_estimator(self.model,
                                                    x_data,
                                                    y_data,
-                                                   train_sizes=kwargs["train_sizes"],
+                                                   train_sizes=train_sizes,
                                                    cv=cv,
                                                    score_type="both", # both train and test errors
                                                    scoring=scoring,

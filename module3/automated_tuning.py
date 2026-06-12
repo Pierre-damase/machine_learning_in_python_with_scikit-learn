@@ -3,12 +3,12 @@ from pathlib import Path
 import data_handler as dh
 import pandas as pd
 from config import DataPath, TargetColumn
-from model import GradientBoostingClassifierModel
+from model import HistGradientBoostingClassifierModel
 from scipy.stats import loguniform
 from sklearn.compose import make_column_selector as selector
-from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.preprocessing import OrdinalEncoder
+from types_config import SearchCvParameters, SearchOuterCv
 from visualisation import show_parallel_coordinates_for_hyperparameter_tuning
 
 
@@ -26,9 +26,9 @@ class loguniform_int:
 #########
 # MODEL #
 #########
-def build_gradient_boosting_classifier() -> GradientBoostingClassifierModel:
+def build_gradient_boosting_classifier() -> HistGradientBoostingClassifierModel:
     """Build a gradient boosting classifier."""
-    return GradientBoostingClassifierModel.build_pipeline(
+    return HistGradientBoostingClassifierModel.build_pipeline(
         transformers=[
             (
                 OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
@@ -44,7 +44,7 @@ def build_gradient_boosting_classifier() -> GradientBoostingClassifierModel:
 #########################
 # HYPERPARAMETER TUNING #
 #########################
-def grid_search_tuning(model: GradientBoostingClassifierModel,
+def grid_search_tuning(model: HistGradientBoostingClassifierModel,
                        x_data: pd.DataFrame,
                        y_data: pd.Series,
                        x_train: pd.DataFrame,
@@ -74,11 +74,15 @@ def grid_search_tuning(model: GradientBoostingClassifierModel,
     }
 
     # 2. Tune hyperparameters
-    model.automated_search_cross_validation(
-        GridSearchCV, param_grid, x_data, y_data, x_train, y_train, path=path, cv=2
-    )
+    model.automated_search_cv(search_class=GridSearchCV,
+                              search_params=SearchCvParameters(2),
+                              parameters=param_grid,
+                              x_train=x_train,
+                              y_train=y_train,
+                              path=path,
+                              search_outer_cv=SearchOuterCv(x_data, y_data))
 
-def randomized_search_tuning(model: GradientBoostingClassifierModel,
+def randomized_search_tuning(model: HistGradientBoostingClassifierModel,
                              x_data: pd.DataFrame,
                              y_data: pd.Series,
                              x_train: pd.DataFrame,
@@ -106,15 +110,13 @@ def randomized_search_tuning(model: GradientBoostingClassifierModel,
 
     # 2. Tune hyperparameters. For performance issue only run 10 iterations.
     #    In order to make a decent analysis, at least 500 iterations would be best.
-    model.automated_search_cross_validation(RandomizedSearchCV,
-                                            param_dist,
-                                            x_data,
-                                            y_data,
-                                            x_train,
-                                            y_train,
-                                            path=path,
-                                            cv=5,
-                                            n_iter=20)
+    model.automated_search_cv(search_class=RandomizedSearchCV,
+                              search_params=SearchCvParameters(5, n_iter=20),
+                              parameters=param_dist,
+                              x_train=x_train,
+                              y_train=y_train,
+                              path=path,
+                              search_outer_cv=SearchOuterCv(x_data, y_data))
 
 
 ############
@@ -126,7 +128,7 @@ def run_analysis():
                                           TargetColumn.ADULT_CENSUS)
 
     # 2. Split data into random train and test subsets
-    x_train, _, y_train, _ = dh.sklearn_train_test_split(*adult_census, test_size=0.8)
+    train_data = dh.get_train_split(dh.sklearn_train_test_split(**adult_census, test_size=0.8))
 
     # 3. Build the classifier model
     model = build_gradient_boosting_classifier()
@@ -137,7 +139,11 @@ def run_analysis():
     # show_parallel_coordinates_for_hyperparameter_tuning(pd.read_csv(path))
 
     path = Path(*DataPath.HYPERPARAMETER_TUNING.value.parts + ("randomized_search.csv",))
-    randomized_search_tuning(model, *adult_census, x_train, y_train, path)
+    randomized_search_tuning(model,
+                             adult_census["x_data"],
+                             adult_census["y_data"],
+                             *train_data,
+                             path)
     show_parallel_coordinates_for_hyperparameter_tuning(pd.read_csv(path))
 
 if __name__ == "__main__":

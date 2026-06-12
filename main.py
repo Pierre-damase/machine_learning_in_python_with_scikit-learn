@@ -12,13 +12,15 @@ from module4 import (run_ames_housing_linear_model,
                      run_regularized_regression)
 from module5 import (run_ames_housing_with_decision_tree,
                      run_classification_tree, run_regression_tree)
+from module6 import (run_boosting, run_bootstrapping, run_ensemble_penguins,
+                     run_ensemble_tuning)
 
 
 def run_module_1():
     """Run methods of the 1st module named The predictive modeling pipeline."""
     run_fitting_a_sklearn_model_on_numerical_data()
-    run_handling_categorical_data()
-    run_ames_housing()
+    #run_handling_categorical_data()
+    #run_ames_housing()
 
 def run_module_2():
     """Run methods of the 2nd module named Selecting the best model."""
@@ -44,13 +46,21 @@ def run_module_4():
 
 def run_module_5():
     """Run methods of the 5th module named Decision tree models."""
-    # run_classification_tree()
-    # run_regression_tree()
+    run_classification_tree()
+    run_regression_tree()
     run_ames_housing_with_decision_tree()
+
+def run_module_6():
+    """Run methods of the 6th module named Ensemble of models."""
+    # run_bootstrapping()
+    # run_boosting()
+    # run_ensemble_tuning()
+    run_ensemble_penguins()
 
 if __name__ == "__main__":
     # run_module_1()
     # run_module_2()
     # run_module_3()
     # run_module_4()
-    run_module_5()
+    # run_module_5()
+    run_module_6()

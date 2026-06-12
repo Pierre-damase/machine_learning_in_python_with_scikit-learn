@@ -1,17 +1,11 @@
 import data_handler as dh
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from config import GENERATED_DATASET_FEATURES as FEATURES
 from config import DataPath, TargetColumn
-from matplotlib.axes import Axes
-from matplotlib.colors import ListedColormap
 from model import LogisticRegressionModel
 from sklearn.compose import make_column_selector as selector
-from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.kernel_approximation import Nystroem
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import (KBinsDiscretizer, OneHotEncoder,
                                    PolynomialFeatures, SplineTransformer,
                                    StandardScaler)
@@ -51,8 +45,8 @@ def scatterplot(data: list[DataSetType],
     """
     Simultaneously plot the 3 generated dataset: moons, gauss and xor.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     data: list of tuples. The 1st element is the data and the 2nd the target.
     """
     fig, axs = plt.subplots(ncols=3, figsize=(14, 4), constrained_layout=True)
@@ -60,10 +54,10 @@ def scatterplot(data: list[DataSetType],
         # Decision boundary
         if regressions is not None:
             regressions[i].decision_boundary_display(
-                pd.concat([data[i][0], data[i][1]], axis=1),
-                data[i][0],
+                pd.concat([data[i]["x_data"], data[i]["y_data"]], axis=1),
+                data[i]["x_data"],
                 response_method="predict_proba",
-                hue=data[i][1],
+                hue=data[i]["y_data"],
                 plot_method="pcolormesh",
                 draw_contour_lines=True,
                 ax=axs[i])
@@ -91,8 +85,8 @@ def logistic_regression(x_data: pd.DataFrame,
     """
     Perform a logistic regression.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     transformers: a list of dictionary.
 
     {
@@ -131,10 +125,13 @@ def logistic_regression(x_data: pd.DataFrame,
 def logistic_regressions(data: list[DataSetType],
                         transformers: list[TransformerType],
                         **classifier_args) -> list[LogisticRegressionModel]:
-    """Perform a logistic regression for each data, a list of tuple of data and targets."""
+    """Perform a logistic regression for each data."""
     regressions = []
-    for x_data, y_data in data:
-        regressions.append(logistic_regression(x_data, y_data, transformers, **classifier_args))
+    for i in range(len(data)):
+        regressions.append(logistic_regression(data[i]["x_data"],
+                                               data[i]["y_data"],
+                                               transformers,
+                                               **classifier_args))
     return regressions
 
 def run_model_without_feature_engineering(data: list[DataSetType]) -> None:
@@ -239,23 +236,23 @@ def run_model_with_multi_step_feature_engineering(data: list[DataSetType]) -> Cv
                 regressions=logistic_regressions(data, transformers),
                 classifier_title="Spline + RBF Nystroem classifier")
 
-def logistic_regression_with_cv(data: pd.DataFrame,
-                                targets: pd.Series,
+def logistic_regression_with_cv(x_data: pd.DataFrame,
+                                y_data: pd.Series,
                                 transformers: list[TransformerType],
                                 return_estimator: bool = True,
                                 **classifier_args):
     """Perform a logistic regression with a cross-validation step and analysis of the estimator."""
     # 1. Build the model
-    regression = logistic_regression(data,
-                                     targets,
+    regression = logistic_regression(x_data,
+                                     y_data,
                                      transformers,
                                      train_model=False,
                                      **classifier_args)
 
     # 2. Cross validation
-    scores = regression.kfold_cross_validate(data,
-                                             targets,
-                                             nb_fold=10,
+    scores = regression.kfold_cross_validate(x_data,
+                                             y_data,
+                                             cv=10,
                                              return_estimator=return_estimator)
     regression.print_kfold_cross_validation_accuracy(scores)
 
@@ -265,19 +262,19 @@ def logistic_regression_with_cv(data: pd.DataFrame,
 
     return scores
 
-def run_model_with_numerical_data_only(data: pd.DataFrame, targets: pd.Series) -> CvResults:
+def run_model_with_numerical_data_only(x_data: pd.DataFrame, y_data: pd.Series) -> CvResults:
     """Run a model with numerical data only."""
     # Extract numerical data
-    num_data = dh.get_subset(data, dtypes=[int, float])
+    num_data = dh.get_subset(x_data, dtypes=[int, float])
 
     # Set up transfomers
     transformers = [{"type": StandardScaler, "columns": num_data.columns.to_list()}]
 
     # Run model
-    return logistic_regression_with_cv(num_data, targets, transformers)
+    return logistic_regression_with_cv(num_data, y_data, transformers)
 
-def run_model_with_all_data(data: pd.DataFrame,
-                            targets: pd.Series,
+def run_model_with_all_data(x_data: pd.DataFrame,
+                            y_data: pd.Series,
                             polynomial_expansion: bool = False,
                             **classifier_args):
     """
@@ -298,7 +295,7 @@ def run_model_with_all_data(data: pd.DataFrame,
         })
 
     # Run model
-    return logistic_regression_with_cv(data, targets, transformers, **classifier_args)
+    return logistic_regression_with_cv(x_data, y_data, transformers, **classifier_args)
 
 def cross_validation_comparison(scores: list[CvResults],
                                 types: list[str]) -> None:
@@ -336,16 +333,16 @@ def run_analysis_on_adult_census():
 
     # 2. Build a logistic regression with no feature engineering using only the numerical data
     # In this cas, the most important feature for the logistic regression is the capital gain.
-    scores_with_num_data = run_model_with_numerical_data_only(*adult_census)
+    scores_with_num_data = run_model_with_numerical_data_only(**adult_census)
 
     # 3. Build a logistic regression with no feature engineering using both non-numerical and
     # numerical data. The most important features are capital gain and a high level of education
     # (masters, prof-school, doctorate)
-    scores_with_all_data = run_model_with_all_data(*adult_census, max_iter=200)
+    scores_with_all_data = run_model_with_all_data(**adult_census, max_iter=200)
 
     # 4. Build a logistic regression with feature engineering. Extend the previous transformers to
     # add the feature engineering step.
-    scores_with_polynomial_expansion = run_model_with_all_data(*adult_census,
+    scores_with_polynomial_expansion = run_model_with_all_data(**adult_census,
                                                                polynomial_expansion=True,
                                                                C=0.01,
                                                                max_iter=200)
@@ -359,8 +356,8 @@ def run_analysis_on_adult_census():
     )
 
 def run_analysis():
-    run_analysis_with_generated_data()
-    # run_analysis_on_adult_census()
+    # run_analysis_with_generated_data()
+    run_analysis_on_adult_census()
 
 if __name__ == "__main__":
     run_analysis()

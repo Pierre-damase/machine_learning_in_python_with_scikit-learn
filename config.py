@@ -13,6 +13,10 @@ AMES_HOUSING_NUMERICAL_FEATURES = [
 # Features for generated dataset
 GENERATED_DATASET_FEATURES = ["One", "Two"]
 
+# Features and target for synthetic dataset
+SYNTHETIC_DATASET_FEATURE = "Feature"
+SYNTHETIC_DATASET_TARGET = "Target"
+
 class DataPath(Enum):
     """Path to dataset or tuned hyperparameter saved as csv."""
     ADULT_CENSUS = Path("./data/data_set/adult.arff")

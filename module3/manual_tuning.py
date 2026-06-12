@@ -1,10 +1,8 @@
 import data_handler as dh
 import pandas as pd
 from config import DataPath, TargetColumn
-from model import GradientBoostingClassifierModel, LogisticRegressionModel
+from model import HistGradientBoostingClassifierModel, LogisticRegressionModel
 from sklearn.compose import make_column_selector as selector
-from sklearn.ensemble import HistGradientBoostingClassifier
-from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 from visualisation import show_errorbars_for_hyperparameter_tuning
 
@@ -12,11 +10,11 @@ from visualisation import show_errorbars_for_hyperparameter_tuning
 #######################
 # LOGISTIC REGRESSION #
 #######################
-def manual_logistic_regression_tuning(data: pd.DataFrame,
-                                      targets: pd.Series) -> None:
+def manual_logistic_regression_tuning(x_data: pd.DataFrame,
+                                      y_data: pd.Series) -> None:
     """Manual tuning of hyperparameter C of a logistic regression."""
     # 1. Remove categorical features
-    data = dh.get_subset(data, dtypes=[int, float])
+    data = dh.get_subset(x_data, dtypes=[int, float])
 
     # 2. Build the model
     model = LogisticRegressionModel.build_pipeline([StandardScaler()], max_iter=500)
@@ -25,7 +23,7 @@ def manual_logistic_regression_tuning(data: pd.DataFrame,
     hyperparameters = {
         "logisticregression__C": [1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1]
     }
-    scores = model.manual_hyperparameter_tuning(data, targets, **hyperparameters)
+    scores = model.manual_hyperparameter_tuning(data, y_data, **hyperparameters)
 
     # 4. Show scores
     show_errorbars_for_hyperparameter_tuning(
@@ -40,12 +38,12 @@ def manual_logistic_regression_tuning(data: pd.DataFrame,
 # GRADIENT BOOSTING CLASSIFIER #
 ################################
 def _build_gradient_boosting(learning_rate:float = 0.1,
-                             max_leaf_nodes: int = 31) -> GradientBoostingClassifierModel:
+                             max_leaf_nodes: int = 31) -> HistGradientBoostingClassifierModel:
     """
     Build a gradient boosting classifier with a transformer to deal with numerical and
     categorical features.
     """
-    return GradientBoostingClassifierModel.build_pipeline(
+    return HistGradientBoostingClassifierModel.build_pipeline(
         transformers=[
             (
                 OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
@@ -65,8 +63,8 @@ def _display_errors(scores: dict[str, list[float]]):
              .sort_values("testing_mean", ascending=False)
     print(data)
 
-def manual_gradient_boosting_tuning(data: pd.DataFrame,
-                                    targets: pd.Series,
+def manual_gradient_boosting_tuning(x_data: pd.DataFrame,
+                                    y_data: pd.Series,
                                     train_size: float) -> None:
     """
     Manual tuning of hyperparameters learning_rate and max_leaf_nodes of
@@ -78,8 +76,7 @@ def manual_gradient_boosting_tuning(data: pd.DataFrame,
     """
     # 1. Split data. At first to work on a smaller subset then to tuned the
     #    hyperparameter on the training set
-    x_train, _, y_train, _ = \
-        dh.sklearn_train_test_split(data, targets, test_size=1-train_size)
+    split_data = dh.sklearn_train_test_split(x_data, y_data, test_size=1-train_size)
 
     # 2. Build model
     model = _build_gradient_boosting()
@@ -89,13 +86,15 @@ def manual_gradient_boosting_tuning(data: pd.DataFrame,
         "histgradientboostingclassifier__learning_rate": [0.01, 0.1, 1, 10],
         "histgradientboostingclassifier__max_leaf_nodes": [3, 10, 30]
     }
-    scores = model.manual_hyperparameter_tuning(x_train, y_train, **hyperparameters)
+    scores = model.manual_hyperparameter_tuning(split_data["x_train"],
+                                                split_data["y_train"],
+                                                **hyperparameters)
 
     _display_errors(scores)
 
 
-def optimum_gradient_boosting(data: pd.DataFrame,
-                              targets: pd.Series,
+def optimum_gradient_boosting(x_data: pd.DataFrame,
+                              y_data: pd.Series,
                               learning_rate: float,
                               max_leaf_nodes: int) -> None:
     """Gradient boosting with best hyperparameters."""
@@ -104,7 +103,7 @@ def optimum_gradient_boosting(data: pd.DataFrame,
                                      max_leaf_nodes=max_leaf_nodes)
 
     # 2. Cross-validation
-    scores = model.kfold_cross_validate(data, targets, 5, return_train_score=True)
+    scores = model.kfold_cross_validate(x_data, y_data, 5, return_train_score=True)
     model.print_kfold_cross_validation_accuracy(scores)
 
 
@@ -115,14 +114,14 @@ def run_analysis():
     adult_census = dh.load_data_from_file(DataPath.ADULT_CENSUS.value, TargetColumn.ADULT_CENSUS)
 
     # Logistic regression manual tuning
-    manual_logistic_regression_tuning(*adult_census)
+    manual_logistic_regression_tuning(**adult_census)
 
     # Gradient boosting classifier manual tuning
-    #manual_gradient_boosting_tuning(*adult_census, train_size=0.2)
-    #manual_gradient_boosting_tuning(*adult_census, train_size=0.8)
+    manual_gradient_boosting_tuning(**adult_census, train_size=0.2)
+    #manual_gradient_boosting_tuning(**adult_census, train_size=0.8)
 
     # print("\nGradient boosting with optimum hyperparameters.")
-    #optimum_gradient_boosting(*adult_census, learning_rate=0.1, max_leaf_nodes=30)
+    optimum_gradient_boosting(**adult_census, learning_rate=0.1, max_leaf_nodes=30)
 
 if __name__ == "__main__":
     run_analysis()
