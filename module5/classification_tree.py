@@ -11,7 +11,7 @@ from types_config import (CvParameters, DataSetType, SearchCvHyperparamType,
 
 PENGUIN_FEATURES = ["Culmen Length (mm)", "Culmen Depth (mm)"]
 
-type ClassModelTypes = (DecisionTreeClassifierModel | LogisticRegressionModel)
+type ModelClassTypes = (DecisionTreeClassifierModel | LogisticRegressionModel)
 
 ########
 # DATA #
@@ -26,7 +26,7 @@ def load_data() -> DataSetType:
 ########
 # PLOT #
 ########
-def plot_decision_boundary(model: ClassModelTypes,
+def plot_decision_boundary(model: ModelClassTypes,
                            data: pd.DataFrame, x_data: pd.DataFrame) -> None:
     """Plot decision boundary."""
     model.decision_boundary_display(data,
@@ -60,11 +60,11 @@ def prediction(model: DecisionTreeClassifier, culmen_length: float, culmen_depth
 #########
 # MODEL #
 #########
-def classifier_model(model_class: type[ClassModelTypes],
+def classifier_model(model_class: type[ModelClassTypes],
                      penguins: DataSetType,
                      test_size: float = 0.25,
                      param_grid: SearchCvHyperparamType | None = None,
-                     **kwargs) -> ClassModelTypes:
+                     **kwargs) -> ModelClassTypes:
     """
     Perform either a logistic regression or a classification tree.
 

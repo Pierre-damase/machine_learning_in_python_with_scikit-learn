@@ -9,7 +9,6 @@ from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 from types_config import (CvParameters, DataSetType, SearchCvParameters,
                           SearchOuterCv, Tpreprocessor)
 
-type ClassModelTypes = (DecisionTreeRegressorModel | LinearRegressionModel)
 
 ########
 # DATA #

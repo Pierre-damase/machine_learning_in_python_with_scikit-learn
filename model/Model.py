@@ -5,18 +5,21 @@ from typing import ClassVar
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+from data_handler import sklearn_train_test_split
 from sklearn.compose import ColumnTransformer, make_column_transformer
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-from sklearn.model_selection import (GridSearchCV, KFold, LearningCurveDisplay,
+from sklearn.metrics import r2_score
+from sklearn.model_selection import (GridSearchCV, GroupKFold, KFold,
+                                     LearningCurveDisplay, LeaveOneGroupOut,
                                      RandomizedSearchCV, ShuffleSplit,
+                                     StratifiedKFold, TimeSeriesSplit,
                                      ValidationCurveDisplay, cross_validate)
 from sklearn.pipeline import Pipeline, make_pipeline
 from types_config import (AcceptEstimatorType, AcceptPreprocessorType,
-                          CvParameters, CvResults, CvStrategy,
-                          SearchCvHyperparamType, SearchCvParameters,
-                          SearchCvType, SearchOuterCv, Tcv, Tpreprocessor)
-
-from .RegressorMixin import RegressorMixin
+                          CvParameters, CvResults, CvStrategy, CvType,
+                          ScoringFunctionType, SearchCvHyperparamType,
+                          SearchCvParameters, SearchCvType, SearchOuterCv, Tcv,
+                          Tmodel, Tpreprocessor)
+from visualisation import plot_time_series_detection
 
 # Expected parameter for a given search class use to tune hyperparameters
 SEARCH_EXPECTED_PARAM = {
@@ -53,7 +56,7 @@ class Model[Testimator, Tmodel]():
         params = default_params | model_params
 
         # Instanciate the estimator
-        print(f"Build a {estimator_cls.__name__} model"
+        print(f"\n*******************\nBuild a {estimator_cls.__name__} model"
               f"{f' with parameter(s) {str(params)}' if model_params else ''}")
         return estimator_cls(**params)
 
@@ -126,7 +129,7 @@ class Model[Testimator, Tmodel]():
     ############
     @property
     def is_regressor(self) -> bool:
-        return isinstance(self, RegressorMixin)
+        return False
 
     @property
     def is_pipeline(self) -> bool:
@@ -187,7 +190,7 @@ class Model[Testimator, Tmodel]():
     def train(self,
               x_train: pd.DataFrame,
               y_train: pd.Series,
-              sample_weight: npt.NDArray[np.int8] | None = None) -> None:
+              **kwargs) -> None:
         """
         Train the model using training data.
 
@@ -197,118 +200,10 @@ class Model[Testimator, Tmodel]():
 
         y_train: training targets
 
-        sample_weight: If None samples are equally  weighted, else give more importance to samples
-        with higher weight.
+        **kwargs: additional parameters such as sample_weight: by default samples are equally
+        weighted, else give more importance to samples with higher weight.
         """
-        self.model.fit(x_train, y_train, sample_weight=sample_weight)
-
-    def predict(self,
-                x_train: pd.DataFrame,
-                x_test: pd.DataFrame,
-                y_train: pd.Series,
-                y_test: pd.Series) -> None:
-        """
-        Predict the target and check model performance.
-
-        Parameters
-        ----------
-        x_train: training data
-
-        x_test: testing data
-
-        y_train: training target
-
-        y_test: testing target
-        """
-        # Predict target
-        y_predicted = getattr(self.model, "predict")(x_train)
-
-        if self.is_regressor:
-            self._predict_regressor(y_train,
-                                    y_predicted,
-                                    y_test,
-                                    getattr(self.model, "predict")(x_test))
-        else:
-            # Check model performance with training data
-            self.print_training_accuracy(y_train, y_predicted)
-
-            # Check model performance with testing data
-            self.print_testing_accuracy(x_test, y_test)
-
-
-    def _predict_regressor(self,
-                           y_train: pd.Series,
-                           y_train_predicted: npt.NDArray[np.generic],
-                           y_test: pd.Series,
-                           y_test_predicted: npt.NDArray[np.generic]) -> None:
-        """Specific prediction for regressor, check RegressorMix for the implementation."""
-        pass
-
-    def get_misclassified(self,
-                           x_data: pd.DataFrame,
-                           y_data: pd.Series) -> pd.DataFrame:
-        """
-        For classifier, get misclassified samples.
-
-        Parameters
-        ----------
-        x_data: input data use for the prediction
-
-        y_data: target, i.e. the actual class for each sample and use to compare the prediction
-        """
-        if self.is_regressor:
-            raise Exception("Get misclassified only work for classifier.")
-
-        # Predict target
-        y_predicted = getattr(self.model, "predict")(x_data)
-
-        # Get misclassified
-        return x_data.iloc[np.flatnonzero(y_data != y_predicted)]
-
-    def get_sample_weight(self,
-                          y_data: pd.Series,
-                          misclassified: pd.DataFrame) -> npt.NDArray[np.int8]:
-        """
-        Set a higher weight to misclassified samples to give them more importance at the training.
-
-        The strategy is quite simple, misclassified samples have a weight of 1 and any other
-        samples have a weight of 0.
-
-        Parameters
-        ----------
-        y_data: targets
-
-        misclassified: misclassified samples at the prediction
-        """
-        # Create an array of zeros with the same shape than the targets
-        sample_weight = np.zeros_like(y_data, dtype=int)
-
-        # Set the weight of misclassified samples to 1
-        sample_weight[misclassified.index] = 1
-
-        return sample_weight
-
-    def get_ensemble_weight(self,
-                            y_data: pd.Series,
-                            l_misclassified: list[pd.DataFrame]) -> list[float]:
-        """
-        The idea is that several classifier won't have the same accuracy depending of the weight
-        given to the samples. Therefore, when predicting a class, we should trust the best
-        classifier slightly more than the others.
-
-        This methods return the weight given to each classifier.
-
-        Parameters
-        ----------
-        y_data: targets
-
-        misclassified: misclassified samples at the prediction of the first model
-
-        newly_misclassified: the model was trained again with samples reweighting to give more
-        importance to misclassified samples
-        """
-        y_size = len(y_data)
-        return [(y_size - len(misclassified)) / y_size for misclassified in l_misclassified]
+        getattr(self.model, "fit")(x_train, y_train, **kwargs)
 
 
     #############
@@ -344,9 +239,9 @@ class Model[Testimator, Tmodel]():
         return self.pipeline[0].get_feature_names_out()
 
 
-    ############
-    # ACCURACY #
-    ############
+    #####################
+    # MODEL PERFORMANCE #
+    #####################
     def print_training_accuracy(self,
                                 y_train: pd.Series,
                                 y_predicted: npt.NDArray[np.generic]) -> None:
@@ -368,23 +263,13 @@ class Model[Testimator, Tmodel]():
         """Get model performance with testing data."""
         return getattr(self.model, "score")(x_test, y_test)
 
-    def print_mean_absolute_error(self, x_data: pd.DataFrame, targets: pd.Series) -> None:
-        """Print model mean absolute error."""
-        print("The mean absolute error of the optimal model is "
-              f"{self.get_mean_absolute_error(x_data, targets):.3f}")
+    def print_r2_score(self, y_data: pd.Series, y_predicted: npt.NDArray[np.generic]) -> None:
+        """print r2 (coefficient of determination) regression score function."""
+        return print(f"the r2 score is {r2_score(y_data, y_predicted):.3f}")
 
-    def get_mean_absolute_error(self, x_data: pd.DataFrame, targets: pd.Series) -> float:
-        """Get model mean absolute error."""
-        return mean_absolute_error(targets, getattr(self.model, "predict")(x_data))
-
-    def print_mean_squared_error(self, x_data: pd.DataFrame, targets: pd.Series) -> None:
-        """Print model mean absolute error."""
-        print("The mean squared error of the optimal model is "
-              f"{self.get_mean_squared_error(x_data, targets):.3f}")
-
-    def get_mean_squared_error(self, x_data: pd.DataFrame, targets: pd.Series) -> float:
-        """Get model mean squared error."""
-        return mean_squared_error(targets, getattr(self.model, "predict")(x_data))
+    def get_r2_score(self, y_data: pd.Series, y_predicted: npt.NDArray[np.generic]) -> float:
+        """get r2 (coefficient of determination) regression score function."""
+        return r2_score(y_data, y_predicted)
 
 
     ####################
@@ -404,9 +289,9 @@ class Model[Testimator, Tmodel]():
 
     def _revert_negation(self,
                         results: CvResults,
-                        scoring: str | None) -> CvResults:
+                        scoring: ScoringFunctionType | None) -> CvResults:
         """Revert the negation apply to the error metric to get the actual error."""
-        if scoring and scoring.startswith("neg_"):
+        if scoring and isinstance(scoring, str) and scoring.startswith("neg_"):
             results["test_score"] = -results["test_score"]
             if "train_score" in (res := results):
                 results["train_score"] = -res["train_score"]
@@ -439,7 +324,7 @@ class Model[Testimator, Tmodel]():
                                                           | AcceptPreprocessorType]:
         """
         The estimator objects for each cv split. This is available only if return_estimator
-        parameter of kfold_cross_validate is set to True.
+        parameter of make_cross_validate is set to True.
         """
         if "estimator" in (res := scores):
             return res["estimator"]
@@ -461,14 +346,21 @@ class Model[Testimator, Tmodel]():
 
         return pd.DataFrame(cv_results, columns=columns).aggregate(["mean", "std"]).T
 
+    def get_cross_validate_mean_and_std(self,
+                                        scores: npt.NDArray[np.float64]) \
+                                        -> tuple[float, float]:
+        """Get the mean/std of a cross_validation strategy."""
+        return scores.mean(), scores.std()
+
     def make_cross_validate(self,
                             x_data: pd.DataFrame,
                             y_data: pd.Series,
                             cv_strategy: CvStrategy = "KFold",
                             cv_params: CvParameters = CvParameters(n_splits=5),
-                            scoring: str | None = None,
+                            scoring: ScoringFunctionType | None = None,
                             return_train_score: bool = False,
                             return_estimator: bool = False,
+                            groups: npt.NDArray[np.int64] | None = None,
                             **kwargs) -> CvResults:
         """
         Generic methods to either perform a kfold or shuffle split cross-validation in order to
@@ -485,45 +377,87 @@ class Model[Testimator, Tmodel]():
         cv_params: additional parameter of the the cross-validation strategy, use the default
         5-fold strategy
 
-        scoring: strategy to evaluate the perfomance of the estimator across cv splits
+        scoring: strategy to evaluate the perfomance of the estimator across cv splits Scikit-learn
+        allow the use of any metric, like 'mean_absolute_error' into a score to be used in cross
+        validate. In order to do so, pass a string of the error metric with and additional neg_
+        such as 'neg_mean_absolute_error'.
 
         return_train_score: whether to include train scores
 
         return estimator: whether to return the estimators fitted on each split
+
+        groups: group labels for the samples used while splitting the dataset into train/test set.
+        Only used in conjunction with a "Group" cv instance, e.g. GroupKFold
         """
+        cv: CvType
+        msg: str
         match cv_strategy:
+            case "GroupKFold":
+                # K-fold iterator variant with non-overlapping groups. Each group will appear
+                # exactly once in the test set across all folds.
+                cv = self.group_kfold_cv_generator()
+                msg = "Group k-fold cross-validation"
             case "KFold":
-                return self.kfold_cross_validate(x_data,
-                                                 y_data,
-                                                 n_splits=cv_params.n_splits,
-                                                 shuffle=cv_params.shuffle,
-                                                 random_state=cv_params.random_state,
-                                                 scoring=scoring,
-                                                 return_train_score=return_train_score,
-                                                 return_estimator=return_estimator,
-                                                 **kwargs)
+                # Provides train/test indices to split data in train/test sets. Split dataset into
+                # k consecutive folds (without shuffling by default).
+                cv = self.kfold_cv_generator(cv_params.n_splits,
+                                             shuffle=cv_params.shuffle,
+                                             random_state=cv_params.random_state)
+                msg = f"K-fold cross-validation with K={cv_params.n_splits}"
+            case "LeaveOneGroupOut":
+                # Provides train/test indices to split data such that each training set is
+                # comprised of all samples except ones belonging to one specific group
+                cv = self.leave_one_group_out_cv_generator()
+                msg = "Leave one group out k-fold cross-validation"
             case "ShuffleSplit":
+                # Yields indices to randomly split data into training and test sets.
                 self._assert_cv_parameters(["test_size"], cv_params, cv_strategy)
-                return self.shuffle_split_cross_validate(
-                    x_data,
-                    y_data,
-                    n_splits=cv_params.n_splits,
-                    test_size=getattr(cv_params, "test_size", 10),
-                    scoring=scoring,
-                    return_train_score=return_train_score,
-                    return_estimator=return_estimator
-                )
+                cv = self.shuffle_split_cv_generator(cv_params.n_splits,
+                                                     test_size=cv_params.test_size)
+                msg = f"Shuffle split cross-validation with n={cv_params.n_splits} and " \
+                    f"test_size={cv_params.test_size}"
+            case "StratifiedKFold":
+                # Variation of KFold that returns stratified folds. The folds are made by
+                # preserving the percentage of samples for each class in target.
+                cv = self.stratified_kfold_cv_generator(cv_params.n_splits,
+                                                        shuffle=cv_params.shuffle,
+                                                        random_state=cv_params.random_state)
+                msg = f"Stratified k-fold cross-validation with K={cv_params.n_splits}"
+            case "TimeSeriesSplit":
+                # Provides train/test indices to split time-ordered data.
+                cv = self.time_series_split_cv_generator(n_splits=cv_params.n_splits)
+                msg = "Cross-validation for time series"
+
+        print(f"\n{msg}{f' using the metric {scoring}.' if scoring is not None else '.'}")
+
+        results: CvResults = cross_validate(
+            self.model if "model" not in kwargs.keys() else kwargs["model"],
+            x_data,
+            y_data,
+            cv=cv,
+            scoring=scoring,
+            return_train_score=return_train_score,
+            error_score="raise",
+            n_jobs=2,
+            return_estimator=return_estimator,
+            groups=groups)
+
+        return self._revert_negation(results, scoring)
 
 
-    ##########################
-    # KFLOD CROSS VALIDATION #
-    ##########################
+    #############################
+    # CROSS-VALIDATION STRATEGY #
+    #############################
+    def group_kfold_cv_generator(self) -> GroupKFold:
+        """Set up a group k-fold cross-validation strategy."""
+        return GroupKFold()
+
     def kfold_cv_generator(self,
                            n_splits: int,
                            shuffle: bool= False,
                            random_state: int | None = None) -> KFold:
         """
-        Set up a kfold cross-validation strategy.
+        Set up a k-fold cross-validation strategy.
 
         Parameters
         ----------
@@ -536,110 +470,41 @@ class Model[Testimator, Tmodel]():
         """
         return KFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
 
-    def kfold_cross_validate(self,
-                             x_data: pd.DataFrame,
-                             y_data: pd.Series,
-                             n_splits: int = 5,
-                             shuffle: bool = False,
-                             random_state: int | None = None,
-                             scoring: str | None = None,
-                             return_train_score: bool = False,
-                             return_estimator: bool = False,
-                             **kwargs) -> CvResults:
-        """
-        To perform a kfold cross-validation strategy.
+    def leave_one_group_out_cv_generator(self) -> LeaveOneGroupOut:
+        """Set up a leave one group out cross-validation strategy."""
+        return LeaveOneGroupOut()
 
-        Parameters
-        ----------
-        x_data: the whole dataset
-
-        y_data: the whole targets
-
-        cv: the cross-validation splitting strategy, eitehr an int or a cv generator
-
-        scoring: strategy to evaluate the performance of the estimator across cross-validation
-        splits.
-
-        **kwargs: by default use the current model to perform the cross-validation. For
-        hyperparameter tuning, an outer cross-validation is performed on the whole dataset using
-        the tuned model.
-        """
-        results:CvResults = cross_validate(
-            self.model if "model" not in kwargs.keys() else kwargs["model"],
-            x_data,
-            y_data,
-            cv=self.kfold_cv_generator(
-                n_splits=n_splits, shuffle=shuffle, random_state=random_state
-            ),
-            scoring=scoring,
-            return_train_score=return_train_score,
-            error_score="raise",
-            n_jobs=2,
-            return_estimator=return_estimator)
-
-        return self._revert_negation(results, scoring)
-
-    def print_kfold_cross_validation_accuracy(self, scores: CvResults) -> None:
-        """Print the result (accuracy and fitting time) of a kfold cross-validation strategy."""
-        print(f"Kfold cross-validation with K={len(scores['test_score'])}.")
-        self.print_cross_validate(scores)
-
-
-    def get_cross_validate_mean_and_std(self,
-                                        scores: npt.NDArray[np.float64]) \
-                                        -> tuple[float, float]:
-        """Get the mean/std of a cross_validation strategy."""
-        return scores.mean(), scores.std()
-
-
-    ##################################
-    # SHUFFLE SPLIT CROSS VALIDATION #
-    ##################################
     def shuffle_split_cv_generator(self, n_splits: int, test_size: float = 0.2) -> ShuffleSplit:
         """Set up a shuffle split cross-validation strategy."""
         return ShuffleSplit(n_splits=n_splits, test_size=test_size, random_state=0)
 
-    def shuffle_split_cross_validate(self,
-                                     x_data: pd.DataFrame,
-                                     y_data: pd.Series,
-                                     n_splits: int,
-                                     scoring: str | None = None,
-                                     test_size: float = 0.2,
-                                     return_train_score: bool = False,
-                                     return_estimator: bool = False) -> CvResults:
+    def stratified_kfold_cv_generator(self,
+                                      n_splits: int,
+                                      shuffle: bool= False,
+                                      random_state: int | None = None) -> StratifiedKFold:
         """
-        To perform a shuffle split cross-validation strategy.
-
-        Scikit-learn allow the use of any metric, like 'mean_absolute_error' into a score to be
-        used in cross validate. In order to do so, pass a string of the error metric with and
-        additional neg_ such as 'neg_mean_absolute_error'.
+        Set up a stratified k-fold cross-validation strategy.
 
         Parameters
         ----------
-        x_data: the whole dataset
+        n_splits: number of folds
 
-        y_data: the whole targets
+        shuffle: whether to shuffle the data before splitting into batches
 
-        n_splits: number of re-shuffling & splitting iterations.
+        random_state: when shuffle is True, random-state affects the ordering of the indices, which
+        controls the randomness of each fold.
         """
-        # Set the cross-validation strategy and perform it
-        results: CvResults = cross_validate(self.model,
-                                            x_data,
-                                            y_data,
-                                            cv=self.shuffle_split_cv_generator(n_splits,
-                                                                               test_size),
-                                            scoring=scoring,
-                                            return_train_score=return_train_score,
-                                            error_score="raise",
-                                            n_jobs=2,
-                                            return_estimator=return_estimator)
+        return StratifiedKFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
 
-        return self._revert_negation(results, scoring)
+    def time_series_split_cv_generator(self, n_splits: int) -> TimeSeriesSplit:
+        """
+        Set up a time series split cross-validation strategy.
 
-    def print_shuffle_split_cross_validation_accuracy(self, scores: CvResults) -> None:
-        """Print the result (accuracy and fitting time) of a shuffle split cv strategy."""
-        print(f"Shuffle split cross-validation with n={len(scores['test_score'])}.")
-        self.print_cross_validate(scores)
+        Parmeters
+        ---------
+        n_splits: number of splits
+        """
+        return TimeSeriesSplit(n_splits=n_splits)
 
 
     ################################
@@ -669,10 +534,10 @@ class Model[Testimator, Tmodel]():
                                                     **hyperparameters)
         else:
             # Compute cross-validation
-            results = self.kfold_cross_validate(data,
-                                                targets,
-                                                5,
-                                                return_train_score=True)
+            results = self.make_cross_validate(data,
+                                               targets,
+                                               cv_params=CvParameters(5),
+                                               return_train_score=True)
 
             # Save hyperparameter
             for k, v in {
@@ -711,7 +576,7 @@ class Model[Testimator, Tmodel]():
     def _grid_search_cv(self,
                         param_grid: SearchCvHyperparamType,
                         cv: int,
-                        scoring: str | None = None) -> GridSearchCV:
+                        scoring: ScoringFunctionType | None = None) -> GridSearchCV:
         """
         Hyperparameter tuning by grid-search on the training set.
 
@@ -732,7 +597,7 @@ class Model[Testimator, Tmodel]():
                               param_distribution: SearchCvHyperparamType,
                              n_iter: int,
                              cv: int,
-                             scoring: str | None = None) -> RandomizedSearchCV:
+                             scoring: ScoringFunctionType | None = None) -> RandomizedSearchCV:
         """
         Hyperparameter tuning by randomized-search on the training set.
 
@@ -769,7 +634,7 @@ class Model[Testimator, Tmodel]():
                             parameters: SearchCvHyperparamType,
                             x_train: pd.DataFrame,
                             y_train: pd.Series,
-                            scoring: str | None = None,
+                            scoring: ScoringFunctionType | None = None,
                             path: Path | None = None,
                             search_outer_cv: SearchOuterCv | None = None) -> SearchCvType:
         """
@@ -786,7 +651,7 @@ class Model[Testimator, Tmodel]():
         grid-search or a range of values for the randomized-search.
 
         x_train: training data set use to train the tuned model, i.e. the model using the tuned
-        hyperparameters
+        hyperparameters in order to retrieve the best set of hyperparameters.
 
         y_train: training targets use to train the tuned model
 
@@ -820,12 +685,14 @@ class Model[Testimator, Tmodel]():
         search_model.fit(x_train, y_train)
 
         # 3. Display the optimum hyperparameters
-        print(f"The optimum set of hyperparameters is {search_model.best_params_}")
+        print(f"The optimum set of hyperparameters is {search_model.best_params_} with a mean "
+              f"error of {search_model.best_score_:.3f} (only to select the best tuned model, "
+              "to assess generalization performance perform an outer cross-validation).")
 
         # 4. Save the tuning result into a dataframe
         if path:
             # Revert the negation apply by the error metric to get the actual error
-            if scoring and scoring.startswith("neg_"):
+            if scoring and isinstance(scoring, str) and scoring.startswith("neg_"):
                 search_model.cv_results_["mean_test_score"] *= -1
                 search_model.cv_results_["mean_train_score"] *= -1
             self._save_results_as_dataframe(search_model.cv_results_, path)
@@ -834,7 +701,7 @@ class Model[Testimator, Tmodel]():
         #    single estimation of the generalization performance. Therefore, it's always preferable
         #    to perform a cross-validation. This pattern is called a nested cross-validation.
         if search_outer_cv is not None:
-            print("Perform an outer cross-validation on the whole dataset to compute the "
+            print("\nPerform an outer cross-validation on the whole dataset to compute the "
                   "generalization performance of the model with tuned hyperparameters.")
             scores = self.make_cross_validate(search_outer_cv.x_data,
                                               search_outer_cv.y_data,
@@ -843,7 +710,7 @@ class Model[Testimator, Tmodel]():
                                               scoring=scoring,
                                               return_train_score=True,
                                               model=search_model)
-            self.print_kfold_cross_validation_accuracy(scores)
+            self.print_cross_validate(scores)
 
         return search_model
 
@@ -851,13 +718,14 @@ class Model[Testimator, Tmodel]():
                             search_model: SearchCvType,
                             x_test: pd.DataFrame,
                             y_test: pd.Series,
-                            scoring: str | None = None) -> None:
+                            scoring: ScoringFunctionType | None = None) -> None:
         """Estimate the generalization performance of the tuned model."""
         # Get the testing error
         error: float = search_model.score(x_test, y_test)
 
         # Revert the negation apply by the error metric
-        error = -error if scoring is not None and scoring.startswith("neg_") else error
+        if scoring is not None and isinstance(scoring, str) and scoring.startswith("neg_"):
+            error = -error
 
         # Print the error
         print(f"The testing error of the tuned model is {error:.3f}")
@@ -871,7 +739,7 @@ class Model[Testimator, Tmodel]():
                                  y_data: pd.Series,
                                  param_name: str,
                                  param_range: list[int] | npt.NDArray[np.float64|np.int64],
-                                 scoring: str,
+                                 scoring: ScoringFunctionType,
                                  score_name: str,
                                  negate_score: bool = False,
                                  cv: Tcv | None = None) -> ValidationCurveDisplay:
@@ -910,7 +778,7 @@ class Model[Testimator, Tmodel]():
                                y_data: pd.Series,
                                train_sizes: npt.NDArray[np.float64],
                                cv: Tcv,
-                               scoring: str,
+                               scoring: ScoringFunctionType,
                                score_name: str,
                                negate_score: bool = False) -> LearningCurveDisplay:
         """Use learning curve to try out various training set size."""
@@ -925,3 +793,55 @@ class Model[Testimator, Tmodel]():
                                                    negate_score=negate_score,
                                                    std_display_style="fill_between",
                                                    n_jobs=2)
+
+
+    ###############
+    # TIME SERIES #
+    ###############
+    def time_series_detection(self,
+                              x_data: pd.DataFrame,
+                              y_data: pd.Series,
+                              scoring: ScoringFunctionType | None = None) -> None:
+        """
+        Using default cross-validation strategy (with or without shuffling) for time series does
+        not allow to crorectly assess the generalization performance of the model. With time series
+        each sample can be influenced by prebious ones in an inherently ordered sequence.
+
+        Parameters
+        ----------
+        x_data: the whole data
+
+        x_test: the whole targets
+        """
+        # Set up  split parameters
+        split_params = [{"shuffle": True, "random_state": 0, "sorted": True},
+                        {"shuffle": False, "random_state": None, "sorted": False}]
+
+        # Train and predict model with shuffled and sorted data. The other with unshuffled data.
+        y_trains, y_tests, y_predicted = [], [], []
+        for i in range(len(split_params)):
+            # Split data
+            split_data = sklearn_train_test_split(x_data,
+                                                  y_data,
+                                                  shuffle=split_params[i]["shuffle"],
+                                                  random_state=split_params[i]["random_state"]
+            )
+            y_trains.append(split_data["y_train"])
+            y_tests.append(split_data["y_test"])
+
+            # Sort data
+            if split_params[i]["sorted"]:
+                for k in split_data.keys():
+                    split_data[k].sort_index(ascending=True, inplace=True)
+
+            # Train the model + prediction
+            self.start(x_train=split_data["x_train"], y_train=split_data["y_train"])
+            tmp = getattr(self.model, "predict")(split_data["x_test"])
+            y_predicted.append(pd.Series(tmp, index=split_data["y_test"].index))
+
+            # Compute a score
+            if scoring is not None:
+                self.print_r2_score(split_data["y_test"], y_predicted[i])
+
+        # Plot
+        plot_time_series_detection(y_trains, y_tests, y_predicted)

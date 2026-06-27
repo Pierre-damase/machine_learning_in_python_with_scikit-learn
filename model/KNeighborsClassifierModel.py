@@ -1,10 +1,11 @@
 from sklearn.neighbors import KNeighborsClassifier
 from types_config import Tmodel
 
+from .ClassifierMixin import ClassifierMixin
 from .Model import Model
 
 
-class KNeighborsClassifierModel(Model[KNeighborsClassifier, Tmodel]):
+class KNeighborsClassifierModel(ClassifierMixin, Model[KNeighborsClassifier, Tmodel]):
     """
     K-nearest neighbors classifier.
 

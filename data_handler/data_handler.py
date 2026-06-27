@@ -1,13 +1,14 @@
 from ctypes import ArgumentError
 from pathlib import Path
-from typing import overload
+from typing import Literal, overload
 
 import numpy as np
 import pandas as pd
 from config import (GENERATED_DATASET_FEATURES, SYNTHETIC_DATASET_FEATURE,
-                    SYNTHETIC_DATASET_TARGET, TargetColumn)
+                    SYNTHETIC_DATASET_TARGET, DataPath, TargetColumn)
 from scipy.io import arff
-from sklearn.datasets import (fetch_california_housing, make_blobs,
+from sklearn.datasets import (fetch_california_housing, load_breast_cancer,
+                              load_digits, load_iris, make_blobs,
                               make_gaussian_quantiles, make_moons)
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, StandardScaler
@@ -185,15 +186,54 @@ def load_california_dataset() -> DataSetType:
     """
     Load california housing dataset.
 
-    Returns
-    -------
-    data: general real-estate and geographical information
+    x_data: general real-estate and geographical information
 
-    target: median value of houses in California. Transform the prices from
-        the 100 range to the thousand dollars range for visualization
+    y_data: median value of houses in California. Transform the prices from the 100 range to
+    the thousand dollars range for visualization
     """
     housing = fetch_california_housing(as_frame=True)
     return make_dataset(x_data=getattr(housing, "data"), y_data=getattr(housing, "target") * 100)
+
+def load_iris_dataset() -> DataSetType:
+    """
+    Load iris dataset.
+
+    x_data: iris features
+
+    y_data: multi-categorical variable, the class of the iris
+    """
+    data, targets = load_iris(as_frame=True, return_X_y=True)
+    return make_dataset(x_data=pd.DataFrame(data), y_data=pd.Series(targets))
+
+def load_digit_dataset() -> DataSetType:
+    """Load digit dataset."""
+    data, targets = load_digits(as_frame=True, return_X_y=True)
+    return make_dataset(x_data=pd.DataFrame(data), y_data=pd.Series(targets))
+
+def load_financial_dataset(target: Literal["COP", "CVX", "TOT", "VLO", "XOM"]) -> DataSetType:
+    """Load financial dataset, which is financial quotations from some energy companies."""
+    symbols = {"TOT": "Total", "XOM": "Exxon", "CVX": "Chevron", "COP": "ConocoPhillips",
+               "VLO": "Valero Energy"}
+
+    data: DataSetType = {"x_data": pd.DataFrame(), "y_data": pd.Series()}
+    for k, v in symbols.items():
+        # Load financial data for a given company
+        tmp = load_data_from_file(Path(DataPath.FINANCIAL.value.format(k)),
+                                  drop_na=True,
+                                  columns=["open"])
+
+        # Keep track of the data
+        if k == target:
+            data["y_data"] = pd.Series(tmp.iloc[:,0], name=v)
+        else:
+            data["x_data"][v] = tmp
+
+    return data
+
+def load_breast_cancer_dataset():
+    """Load breast cancer dataset."""
+    data, targets = load_breast_cancer(as_frame=True, return_X_y=True)
+    return make_dataset(x_data=pd.DataFrame(data), y_data=pd.Series(targets))
 
 
 #############
@@ -509,7 +549,9 @@ def manual_train_test_split(x_data: pd.DataFrame,
 
 def sklearn_train_test_split(x_data: pd.DataFrame,
                              y_data: pd.Series,
-                             test_size: float = 0.25) -> SplitSetType:
+                             test_size: float = 0.25,
+                             shuffle: bool = True,
+                             random_state: int | None = 42) -> SplitSetType:
     """
     Split data to build train and test set using scikit learn.
 
@@ -529,8 +571,9 @@ def sklearn_train_test_split(x_data: pd.DataFrame,
 
     test_size: represents the proportion of the dataset to include in the test split
 
-    stratify: to split data in a stratified fashion, in order to keep the same percentage of
-    samples of each target class as the complete set.
+    shuffle: whether or not to shuffle the data before splitting
+
+    random_state: controls the shuffling applied to the data before applying the split
 
     Returns
     -------
@@ -547,9 +590,9 @@ def sklearn_train_test_split(x_data: pd.DataFrame,
 
     x_train, x_test, y_train, y_test = train_test_split(x_data,
                                                         y_data,
-                                                        random_state=42,
                                                         test_size=test_size,
-                                                        shuffle=True)
+                                                        shuffle=shuffle,
+                                                        random_state=random_state)
     return {
         "x_train": pd.DataFrame(x_train), "x_test": pd.DataFrame(x_test),
         "y_train": pd.Series(y_train), "y_test": pd.Series(y_test)

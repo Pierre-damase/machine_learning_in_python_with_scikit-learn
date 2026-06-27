@@ -4,6 +4,7 @@ from .BaggingRegressorModel import BaggingRegressorModel
 from .DecisionTreeClassifierModel import DecisionTreeClassifierModel
 from .DecisionTreeRegressorModel import DecisionTreeRegressorModel
 from .DummyClassifierModel import DummyClassifierModel
+from .DummyRegressorModel import DummyRegressorModel
 from .GradientBoostingClassifierModel import GradientBoostingClassifierModel
 from .GradientBoostingRegressorModel import GradientBoostingRegressorModel
 from .HistGradientBoostingClassifierModel import \
@@ -18,7 +19,7 @@ from .RandomForestClassifierModel import RandomForestClassifierModel
 from .RandomForestRegressorModel import RandomForestRegressorModel
 from .RidgeRegressionModel import RidgeRegressionModel
 from .RidgeRegressionModelCV import RidgeRegressionModelCV
-from .SupportVectorClassificatioModel import SupportVectorClassificationModel
+from .SupportVectorClassificationModel import SupportVectorClassificationModel
 
 __all__ = [
     'AdaBoostClassifierModel',
@@ -27,6 +28,7 @@ __all__ = [
     'DecisionTreeClassifierModel',
     'DecisionTreeRegressorModel',
     'DummyClassifierModel',
+    'DummyRegressorModel',
     'GradientBoostingClassifierModel',
     'GradientBoostingRegressorModel',
     'HistGradientBoostingClassifierModel',

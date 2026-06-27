@@ -1,11 +1,12 @@
 from sklearn.ensemble import AdaBoostClassifier
 from types_config import Tmodel
 
+from .ClassifierMixin import ClassifierMixin
 from .EnsembleMixin import EnsembleMixin
 from .Model import Model
 
 
-class AdaBoostClassifierModel(EnsembleMixin, Model[AdaBoostClassifier, Tmodel]):
+class AdaBoostClassifierModel(ClassifierMixin, EnsembleMixin, Model[AdaBoostClassifier, Tmodel]):
     """
     AdaBoost classifier in order to use boosting algorithm.
 

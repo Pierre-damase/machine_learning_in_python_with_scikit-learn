@@ -7,7 +7,8 @@ from model import KNeighborsClassifierModel
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import (MinMaxScaler, PowerTransformer,
                                    QuantileTransformer, StandardScaler)
-from types_config import DataSetType, SearchCvParameters, SearchOuterCv
+from types_config import (CvParameters, DataSetType, SearchCvParameters,
+                          SearchOuterCv)
 
 PENGUIN_NUMERICAL_FEATURES = [
     "Body Mass (g)", "Flipper Length (mm)", "Culmen Length (mm)"
@@ -44,9 +45,11 @@ def build_kneighbors_classifier_without_scaler() -> KNeighborsClassifierModel:
 ####################
 def cross_validation(model: KNeighborsClassifierModel, x_data: pd.DataFrame, y_data: pd.Series):
     """Cross-validation to evaluate the model performance without any tuning."""
-    scores = model.kfold_cross_validate(
-        x_data, y_data, cv=10, scoring="balanced_accuracy", return_train_score=True
-    )
+    scores = model.make_cross_validate(x_data,
+                                       y_data,
+                                       cv_params=CvParameters(10),
+                                       scoring="balanced_accuracy",
+                                       return_train_score=True)
     model.print_cross_validate(scores)
 
 def run_cv_without_scaler(x_data: pd.DataFrame,

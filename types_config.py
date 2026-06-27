@@ -4,7 +4,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from sklearn.compose import make_column_selector as selector
-from sklearn.dummy import DummyClassifier
+from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.ensemble import (AdaBoostClassifier, BaggingClassifier,
                               BaggingRegressor, GradientBoostingClassifier,
                               GradientBoostingRegressor,
@@ -13,8 +13,11 @@ from sklearn.ensemble import (AdaBoostClassifier, BaggingClassifier,
 from sklearn.kernel_approximation import Nystroem
 from sklearn.linear_model import (LinearRegression, LogisticRegression, Ridge,
                                   RidgeCV)
-from sklearn.model_selection import (GridSearchCV, RandomizedSearchCV,
-                                     ShuffleSplit)
+from sklearn.metrics._scorer import _Scorer
+from sklearn.model_selection import (GridSearchCV, GroupKFold, KFold,
+                                     LeaveOneGroupOut, RandomizedSearchCV,
+                                     ShuffleSplit, StratifiedKFold,
+                                     TimeSeriesSplit)
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import (KBinsDiscretizer, MinMaxScaler,
@@ -29,7 +32,6 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 ########
 # DATA #
 ########
-# type DataSetType = tuple[pd.DataFrame, pd.Series]
 class DataSetType(TypedDict):
     """
     x_data: input data (features)
@@ -85,6 +87,7 @@ Tclassifier = TypeVar("Tclassifier", bound=AcceptClassifierType)
 # Regressor for regression task
 type AcceptRegressorType = (BaggingRegressor
                             | DecisionTreeRegressor
+                            | DummyRegressor
                             | GradientBoostingRegressor
                             | KNeighborsRegressor
                             | LinearRegression
@@ -126,11 +129,17 @@ Tpreprocessor = TypeVar("Tpreprocessor", bound=AcceptPreprocessorType)
 # CROSS-VALIDATION #
 ####################
 # Allow cv strategy
-type CvStrategy = Literal["KFold", "ShuffleSplit"]
+type CvStrategy = Literal["GroupKFold", "KFold", "LeaveOneGroupOut", "ShuffleSplit",
+                          "StratifiedKFold", "TimeSeriesSplit"]
 
-# Cross-validation type, either an int to specify the number of folds in a KFold or a CV splitter
-type AcceptCvType = (int | ShuffleSplit)
-Tcv = TypeVar("Tcv", bound=AcceptCvType)
+# Cross-validation type
+type CvType = (GroupKFold
+               | KFold
+               | LeaveOneGroupOut
+               | ShuffleSplit
+               | StratifiedKFold
+               | TimeSeriesSplit)
+Tcv = TypeVar("Tcv", bound=CvType | int) # int to specify the nb of folds in a KFold
 
 # Cross-validation result contains at least the test result , test time, train time and may
 # contains the train result and estimator for each split.
@@ -206,3 +215,18 @@ class SearchOuterCv(NamedTuple):
     y_data: pd.Series
     cv_strategy: CvStrategy = "KFold"
     cv_params: CvParameters = CvParameters(5)
+
+
+###########
+# SCORING #
+###########
+type ScoringFunctionType = (Literal["balanced_accuracy",
+                                   "neg_mean_absolute_error",
+                                   "neg_mean_absolute_percentage_error",
+                                   "r2"]
+                            | _Scorer)
+
+type MetricFunctionType = Literal["median_absolute_error",
+                                  "mean_absolute_error",
+                                  "mean_absolute_percentage_error",
+                                  "mean_squared_error"]

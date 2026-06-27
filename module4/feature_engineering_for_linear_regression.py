@@ -14,7 +14,7 @@ from sklearn.preprocessing import (KBinsDiscretizer, PolynomialFeatures,
                                    SplineTransformer)
 from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
-from types_config import DataSetType
+from types_config import CvParameters, DataSetType
 from visualisation import show_validation_curve
 
 GENERATED_DATASET_FEATURE = "Feature"
@@ -164,7 +164,9 @@ def cross_validation(model: LinearRegressionModel,
                      x_data: pd.DataFrame,
                      y_data: pd.Series):
     """Perform a cross-validation and display the testing error."""
-    scores = model.kfold_cross_validate(x_data, y_data, cv=10, scoring="neg_mean_absolute_error")
+    scores = model.make_cross_validate(
+        x_data, y_data, cv_params=CvParameters(10), scoring="neg_mean_absolute_error"
+    )
     model.print_cross_validate(scores)
 
 ############################

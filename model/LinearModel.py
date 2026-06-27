@@ -29,7 +29,8 @@ class LinearModel(Model[Tlinearestimator, Tlinearmodel]):
         self.model[-1] allow to access to the last step of the pipeline. Then it's possible to get
         attribute of that step such as coef_.
         """
-        return self.model[-1].coef_[0]
+        coefficients = getattr(self, "model")[-1].coef_
+        return coefficients if self.is_regressor else coefficients[0]
 
     def _get_coef_from_pipeline(self,
                                estimators: list[AcceptEstimatorType | AcceptPreprocessorType]) \
@@ -74,7 +75,7 @@ class LinearModel(Model[Tlinearestimator, Tlinearmodel]):
         else:
             features, coefficients = self._get_coef_from_model(estimators)
 
-        return {k: list(v) for k, v in zip(features, zip(*coefficients))}
+        return {k: list(v) for k, v in zip(features, coefficients)}
 
     def print_nlargest_coefficient(self,
                                    coefficients: dict[str, list[float]],

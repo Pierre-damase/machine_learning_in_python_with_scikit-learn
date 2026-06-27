@@ -1,11 +1,13 @@
 from sklearn.linear_model import LogisticRegression
 from types_config import Tlinearmodel
 
+from .ClassifierMixin import ClassifierMixin
 from .DecisionBoundaryMixin import DecisionBoundaryMixin
 from .LinearModel import LinearModel
 
 
-class LogisticRegressionModel(DecisionBoundaryMixin,
+class LogisticRegressionModel(ClassifierMixin,
+                              DecisionBoundaryMixin,
                               LinearModel[LogisticRegression, Tlinearmodel]):
     """
     Logistic regression model.

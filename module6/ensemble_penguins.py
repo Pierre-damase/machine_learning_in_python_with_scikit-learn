@@ -11,7 +11,7 @@ from visualisation import show_validation_curve
 PENGUIN_FEATURES = ["Culmen Length (mm)", "Culmen Depth (mm)", "Flipper Length (mm)"]
 PENGUIN_TARGET = "Body Mass (g)"
 
-type ClassModelTypes = (DecisionTreeRegressorModel
+type ModelClassTypes = (DecisionTreeRegressorModel
                         | HistGradientBoostingRegressorModel
                         | RandomForestRegressorModel)
 
@@ -30,10 +30,10 @@ def load_penguins() -> DataSetType:
 #########
 # MDOEL #
 #########
-def build_regression(model_class: type[ClassModelTypes],
+def build_regression(model_class: type[ModelClassTypes],
                      x_data: pd.DataFrame,
                      y_data: pd.Series,
-                     **kwargs) -> ClassModelTypes:
+                     **kwargs) -> ModelClassTypes:
     # Build model
     regression = model_class.build(random_state=0, **kwargs)
 

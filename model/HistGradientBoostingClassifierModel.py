@@ -1,10 +1,12 @@
 from sklearn.ensemble import HistGradientBoostingClassifier
 from types_config import Tmodel
 
+from .ClassifierMixin import ClassifierMixin
 from .Model import Model
 
 
-class HistGradientBoostingClassifierModel(Model[HistGradientBoostingClassifier, Tmodel]):
+class HistGradientBoostingClassifierModel(ClassifierMixin,
+                                          Model[HistGradientBoostingClassifier, Tmodel]):
     """
     Build a histogram gradient-boosting classifier model.
 

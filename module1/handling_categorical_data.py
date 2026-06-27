@@ -8,6 +8,7 @@ from model import (HistGradientBoostingClassifierModel, LinearRegressionModel,
 from sklearn.compose import make_column_selector as selector
 from sklearn.preprocessing import (OneHotEncoder, OrdinalEncoder,
                                    StandardScaler, TargetEncoder)
+from types_config import CvParameters
 
 Tmodel = TypeVar('Tmodel',
                  HistGradientBoostingClassifierModel,
@@ -27,8 +28,8 @@ def _ordinal_encoder(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     logistic_regression = LogisticRegressionModel.build_pipeline(transformers, max_iter=500)
 
     # 2. KFold cross-validation to evaluate generalization performance of the model
-    scores = logistic_regression.kfold_cross_validate(x_data, y_data, 5)
-    logistic_regression.print_kfold_cross_validation_accuracy(scores)
+    scores = logistic_regression.make_cross_validate(x_data, y_data, cv_params=CvParameters(5))
+    logistic_regression.print_cross_validate(scores)
 
 def _onehot_encoder_handle_unknown(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     """Try out one hot encoder with handle_unknown set to 'ignore'."""
@@ -39,8 +40,8 @@ def _onehot_encoder_handle_unknown(x_data: pd.DataFrame, y_data: pd.Series) -> N
     logistic_regression = LogisticRegressionModel.build_pipeline(transformers, max_iter=500)
 
     # 2. KFold cross-validation to evaluate generalization performance of the model
-    scores = logistic_regression.kfold_cross_validate(x_data, y_data, 5)
-    logistic_regression.print_kfold_cross_validation_accuracy(scores)
+    scores = logistic_regression.make_cross_validate(x_data, y_data, cv_params=CvParameters(5))
+    logistic_regression.print_cross_validate(scores)
 
 def _onehot_encoder_categories(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     """Try out one hot encoder by passing all the possible categories."""
@@ -51,8 +52,8 @@ def _onehot_encoder_categories(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     logistic_regression = LogisticRegressionModel.build_pipeline(transformers, max_iter=500)
 
     # 2. KFold cross-validation to evaluate generalization performance of the model
-    scores = logistic_regression.kfold_cross_validate(x_data, y_data, 5)
-    logistic_regression.print_kfold_cross_validation_accuracy(scores)
+    scores = logistic_regression.make_cross_validate(x_data, y_data, cv_params=CvParameters(5))
+    logistic_regression.print_cross_validate(scores)
 
 def _onehot_encoder_min_frequencies(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     """Try out one hot encoder by adjusting the min frequency parameter."""
@@ -70,8 +71,8 @@ def _onehot_encoder_min_frequencies(x_data: pd.DataFrame, y_data: pd.Series) -> 
         logistic_regression = LogisticRegressionModel.build_pipeline(transformers, max_iter=500)
 
         # 2. KFold cross-validation to evaluate generalization performance of the model
-        scores = logistic_regression.kfold_cross_validate(x_data, y_data, 5)
-        logistic_regression.print_kfold_cross_validation_accuracy(scores)
+        scores = logistic_regression.make_cross_validate(x_data, y_data, cv_params=CvParameters(5))
+        logistic_regression.print_cross_validate(scores)
 
 
 ####################
@@ -82,8 +83,8 @@ def kfold_cross_validation(model: Tmodel,
                            y_data: pd.Series,
                            nb_fold: int = 5):
     """Kfold cross validation."""
-    scores = model.kfold_cross_validate(x_data, y_data, nb_fold)
-    model.print_kfold_cross_validation_accuracy(scores)
+    scores = model.make_cross_validate(x_data, y_data, cv_params=CvParameters(nb_fold))
+    model.print_cross_validate(scores)
 
 
 ###########

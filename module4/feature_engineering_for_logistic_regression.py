@@ -9,7 +9,7 @@ from sklearn.kernel_approximation import Nystroem
 from sklearn.preprocessing import (KBinsDiscretizer, OneHotEncoder,
                                    PolynomialFeatures, SplineTransformer,
                                    StandardScaler)
-from types_config import CvResults, DataSetType
+from types_config import CvParameters, CvResults, DataSetType
 from visualisation import (plot_coefficients_of_linear_model,
                            plot_cross_validation_scores)
 
@@ -211,7 +211,7 @@ def run_model_with_rbf(data: list[DataSetType]) -> None:
                 regressions=logistic_regressions(data, transformers, C=5),
                 classifier_title="RBF Nystroem classifier")
 
-def run_model_with_multi_step_feature_engineering(data: list[DataSetType]) -> CvResults:
+def run_model_with_multi_step_feature_engineering(data: list[DataSetType]) -> None:
     """
     Run the model by combining several feature engineering transformers into a single pipeline to
     blend their respective inductive biases.
@@ -240,7 +240,7 @@ def logistic_regression_with_cv(x_data: pd.DataFrame,
                                 y_data: pd.Series,
                                 transformers: list[TransformerType],
                                 return_estimator: bool = True,
-                                **classifier_args):
+                                **classifier_args) -> CvResults:
     """Perform a logistic regression with a cross-validation step and analysis of the estimator."""
     # 1. Build the model
     regression = logistic_regression(x_data,
@@ -250,11 +250,11 @@ def logistic_regression_with_cv(x_data: pd.DataFrame,
                                      **classifier_args)
 
     # 2. Cross validation
-    scores = regression.kfold_cross_validate(x_data,
-                                             y_data,
-                                             cv=10,
-                                             return_estimator=return_estimator)
-    regression.print_kfold_cross_validation_accuracy(scores)
+    scores = regression.make_cross_validate(x_data,
+                                            y_data,
+                                            cv_params=CvParameters(10),
+                                            return_estimator=return_estimator)
+    regression.print_cross_validate(scores)
 
     # 3. Determine which is the most important feature seen by the model.
     if return_estimator:
@@ -307,7 +307,7 @@ def cross_validation_comparison(scores: list[CvResults],
               f"{top} out of {len(scores[i]['test_score'])}.\n")
 
     # Plot the test score between the 2 models for each cv fold
-    plot_cross_validation_scores([score["test_score"] for score in scores], types)
+    plot_cross_validation_scores(scores, types)
 
 ############
 # ANALYSIS #

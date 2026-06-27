@@ -2,6 +2,7 @@ import data_handler as dh
 import pandas as pd
 from model import DecisionTreeRegressorModel
 from sklearn.metrics import mean_absolute_error
+from types_config import CvParameters, ScoringFunctionType
 
 
 ###########
@@ -54,15 +55,15 @@ def test_continuous_target_prediction(x_data: pd.DataFrame, y_data: pd.Series):
     regressor.start(**train_test_split)
 
     # 4. Perform a shuffle-split cross validation.
-    scores = regressor.shuffle_split_cross_validate(
-        x_data, y_data, 40, "neg_mean_absolute_error"
-    )
-    regressor.print_shuffle_split_cross_validation_accuracy(scores)
-
-    scores = regressor.shuffle_split_cross_validate(
-        x_data, y_data, 40, "neg_mean_absolute_percentage_error"
-    )
-    regressor.print_shuffle_split_cross_validation_accuracy(scores)
+    scoring: list[ScoringFunctionType] = ["neg_mean_absolute_error",
+                                          "neg_mean_absolute_percentage_error"]
+    for i in scoring:
+        scores = regressor.make_cross_validate(x_data,
+                                               y_data,
+                                               cv_strategy="ShuffleSplit",
+                                               cv_params=CvParameters(40, test_size=0.2),
+                                               scoring=i)
+        regressor.print_cross_validate(scores)
 
 
 ############
