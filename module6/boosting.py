@@ -14,10 +14,11 @@ from model import (AdaBoostClassifierModel, DecisionTreeClassifierModel,
                    RandomForestRegressorModel)
 from sklearn.preprocessing import KBinsDiscretizer
 from sklearn.tree import DecisionTreeClassifier
-from types_config import CvParameters, DataSetType, Tpreprocessor
+from types_config import (CvParameters, DataSetType, ScoringFunctionType,
+                          Tpreprocessor)
 from visualisation.visualisation import show_validation_curve
 
-type ClassModelTypes = (AdaBoostClassifierModel
+type ModelClassTypes = (AdaBoostClassifierModel
                         | DecisionTreeClassifierModel
                         | DecisionTreeRegressorModel
                         | GradientBoostingRegressorModel
@@ -29,7 +30,7 @@ SYNTHETIC_DATASET_TARGET = "Target"
 
 PENGUIN_FEATURES = ["Culmen Length (mm)", "Culmen Depth (mm)"]
 
-SCORING = "neg_mean_absolute_error"
+SCORING: ScoringFunctionType = "neg_mean_absolute_error"
 
 ########
 # DATA #
@@ -97,7 +98,7 @@ def plot_synthetic_data(x_train: pd.DataFrame,
     ax.legend()
     ax.set_title(title)
 
-def validation_curve(model: ClassModelTypes,
+def validation_curve(model: ModelClassTypes,
                      x_data: pd.DataFrame,
                      y_data: pd.Series,
                      xlabel: str):
@@ -119,7 +120,7 @@ def validation_curve(model: ClassModelTypes,
 #########
 # MODEL #
 #########
-def plot_decision_boundary(model: ClassModelTypes,
+def plot_decision_boundary(model: ModelClassTypes,
                            x_data: pd.DataFrame,
                            y_data: pd.Series,
                            misclassified: pd.DataFrame | None = None,
@@ -165,13 +166,13 @@ def plot_decision_boundary_for_estimators(model: AdaBoostClassifierModel,
                                                    palette=["tab:blue", "tab:orange", "tab:green"],
                                                    alpha=0.5)
 
-def build_model(model_class: type[ClassModelTypes],
+def build_model(model_class: type[ModelClassTypes],
                 x_data: pd.DataFrame,
                 y_data: pd.Series,
                 transformers: list[Tpreprocessor] |None = None,
-                scoring: str | None = None,
+                scoring: ScoringFunctionType | None = None,
                 skip_cv: bool = False,
-                **kwargs) -> ClassModelTypes:
+                **kwargs) -> ModelClassTypes:
     """
     Build a model.
 
@@ -187,9 +188,9 @@ def build_model(model_class: type[ClassModelTypes],
     """
     # Build model
     if transformers is None:
-        model: ClassModelTypes = model_class.build(**kwargs)
+        model: ModelClassTypes = model_class.build(**kwargs)
     else:
-        model: ClassModelTypes = model_class.build_pipeline(transformers=transformers, **kwargs)
+        model: ModelClassTypes = model_class.build_pipeline(transformers=transformers, **kwargs)
 
     # Cross-validation
     if not skip_cv:
@@ -201,7 +202,7 @@ def build_model(model_class: type[ClassModelTypes],
 
     return model
 
-def train_model(model: ClassModelTypes,
+def train_model(model: ModelClassTypes,
                 x_data: pd.DataFrame,
                 y_data: pd.Series,
                 sample_weight: npt.NDArray[np.int8] | list[float] | None = None) -> None:
@@ -397,17 +398,19 @@ def gradient_boosting(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     validation_curve(model, x_train, y_train, "Number of trees in the forest")
 
     # Gradient-boosting using the early stopping. The average testing error is quite good (44±9k$).
-    tree = build_model(GradientBoostingRegressorModel,
-                       x_data,
-                       y_data,
-                       scoring=SCORING,
-                       n_estimators=1000,
-                       n_iter_no_change=5)
+    tree: GradientBoostingRegressorModel = build_model(GradientBoostingRegressorModel,
+                                                       x_data,
+                                                       y_data,
+                                                       scoring=SCORING,
+                                                       n_estimators=1000,
+                                                       n_iter_no_change=5)
 
     # Fit the model. The testing error of the final model is really good (37k$).
     tree.train(x_train, y_train)
     print(f"{getattr(tree.model, 'n_estimators_')} boosting stages.")
-    tree.print_testing_error(split_data["y_test"], tree.model.predict(split_data["x_test"]))
+    tree.print_model_prediction_error(split_data["y_test"],
+                                      tree.model.predict(split_data["x_test"]),
+                                      dataset="testing")
 
 def hist_boosting_gradient(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     """

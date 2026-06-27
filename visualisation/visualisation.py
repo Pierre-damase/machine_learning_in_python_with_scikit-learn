@@ -4,6 +4,10 @@ import numpy.typing as npt
 import pandas as pd
 import plotly.express as px
 import seaborn as sns
+from matplotlib.axes import Axes
+from sklearn.metrics import (ConfusionMatrixDisplay, PrecisionRecallDisplay,
+                             PredictionErrorDisplay, RocCurveDisplay,
+                             precision_score, recall_score)
 from sklearn.model_selection import (LearningCurveDisplay,
                                      ValidationCurveDisplay)
 from types_config import CvResults, DataSetType
@@ -161,13 +165,108 @@ def show_validation_curve(curve: ValidationCurveDisplay,
 # LEARNING CURVE #
 ##################
 def show_learning_curve(curve: LearningCurveDisplay) -> None:
-    """Show learning"""
+    """Show learning curve."""
     curve.ax_.set(
         xscale="log",
         xlabel="Number of samples in the training set",
         title="Learning curve"
     )
     _show()
+
+
+####################
+# CONFUSION MATRIX #
+####################
+def show_confusion_matrix(curve: ConfusionMatrixDisplay,
+                          ax: Axes | None = None) -> None:
+    """
+    Show confusion matrix in order to display:
+    - True positive (TP): the probability of a positive test result, conditioned on the individual
+    truly being positive. e.g. blood donors correctly identified as such
+
+    - True negative (TN): the probability of a negative test result, conditioned on the individual
+    truly being negative: e.g. not blood donors correctly identified as such
+
+    - False negative (FN): e.g. blood donors incorrectly identified as not
+
+    - False positive (FP): e.g. not blood donors incorrectly identified as one
+    """
+    curve.ax_.set_title("Confusion matrix")
+    if ax is None:
+        _show()
+
+
+############################
+# PRECISION RECALL DISPLAY #
+############################
+def show_pr_curve(curve: PrecisionRecallDisplay,
+                  y_test: pd.Series,
+                  y_predicted: npt.NDArray[np.str_],
+                  pos_label: str,
+                  ax: Axes | None = None) -> None:
+    """
+    Show precision recall curve. A perfect classifier would have a precision of 1 for all recall
+    values and an average precision (AP) of 1.
+    """
+    # Precision refers to the test's ablity to accurately detect genuine blood donors (TP), taking
+    # into account everyone who has been considered a donor (TP + FP). Precision = TP / (TP + FP)
+    # In other words, precision measure the ability of the model to not make mistake among the
+    # samples actually classified as positive.
+    precision = precision_score(y_test, y_predicted, pos_label=pos_label)
+    print(f"\nPrecision score is {precision:.3f}")
+
+    # Recall (sensitivity) refers to the test's ability to correctly detect blood donors (TP) out
+    # of those who did give blood (TP + FN). Recall = TP / (TP + FN)
+    # In other words, recall is the ability of the model to find all the samples that should have
+    # been classified as positive.
+    recall = recall_score(y_test, y_predicted, pos_label=pos_label)
+    print(f"Recall score is {recall:.3f}")
+
+    # Label
+    curve.ax_.set_xlabel("Recall (sensitivity)")
+    curve.ax_.set_ylabel("Precision (PPV)")
+
+    # Limit
+    curve.ax_.set_xlim(0, 1)
+    curve.ax_.set_ylim(0, 1)
+
+    curve.ax_.legend()
+    curve.ax_.set_title("Precision-recall curve")
+    if ax is None:
+        _show()
+
+
+#####################
+# ROC CURVE DISPLAY #
+#####################
+def show_roc_curve(curve: RocCurveDisplay) -> None:
+    """
+    Show Receiver Operating Characteristic (ROC) curve. It's a common plot for sensitivity (recall)
+    and specificity. Specificity measures the proportion of correctly classified samples in the
+    negative class. Specificity = TN / (TN + FP).
+    """
+    # Label
+    curve.ax_.set_xlabel("False positive rate")
+    curve.ax_.set_ylabel("True positive rate (sensitivity/recall)")
+
+    # Limit
+    curve.ax_.set_xlim(0, 1)
+    curve.ax_.set_ylim(0, 1)
+
+    curve.ax_.legend()
+    curve.ax_.set_title("Receiver Operating Characteristics curve")
+    _show()
+
+
+############################
+# PREDICTION ERROR DISPLAY #
+############################
+def show_prediction_error_curve(curve: PredictionErrorDisplay) -> None:
+    """
+    Plot the residuals, which represent the difference between the actual and predicted values,
+    against he predicted values.
+    """
+    pass
 
 
 ############
@@ -266,15 +365,45 @@ def plot_coefficients_of_linear_model(coef: dict[str, list[float]]):
 ####################
 # CROSS-VALIDATION #
 ####################
-def plot_cross_validation_scores(test_scores: list[npt.NDArray[np.float64]], labels: list[str]):
-    """Plot cross-validation scores."""
-    indices = np.arange(len(test_scores[0]))
-    for i in range(len(test_scores)):
-        plt.scatter(indices, test_scores[i], label=labels[i])
-    plt.ylim((0, 1))
-    plt.xlabel("Cross-validation iteration")
-    plt.ylabel("Accuracy")
-    _ = plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+def plot_cross_validation_scores(scores: list[CvResults],
+                                 names: list[str],
+                                 score_name: str | None = None,
+                                 is_regression: bool = False) -> None:
+    """
+    Plot cross-validation scores.
+
+    Parameters
+    ----------
+    scores: list of cv results
+
+    names: label of each cv perform
+
+    score_names: for regression problem it could be useful to plot the scoring function name
+
+    is_regression: the plot strategy differ between  calssification and regression model
+    """
+    # Set bins
+    if is_regression:
+        bins = np.linspace(start=min([min(ele["test_score"]) for ele in  scores])-20,
+                           stop=max([max(ele["test_score"]) for ele in  scores])+20,
+                           num=100)
+    else:
+        bins = np.linspace(start=0, stop=1.0, num=100)
+
+    # Plot testing errors
+    data = pd.concat(
+        [pd.Series(scores[i]["test_score"], name=names[i]) for i in range(len(scores))],
+        axis=1
+    )
+    data.plot.hist(bins=bins, edgecolor="black")
+
+    # For classification it's required to limit the graph between 0 and 1.
+    if not is_regression:
+        plt.xlim((0, 1))
+
+    plt.xlabel("Accuracy (%)" if score_name is None else score_name)
+    plt.ylabel("Frequency")
+    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
     _show()
 
 
@@ -320,3 +449,36 @@ def plot_bootstrap_samples(data: DataSetType,
         axs[i].legend()
     fig.suptitle("Boostrap data resampling")
     _show()
+
+
+###############
+# TIME SERIES #
+###############
+def plot_time_series_detection(y_trains: list[pd.Series],
+                               y_tests: list[pd.Series],
+                               y_predicted: list[pd.Series]):
+    """
+    Plot the result of time series detection.
+
+    Parameters
+    ----------
+    y_trains: list of targets use for training
+
+    y_test: list of targets use for testing
+
+    y_predicted: list of predicted targets
+    """
+    # Set subplots
+    _, axs = plt.subplots(ncols=len(y_trains), figsize=(14, 10), constrained_layout=True)
+
+    # Plot targets
+    titles = ["Predictions using shuffled data", "Prediction using unshuffled data"]
+    for i in range(len(y_trains)):
+        y_trains[i].plot(ax=axs[i], label="Training", color="b")
+        y_tests[i].plot(ax=axs[i], label="Testing", color="g")
+        y_predicted[i].plot(ax=axs[i], label="Predicted", color="r")
+        axs[i].set_title(titles[i])
+
+    plt.legend()
+    _show()
+

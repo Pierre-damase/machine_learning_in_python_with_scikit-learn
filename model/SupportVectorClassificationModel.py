@@ -1,10 +1,11 @@
 from sklearn.svm import SVC
 from types_config import Tmodel
 
+from .ClassifierMixin import ClassifierMixin
 from .Model import Model
 
 
-class SupportVectorClassificationModel(Model[SVC, Tmodel]):
+class SupportVectorClassificationModel(ClassifierMixin, Model[SVC, Tmodel]):
     """
     Support vector machine classifier (SVM) model.
 

@@ -13,7 +13,7 @@ from types_config import (DataSetType, SearchCvHyperparamType,
 PENGUIN_FEATURE = "Flipper Length (mm)"
 PENGUIN_TARGET = "Body Mass (g)"
 
-type ClassModelTypes = (DecisionTreeRegressorModel | LinearRegressionModel)
+type ModelClassTypes = (DecisionTreeRegressorModel | LinearRegressionModel)
 
 ########
 # DATA #
@@ -92,7 +92,7 @@ def scatterplot(data: pd.DataFrame,
 #########
 # MODEL #
 #########
-def regressor_model(model_class: type[ClassModelTypes],
+def regressor_model(model_class: type[ModelClassTypes],
                     data: pd.DataFrame,
                     x_train: pd.DataFrame,
                     x_test: pd.DataFrame,

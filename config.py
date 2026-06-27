@@ -21,7 +21,9 @@ class DataPath(Enum):
     """Path to dataset or tuned hyperparameter saved as csv."""
     ADULT_CENSUS = Path("./data/data_set/adult.arff")
     AMES_HOUSING = Path("./data/data_set/ames_housing_no_missing.csv")
+    BIKE_RIDES = Path("./data/data_set/bike_rides.csv")
     BLOOD_TRANSFUSION = Path("./data/data_set/blood_transfusion.csv")
+    FINANCIAL = "./data/data_set/financial/{}.csv"
     PENGUIN = Path("./data/data_set/penguins.csv")
     HYPERPARAMETER_TUNING = Path("./data/hyperparameter_tuning/")
 
@@ -30,6 +32,7 @@ class TargetColumn(str, Enum):
     """Enum to specify the target column of a given dataset."""
     ADULT_CENSUS = "class"
     AMES_HOUSING = "SalePrice"
+    BIKE_RIDES = "power"
     BLOOD_TRANSFUSION = "Class"
     PENGUIN = "Species"
     GENERATED_DATASET = "Class" # target column for generated dataset

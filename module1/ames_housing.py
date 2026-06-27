@@ -4,6 +4,7 @@ from config import AMES_HOUSING_NUMERICAL_FEATURES, DataPath, TargetColumn
 from model import LogisticRegressionModel
 from sklearn.compose import make_column_selector as selector
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from types_config import CvParameters
 
 
 def convert_targets(y_data: pd.Series) -> pd.Series:
@@ -20,8 +21,8 @@ def predictive_model_with_numerical_features(x_data: pd.DataFrame, y_data: pd.Se
     logistic_regression = LogisticRegressionModel.build_pipeline([StandardScaler()])
 
     # KFold cross-validation to evaluate generalization performance of the model
-    scores = logistic_regression.kfold_cross_validate(x_data, y_data, 10)
-    logistic_regression.print_kfold_cross_validation_accuracy(scores)
+    scores = logistic_regression.make_cross_validate(x_data, y_data, cv_params=CvParameters(10))
+    logistic_regression.print_cross_validate(scores)
 
 def predictive_model(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     """
@@ -40,8 +41,8 @@ def predictive_model(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     )
 
     # 2. KFold cross-validation to evaluate generalization performance of the model
-    scores = initialized_model.kfold_cross_validate(x_data, y_data, 5)
-    initialized_model.print_kfold_cross_validation_accuracy(scores)
+    scores = initialized_model.make_cross_validate(x_data, y_data, cv_params=CvParameters(5))
+    initialized_model.print_cross_validate(scores)
 
 
 ############

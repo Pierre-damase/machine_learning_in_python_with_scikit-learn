@@ -1,7 +1,8 @@
 from sklearn.ensemble import BaggingRegressor
 from types_config import Tmodel
 
-from .Model import Model, RegressorMixin
+from .Model import Model
+from .RegressorMixin import RegressorMixin
 
 
 class BaggingRegressorModel(RegressorMixin, Model[BaggingRegressor, Tmodel]):

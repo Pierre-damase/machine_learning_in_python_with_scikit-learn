@@ -55,8 +55,8 @@ def grid_search_tuning(model: HistGradientBoostingClassifierModel,
 
     For tree-based models, ordinal encoder avoids having high-dimensional representations.
 
-    - learning_rate: control the ability of a new tree to correct the error of the previous sequence
-    of trees.
+    - learning_rate: control the ability of a new tree to correct the error of the previous
+    sequence of trees.
       . A gradient boosting model with large learning rate will tend to overfit. It is due to the
         fact that the sequence of added trees will rapidly correct the residuals and thus will
         fit noisy samples. A learning rate larger than 1 can even make the optimization problem

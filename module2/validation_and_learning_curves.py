@@ -2,6 +2,7 @@ import data_handler as dh
 import numpy as np
 import pandas as pd
 from model import DecisionTreeRegressorModel
+from types_config import CvParameters, ScoringFunctionType
 from visualisation import (error_distribution, show_learning_curve,
                            show_validation_curve)
 
@@ -24,11 +25,14 @@ def overfitting_vs_underfitting(x_data: pd.DataFrame, y_data: pd.Series):
     regressor = DecisionTreeRegressorModel.build()
 
     # 2. Cross-validation to compare testing and training error
-    scoring:str = "neg_mean_absolute_error"
-    scores = regressor.shuffle_split_cross_validate(
-        x_data, y_data, 30, scoring, test_size = 0.2, return_train_score=True
-    )
-    regressor.print_shuffle_split_cross_validation_accuracy(scores)
+    scoring: ScoringFunctionType = "neg_mean_absolute_error"
+    scores = regressor.make_cross_validate(x_data,
+                                           y_data,
+                                           cv_strategy="ShuffleSplit",
+                                           cv_params=CvParameters(30, test_size=0.2),
+                                           scoring=scoring,
+                                           return_train_score=True)
+    regressor.print_cross_validate(scores)
     error_distribution(scores)
 
 

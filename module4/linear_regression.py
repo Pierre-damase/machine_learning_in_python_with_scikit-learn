@@ -126,7 +126,7 @@ def automatic_linear_regression(x_data: pd.DataFrame,
     x_range = np.linspace(x_data.min(), x_data.max(), num=342)
 
     # Build Model
-    linear_regression = LinearRegressionModel.build()
+    linear_regression: LinearRegressionModel = LinearRegressionModel.build()
     linear_regression.start(x_train=x_data, y_train=y_data)
 
     # Check optimum parameters
@@ -138,13 +138,20 @@ def automatic_linear_regression(x_data: pd.DataFrame,
                 weights=[coef_a],
                 intercepts=[intercept])
 
+    # Prediction
+    y_predicted = linear_regression.model.predict(x_data)
+
     # Check the mean squared error of the optimal linear regression model. Moreover, this
     # kind of model monimize the mean squared error which would be higher with any other
     #set of parameters.
-    linear_regression.print_mean_squared_error(x_data, y_data)
+    linear_regression.print_model_prediction_error(
+        y_data, y_predicted, metric_func="mean_squared_error", dataset="whole"
+    )
 
     # Compute the mean absolute error which is more intuitive
-    linear_regression.print_mean_absolute_error(x_data, y_data)
+    linear_regression.print_model_prediction_error(
+        y_data, y_predicted, metric_func="mean_absolute_error", dataset="whole"
+    )
 
 
 ############

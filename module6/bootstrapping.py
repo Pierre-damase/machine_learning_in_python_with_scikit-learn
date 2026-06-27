@@ -16,12 +16,12 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.preprocessing import (MinMaxScaler, OrdinalEncoder,
                                    PolynomialFeatures)
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from types_config import (CvParameters, DataSetType, SearchCvHyperparamType,
-                          SearchCvParameters, SearchOuterCv, Tmodel,
-                          Tpreprocessor)
+from types_config import (CvParameters, DataSetType, ScoringFunctionType,
+                          SearchCvHyperparamType, SearchCvParameters,
+                          SearchOuterCv, Tmodel, Tpreprocessor)
 from visualisation import plot_bootstrap_samples
 
-type ClassModelTypes = (BaggingClassifierModel
+type ModelClassTypes = (BaggingClassifierModel
                         | BaggingRegressorModel
                         | DecisionTreeClassifierModel
                         | DecisionTreeRegressorModel
@@ -148,11 +148,11 @@ def scatterplot_for_sklearn_bagging(regression: BaggingRegressorModel,
 #########
 # MODEL #
 #########
-def cross_validation(model_class: ClassModelTypes,
+def cross_validation(model_class: ModelClassTypes,
                      x_data: pd.DataFrame,
                      y_data: pd.Series,
                      nb_fold: int = 10,
-                     scoring: str | None = None) -> None:
+                     scoring: ScoringFunctionType | None = None) -> None:
     """Perfom cross-validation in order to evaluate the generalization performance."""
     scores = model_class.make_cross_validate(x_data,
                                              y_data,
@@ -160,7 +160,7 @@ def cross_validation(model_class: ClassModelTypes,
                                              scoring=scoring)
     model_class.print_cross_validate(scores)
 
-def predict(model_class: ClassModelTypes,
+def predict(model_class: ModelClassTypes,
             x_test: pd.DataFrame):
     return model_class.model.predict(x_test)
 
@@ -219,7 +219,7 @@ def bagging_regressor(estimator: type[Tmodel],
                       y_test: pd.Series = pd.Series(),
                       param_distribution: SearchCvHyperparamType | None = None,
                       n_estimators: int = 20,
-                      scoring: str | None = None) -> BaggingRegressorModel:
+                      scoring: ScoringFunctionType | None = None) -> BaggingRegressorModel:
     """
     Build a bagging ensemble for regression task.
 
@@ -301,7 +301,7 @@ def sklearn_bagging_regressor(estimator: type[Tmodel],
                               y_test: pd.Series = pd.Series(),
                               n_estimators: int = 100,
                               param_distribution: dict[str, list[float|int|None]] | None = None,
-                              scoring: str | None = None) -> None:
+                              scoring: ScoringFunctionType | None = None) -> None:
     """
     Bagging in scikit-learn for a regression task.
 
@@ -348,16 +348,13 @@ def sklearn_bagging_regressor(estimator: type[Tmodel],
     regression.start(x_train, x_test, y_train, y_test)
 
     # 3. Aggregation part.
-    x_test_ = x_test
-    if len(x_test) > 100 and not y_test.empty:
-        x_test_, _ = dh.dataframe_sample(x_test, y_test, size=100)
-    bag_predictions = regression.model.predict(x_test_)
+    bag_predictions = regression.model.predict(x_test)
 
     # Visualisation
     if len(x_train) < 100:
         scatterplot_for_sklearn_bagging(regression,
                                         x_train ,
-                                        x_test_,
+                                        x_test,
                                         y_train,
                                         bag_predictions,
                                         "Prediction by bagging regressor")
@@ -368,7 +365,7 @@ def build_model(model_class: type[BaggingClassifierModel
                 x_data: pd.DataFrame,
                 y_data: pd.Series,
                 transformers: list[Tpreprocessor] | None = None,
-                scoring: str | None = None,
+                scoring: ScoringFunctionType | None = None,
                 **kwargs):
     """
     Build a bagging ensemble for classification task or a random forest.

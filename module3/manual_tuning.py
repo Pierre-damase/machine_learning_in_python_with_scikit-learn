@@ -4,6 +4,7 @@ from config import DataPath, TargetColumn
 from model import HistGradientBoostingClassifierModel, LogisticRegressionModel
 from sklearn.compose import make_column_selector as selector
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
+from types_config import CvParameters
 from visualisation import show_errorbars_for_hyperparameter_tuning
 
 
@@ -103,8 +104,10 @@ def optimum_gradient_boosting(x_data: pd.DataFrame,
                                      max_leaf_nodes=max_leaf_nodes)
 
     # 2. Cross-validation
-    scores = model.kfold_cross_validate(x_data, y_data, 5, return_train_score=True)
-    model.print_kfold_cross_validation_accuracy(scores)
+    scores = model.make_cross_validate(
+        x_data, y_data, cv_params=CvParameters(5), return_train_score=True
+    )
+    model.print_cross_validate(scores)
 
 
 ############

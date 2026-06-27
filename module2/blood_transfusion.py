@@ -6,7 +6,7 @@ from config import DataPath, TargetColumn
 from model import (DummyClassifierModel, KNeighborsClassifierModel,
                    SupportVectorClassificationModel)
 from sklearn.preprocessing import StandardScaler
-from types_config import CvResults, DataSetType
+from types_config import CvParameters, CvResults, DataSetType
 from visualisation.visualisation import (
     show_errorbars_for_hyperparameter_tuning, show_learning_curve,
     show_validation_curve)
@@ -39,8 +39,12 @@ def cross_validation(svm: SupportVectorClassificationModel,
                      x_data: pd.DataFrame,
                      y_data: pd.Series) -> None:
     """Evaluate the generalization performance of the model."""
-    scores = svm.shuffle_split_cross_validate(x_data, y_data, 10, return_train_score=True)
-    svm.print_shuffle_split_cross_validation_accuracy(scores)
+    scores = svm.make_cross_validate(x_data,
+                                     y_data,
+                                     cv_strategy="ShuffleSplit",
+                                     cv_params=CvParameters(10, test_size=0.2),
+                                     return_train_score=True)
+    svm.print_cross_validate(scores)
 
 
 #########################
@@ -59,7 +63,7 @@ def validation_curve(svm: SupportVectorClassificationModel,
     """
     curve = svm.compute_validation_curve(x_data,
                                          y_data,
-                                         param_name="svc_gamma",
+                                         param_name="svc__gamma",
                                          param_range=np.logspace(-3, 2, num=30),
                                          scoring="accuracy",
                                          score_name="Accuracy",
@@ -135,11 +139,13 @@ def blood_transfusion_dummy_classifier(
     model = DummyClassifierModel.build(strategy="most_frequent")
 
     # 2. KFold cross-validation
-    scores = model.kfold_cross_validate(x_data, y_data, 10)
-    model.print_kfold_cross_validation_accuracy(scores)
+    scores = model.make_cross_validate(x_data, y_data, cv_params=CvParameters(10))
+    model.print_cross_validate(scores)
 
-    scores = model.kfold_cross_validate(x_data, y_data, 10, scoring="balanced_accuracy")
-    model.print_kfold_cross_validation_accuracy(scores)
+    scores = model.make_cross_validate(
+        x_data, y_data, cv_params=CvParameters(10), scoring="balanced_accuracy"
+    )
+    model.print_cross_validate(scores)
 
 
 #########################
@@ -156,11 +162,14 @@ def blood_transfusion_knearest_classifier(
     model = KNeighborsClassifierModel.build_pipeline([StandardScaler()], n_neighbors=n_neighbors)
 
     # 2. KFold cross-validation
-    scores = model.kfold_cross_validate(
-        x_data, y_data, nb_fold, scoring="balanced_accuracy", return_train_score=True
+    scores = model.make_cross_validate(x_data,
+                                       y_data,
+                                       cv_params=CvParameters(nb_fold),
+                                       scoring="balanced_accuracy",
+                                       return_train_score=True
     )
     if print_score:
-        model.print_kfold_cross_validation_accuracy(scores)
+        model.print_cross_validate(scores)
 
     return scores
 

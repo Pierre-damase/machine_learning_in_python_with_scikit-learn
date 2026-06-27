@@ -18,8 +18,8 @@ HOUSING_FEATURES = ["LotFrontage", "LotArea", "PoolArea", "YearBuilt", "YrSold"]
 
 PENGUIN_FEATURES = ["Culmen Length (mm)", "Culmen Depth (mm)"]
 
-type ClassModelTypes = (LinearRegressionModel | LogisticRegressionModel)
-Tclassmodel = TypeVar('Tclassmodel', bound=ClassModelTypes)
+type ModelClassTypes = (LinearRegressionModel | LogisticRegressionModel)
+Tclassmodel = TypeVar('Tclassmodel', bound=ModelClassTypes)
 
 
 ########
@@ -41,7 +41,7 @@ def load_penguins() -> DataSetType:
 ####################
 # CROSS-VALIDATION #
 ####################
-def cross_validation(model: ClassModelTypes,
+def cross_validation(model: ModelClassTypes,
                      x_data: pd.DataFrame,
                      y_data: pd.Series,
                      n_splits: int,
@@ -76,7 +76,7 @@ def barplot(weights: list[pd.Series], params: list[float]) -> None:
 #####################
 # LINEAR REGRESSION #
 #####################
-def run_simple_linear_regression(data: pd.DataFrame, targets: pd.Series) -> None:
+def run_simple_linear_regression(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     """
     Build a simple linear regression.
 
@@ -88,10 +88,10 @@ def run_simple_linear_regression(data: pd.DataFrame, targets: pd.Series) -> None
     regression = LinearRegressionModel.build_pipeline(
         [PolynomialFeatures(degree=2, include_bias=False)]
     )
-    scores = cross_validation(regression, data, targets, n_splits=10)
+    scores = cross_validation(regression, x_data, y_data, n_splits=10)
     plot_coefficients_of_linear_model(regression.get_coefficients(scores))
 
-def run_simple_ridge_regression(data: pd.DataFrame, targets: pd.Series, solver: str) -> None:
+def run_simple_ridge_regression(x_data: pd.DataFrame, y_data: pd.Series, solver: str) -> None:
     """
     Use ridge regression to force the linear regression model to consider all features in a more
     homogeneous manner. This process is called regularization.
@@ -110,10 +110,10 @@ def run_simple_ridge_regression(data: pd.DataFrame, targets: pd.Series, solver: 
     ridge = RidgeRegressionModel.build_pipeline([PolynomialFeatures(degree=2, include_bias=False)],
                                                 alpha=100,
                                                 solver=solver)
-    scores = cross_validation(ridge, data, targets, n_splits=10)
+    scores = cross_validation(ridge, x_data, y_data, n_splits=10)
     plot_coefficients_of_linear_model(ridge.get_coefficients(scores))
 
-def run_ridge_regression_with_scaling(data: pd.DataFrame, targets: pd.Series, solver: str) -> None:
+def run_ridge_regression_with_scaling(x_data: pd.DataFrame, y_data: pd.Series, solver: str) -> None:
     """
     Perform ridge regression after data scaling. Data scaling may help regularization to stay
     neutral and treat approximately equally each feature.
@@ -130,10 +130,10 @@ def run_ridge_regression_with_scaling(data: pd.DataFrame, targets: pd.Series, so
         alpha=10,
         solver=solver
     )
-    scores = cross_validation(ridge, data, targets, n_splits=20)
+    scores = cross_validation(ridge, x_data, y_data, n_splits=20)
     plot_coefficients_of_linear_model(ridge.get_coefficients(scores))
 
-def run_ridge_regression_with_tuning(data: pd.DataFrame, targets: pd.Series) -> None:
+def run_ridge_regression_with_tuning(x_data: pd.DataFrame, y_data: pd.Series) -> None:
     """
     Hyperparameter tuning must be done on each dataset. Therefore, for ridge regression it's
     required to tune the parameter alpha.
@@ -155,7 +155,7 @@ def run_ridge_regression_with_tuning(data: pd.DataFrame, targets: pd.Series) -> 
     )
 
     # Cross-validation + display the testing error of the inner cv
-    scores = cross_validation(ridge, data, targets, n_splits=50, test_size=0.2)
+    scores = cross_validation(ridge, x_data, y_data, n_splits=50, test_size=0.2)
     ridge.print_best_alpha_from_cv_estimator(scores)
     show_errorbars_for_hyperparameter_tuning(ridge.get_mean_cv_results(scores, alphas),
                                              alphas,

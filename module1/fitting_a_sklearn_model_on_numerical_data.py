@@ -4,6 +4,7 @@ from config import DataPath, TargetColumn
 from model import (DummyClassifierModel, KNeighborsClassifierModel,
                    LogisticRegressionModel)
 from sklearn.preprocessing import StandardScaler
+from types_config import CvParameters
 from visualisation import check_data, scaler_jointplot
 
 
@@ -104,11 +105,11 @@ def model_evaluation_using_cross_validation(x_data: pd.DataFrame,
     logistic_regression = LogisticRegressionModel.build_pipeline([StandardScaler()])
 
     # 3. KFold cross-validation to evaluate generalization performance of the model
-    scores = logistic_regression.kfold_cross_validate(x_data, y_data, 5)
-    logistic_regression.print_kfold_cross_validation_accuracy(scores)
+    scores = logistic_regression.make_cross_validate(x_data, y_data, cv_params=CvParameters(5))
+    logistic_regression.print_cross_validate(scores)
 
-    scores = logistic_regression.kfold_cross_validate(x_data, y_data, 10)
-    logistic_regression.print_kfold_cross_validation_accuracy(scores)
+    scores = logistic_regression.make_cross_validate(x_data, y_data, cv_params=CvParameters(10))
+    logistic_regression.print_cross_validate(scores)
 
 
 ############
