@@ -208,9 +208,9 @@ def show_pr_curve(curve: PrecisionRecallDisplay,
     Show precision recall curve. A perfect classifier would have a precision of 1 for all recall
     values and an average precision (AP) of 1.
     """
-    # Precision refers to the test's ablity to accurately detect genuine blood donors (TP), taking
+    # Precision refers to the test's ability to accurately detect genuine blood donors (TP), taking
     # into account everyone who has been considered a donor (TP + FP). Precision = TP / (TP + FP)
-    # In other words, precision measure the ability of the model to not make mistake among the
+    # In other words, precision measures the ability of the model to not make mistakes among the
     # samples actually classified as positive.
     precision = precision_score(y_test, y_predicted, pos_label=pos_label)
     print(f"\nPrecision score is {precision:.3f}")
